@@ -11,8 +11,6 @@
 ..	set H = {h,h'}. An oriented triangle is comprised of         ..
 ..	cyclically ordered halfedges F = {h0,h1,h2}.                 ..
 ..	Later: Remove many assert(); */
-
-typedef uint8_t Flag;
 typedef struct _Hedge Hedge;
 
 struct _Hedge{

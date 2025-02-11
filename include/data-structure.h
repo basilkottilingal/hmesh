@@ -1,13 +1,60 @@
-typedef uint16_t _Index;
+/* _Flag : used for unsigned numbers in the range [0,256), like 
+..  (a) counting numbers < 256, 
+..  (b) error flags, 
+..  etc.
+*/
+typedef uint8_t _Flag;
+
+/* _DataType : Precision used in scientific computation.
+.. 32 bits is Preferred data type precision for GPU vectors.
+.. Everywhere else (and by default) it's used as 64.
+*/
+#ifdef _PRECISION32
+  #define float _DataType
+#else 
+  #define double _DataType
+#endif
+
+/* Alignment of memory block */
+
+
+/* Linked list of data nodes, that may represent 
+.. a point, or a halfedge, or a face 
+*/ 
+typedef struct _DataNode {
+
+  /* Index in the memory block . This is used to ..
+  .. point to a scalar associated with this DataNode.
+  .. Usually for */
+  uint16_t i; 
+
+  /* points to the next node in the same memory block */
+  _DataNode * next;
+
+}_DataNode;
 
 /* _List: linked list */
-typedef struct _List {
+typedef struct _VertexList {
 
-  _Index i;
+  /* memory block(s) allocated for the Linked list of  */
+  _Mempool * indexPool;
+  
+  /* List of memory blocks of each block. 
+  .. Say there is variable is var \in [0, VARMAX],
+  .. then vars[var] is the memory block corresponding to ..
+  .. */ 
+  _Mempool ** vars;
 
-  /* List of object functions */
-  /* 1: Add an(void * ) (* add) ( _List * );
-  void 
+  /* List of object functions 
+  .. (a) To add a vertex
+  .. (b) To remove a vertex 
+  .. (c)
+  .. respectively,
+  */
+  (void * ) (* add)      ( _List * list);
+  Flag      (* remove)   (_List * list, void * node);
+  (void *)  (* var)      (_List * list, char * name);
+  Flag      (* var_free) (_List * list, char * name);
 
 }_List;
 
