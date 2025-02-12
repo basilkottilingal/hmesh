@@ -10,34 +10,55 @@ typedef uint8_t _Flag;
 .. Everywhere else (and by default) it's used as 64.
 */
 #ifdef _PRECISION32
-  #define float _DataType
+  typedef float _DataType
 #else 
-  #define double _DataType
+  typedef double _DataType
 #endif
 
 /* Alignment of memory block */
 
 
-/* Linked list of data nodes, that may represent 
-.. a point, or a halfedge, or a face 
+/* '_Index' : a node of the Linked list . 
+.. A data node may represent a point, or a halfedge, 
+.. or an orineted face (mostly triangle);
 */ 
-typedef struct _DataNode {
+typedef struct _Index {
 
   /* Index in the memory block . This is used to ..
   .. point to a scalar associated with this DataNode.
-  .. Usually for */
-  uint16_t i; 
+  .. fixme: See if you need 2^32 (~4 Billion) Nodes?
+  */
+  uint32_t i;
 
-  /* points to the next node in the same memory block */
-  _DataNode * next;
+  /* 'flags' : Store flags related to the index.
+    Ex: to store if this index is occupied 
+  */
+  Flag flags;
 
-}_DataNode;
+#ifdef MPI_VERSION
+  /* 'pid' : processor ID 
+  */
+  uint32_t pid;
+#endif
+  /* 'next' : used to keep a linked list of indices 
+  */
+  _Index * next;
+
+}_Index;
+
+
+/* '_IndexBlock' : Chunks of indices. 
+.. (a) avoids repeated malloc/realloc,
+.. (b) chunks of size close L2 cache (need optimization)
+..  can help locality of 'next' node within range,
+*/
+
 
 /* _List: linked list */
-typedef struct _VertexList {
+typedef struct _IndexList {
 
   /* memory block(s) allocated for the Linked list of  */
-  _Mempool * indexPool;
+  _Mempool * index;
   
   /* List of memory blocks of each block. 
   .. Say there is variable is var \in [0, VARMAX],
@@ -46,8 +67,8 @@ typedef struct _VertexList {
   _Mempool ** vars;
 
   /* List of object functions 
-  .. (a) To add a vertex
-  .. (b) To remove a vertex 
+  .. (a) To add an index
+  .. (b) To remove an occupied index 
   .. (c)
   .. respectively,
   */
