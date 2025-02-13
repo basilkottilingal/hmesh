@@ -10,12 +10,10 @@ typedef uint8_t _Flag;
 .. Everywhere else (and by default) it's used as 64.
 */
 #ifdef _PRECISION32
-  typedef float _DataType
+typedef float _DataType
 #else 
-  typedef double _DataType
+typedef double _DataType
 #endif
-
-
 
 /* '_Index' : a node of the Linked list . 
 .. A data node may represent a point, or a halfedge, 
@@ -23,8 +21,9 @@ typedef uint8_t _Flag;
 */ 
 typedef struct _Index {
 
-  /* Index in the memory block . This is used to ..
-  .. point to a scalar associated with this DataNode.
+  /* Global Index for a data node (of same kind) . 
+  .. This is used to point to a scalar associated,
+  .. with this data node. 
   .. fixme: See if you need 2^32 (~4 Billion) Nodes?
   */
   uint32_t i;
@@ -43,6 +42,10 @@ typedef struct _Index {
   */
   _Index * next;
 
+  /* 'prev' : previous of 'this' index.
+  */
+  _Index * prev;
+
 }_Index;
 
 /* '_IndexBlock' : Chunks of indices. 
@@ -54,34 +57,43 @@ typedef struct _Index {
 */
 
 typedef struct _IndexBlock {
-  /* 'root' : starting node among the occuppied list*/
-  _Index * root;
+  /* 'used' : starting node among the occuppied list
+  */
+  _Index * used;
 
   /* 'empty' : starting node in the empty/free list 
   .. All the occuppied+empty constitutes a memory block.
   */
   _Index * empty;
 
-  /* Number of empty nodes */
+  /* 'next' : next index block */
+  _IndexBlock * next; 
+
+  /* 'nempty' : Number of empty nodes 
+  */
   uint8_t nempty;
   
 } _IndexBlock;
 
 typedef struct _VariableBlock {
 
-  /* a memory block is completely allocated for a scalar 
-  .. variable. 
+  /* 'u' : a memory block allocated for a scalar variable. 
   .. IMPORTANT. The number of double (or float) a _VariableBlock
-  .. block can accomodate SHOULD be same as the number of
-  .. indices an _IndexBlock can accomodate.
+  .. block accomodates, SHOULD be same as the number of
+  .. indices an _IndexBlock can accomodates.
   */
   _DataType * u;
+
+  /* 'block' : _IndexBlock whoses indices' variable data 
+  .. is stored in 'u'.
+  */
+  _IndexBlock * block;
 
 }_VariableBlock;
 
 enum VARIABLE_TYPE {
   /* scalar or vector or tensor*/
-  VAR_TENSOR_RANK = 3,
+  VAR_TENSOR_RANK = 1|2,
   /* rank of tensor = (VARIABLE_TYPE & VAR_TENSOR_RANK) */
   VAR_IS_A_SCALAR = 0,
   VAR_IS_A_VECTOR = 1,
@@ -108,12 +120,49 @@ typedef struct _Scalar {
   _Flag type;
 
   /* Name of the variable */
-  char name[VAR_SIZE_MAX];
+  char * name;
 
   /* 'i' : i \in [0, VAR_MAX) */
   _Flag i;
 
 }_Scalar;
+
+/* Collection of points */
+typedef struct _Points {
+
+  /* 'first' : first IndexBlock that stores indices of 
+  .. of points */
+  _IndexBlock * first; 
+
+  /* 'vars' : variable corresponding to each point, 
+  .. like coordinates of each points.*/
+  _VariableBlock * vars;
+
+  Flag      (* init)       (_Points * p);
+  (void * ) (* add)        (_points * p);
+  Flag      (* remove)     (_Points * p, void * node);
+  (void *)  (* var)        (_Points * p, char * name, Flag type);
+  (void *)  (* var_remove) (_Points * p, char * name);
+}
+
+/* Collection of edges */
+typedef struct _HalfEdges {
+
+  /* 'first' : first IndexBlock that stores indices of 
+  .. of half */
+  _IndexBlock * first;
+
+
+  /* 'vars' : variable corresponding to each point, 
+  .. like coordinates of each points.*/
+  _VariableBlock * vars;
+
+  Flag      (* init)       (_Points * p);
+  (void * ) (* add)        (_points * p);
+  Flag      (* remove)     (_Points * p, void * node);
+  (void *)  (* var)        (_Points * p, char * name, Flag type);
+  (void *)  (* var_remove) (_Points * p, char * name);
+}
 
 
 /* _List: linked list */
@@ -140,6 +189,7 @@ typedef struct _IndexList {
   Flag      (* var_free) (_List * list, char * name);
 
 }_List;
+
 typedef struct {
   /* Index in [0, max variables allowed) */
   Flag i;
