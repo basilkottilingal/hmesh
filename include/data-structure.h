@@ -10,10 +10,11 @@ typedef uint8_t _Flag;
 .. Everywhere else (and by default) it's used as 64.
 */
 #ifdef _PRECISION32
-typedef float _DataType
+typedef float _DataType;
 #else 
-typedef double _DataType
+typedef double _DataType;
 #endif
+typedef uint32_t _IndexType;
 
 /* '_Index' : a node of the Linked list . 
 .. A data node may represent a point, or a halfedge, 
@@ -26,7 +27,7 @@ typedef struct _Index {
   .. with this data node. 
   .. fixme: See if you need 2^32 (~4 Billion) Nodes?
   */
-  uint32_t i;
+  _IndexType i;
 
   /* 'flags' : Store flags related to the index.
     Ex: to store if this index is occupied 
@@ -57,6 +58,11 @@ typedef struct _Index {
 */
 
 typedef struct _IndexBlock {
+  /* 'block' : the memory block which stores the node indices. 
+  .. Used only for freeing when you destroy this block.
+  */
+  MemBlock * block;
+ 
   /* 'used' : starting node among the occuppied list
   */
   _Index * used;
@@ -76,6 +82,10 @@ typedef struct _IndexBlock {
 } _IndexBlock;
 
 typedef struct _VariableBlock {
+  /* 'block' : the memory block which stores the scalar data. 
+  .. Used only for freeing when you destroy this block.
+  */
+  MemBlock * block;
 
   /* 'u' : a memory block allocated for a scalar variable. 
   .. IMPORTANT. The number of double (or float) a _VariableBlock
@@ -84,8 +94,26 @@ typedef struct _VariableBlock {
   */
   _DataType * u;
 
-  /* 'block' : _IndexBlock whoses indices' variable data 
-  .. is stored in 'u'.
+  /* 'next' :  next variable block corresponding to next index 
+  .. block.
+  */
+  _IndexBlock * block;
+
+}_VariableBlock;
+
+typedef struct _VertexBlock {
+  /* 'block' : the memory block which stores the indices of 
+  .. vertices of a edge or a face. 
+  .. Used only for freeing when you destroy this block.
+  */
+  DataBlock * block;
+
+  /* 
+  */
+  _IndexType * i, * j, * k;
+
+  /* 'next' :  next variable block corresponding to next index 
+  .. block.
   */
   _IndexBlock * block;
 
@@ -128,96 +156,55 @@ typedef struct _Scalar {
 }_Scalar;
 
 /* Collection of points */
-typedef struct _Points {
+typedef struct _ManifoldCells {
 
   /* 'first' : first IndexBlock that stores indices of 
   .. of points */
   _IndexBlock * first; 
 
-  /* 'vars' : variable corresponding to each point, 
-  .. like coordinates of each points.*/
-  _VariableBlock * vars;
+  /* 'type' : 0:point, 1:halfedge, 2:triangle, 3:terahedron
+  */
+  _Flag type;
 
+  /* 'vertices' of cells. For points it will be empty.
+  */
+  _VertexBlock * vertices;
+
+  /* 'twin' : it applies for a half-edge or a half-face.
+  */
+  _VertexBlock * twin;
+  
+  /* 'sub' : for a half-edge it represents points, and for a 
+  .. face it represent half-edges. 
+  */
+  _ManifoldCells * sub;
+
+
+  /* 'vars' : variable block corresponding to each variable */ 
+  _VariableBlock * vars[NVAR_MAX];
+
+  /* 's' : s[ivar] contains info of variable stored in indices 
+  .. of vars[ivar] */ 
+  _Scalar s[NVAR_MAX];
+
+  /* object functions */
   Flag      (* init)       (_Points * p);
   (void * ) (* add)        (_points * p);
   Flag      (* remove)     (_Points * p, void * node);
   (void *)  (* var)        (_Points * p, char * name, Flag type);
   (void *)  (* var_remove) (_Points * p, char * name);
-}
 
-/* Collection of edges */
-typedef struct _HalfEdges {
-
-  /* 'first' : first IndexBlock that stores indices of 
-  .. of half */
-  _IndexBlock * first;
-
-
-  /* 'vars' : variable corresponding to each point, 
-  .. like coordinates of each points.*/
-  _VariableBlock * vars;
-
-  Flag      (* init)       (_Points * p);
-  (void * ) (* add)        (_points * p);
-  Flag      (* remove)     (_Points * p, void * node);
-  (void *)  (* var)        (_Points * p, char * name, Flag type);
-  (void *)  (* var_remove) (_Points * p, char * name);
-}
-
-
-/* _List: linked list */
-typedef struct _IndexList {
-
-  /* memory block(s) allocated for the Linked list of  */
-  _Mempool * index;
-  
-  /* List of memory blocks of each block. 
-  .. Say there is variable is var \in [0, VARMAX],
-  .. then vars[var] is the memory block corresponding to ..
-  .. */ 
-  _Mempool ** vars;
-
-  /* List of object functions 
-  .. (a) To add an index
-  .. (b) To remove an occupied index 
-  .. (c)
-  .. respectively,
-  */
-  (void * ) (* add)      ( _List * list);
-  Flag      (* remove)   (_List * list, void * node);
-  (void *)  (* var)      (_List * list, char * name);
-  Flag      (* var_free) (_List * list, char * name);
-
-}_List;
-
-typedef struct {
-  /* Index in [0, max variables allowed) */
-  Flag i;
-
-  /* Variable type */
-  
-}_Scalar;
-
-/* _Data : Datatype */
-typedef struct _Data{
-
-  /* List of scalars */
-  _Scalar * s;
-
-  /* List of vectors */
-  _Vector * v;
-
-  /* Function pointer to add a global scalar/vector . 
-  .. NOTE: The varibale added here will have the scope till the,
-  .. end of the program. 
-  .. Input: 
-  */
-  (void * ) (*add) (_Data *, char * , Flag );
-
-}_Data;
+}_ManifoldCell;
 
 /* _Manifold: Mesh or a discretized manifold */
 typedef struct {
+  /* A large pool to accomodate blocks of indices of points,
+  .. edges  and triangles (may be polygons too), index of 
+  .. vertices of edges, edges of triangles (may be triangles 
+  .. of tetrahedrons too), scalars of points, edges, triangles
+  .. (may be polygons too).
+  */
+  _Mempool * pool;
 
   /* 'd' : dimension of manifold in [0,3]. They can be,
   .. 0: Collection of disconnected Points
@@ -233,10 +220,11 @@ typedef struct {
   */
   _Flag D;
   
-  /* List of indices of submanifolds like
-  .. faces, edges and vertices. 
+  /* set of manifold cells like faces, edges and points 
   .. NOTE: They can be empty, 
   .. ex: a curve, which is a 1-D manifold in 3D Eulerian space,
-  .. will have empty face list ('f') */
-  _List v, e, f; 
+  .. will have empty face list ('f').
+  */
+  _ManifoldCells points, edges, triangles, tetrahedron; 
+
 }_Manifold;

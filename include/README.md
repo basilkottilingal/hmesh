@@ -34,4 +34,5 @@
     * If sparseness is minimal, GPU computatation on vectorized arrays neednot skip the sparse part of the array.
          (Same for multithreading.)
     * But in CPU, you can  iterate through only the occupied part of the linked list.
-    
+  * challenge in using many blocks to represent a non-partitioned manifold in a single CPU memory, 
+    * while searching for the pointer in memory (vertex/edge/etc..) is the locality of searched memory pointer. If locality is not guaranteed TLB searching will fail and start manually searching for memory in the memory hardware which might be  
