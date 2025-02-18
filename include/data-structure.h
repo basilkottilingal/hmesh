@@ -26,8 +26,8 @@ typedef struct _Index {
   .. This is used to point to a scalar associated,
   .. with this data node. 
   .. fixme: See if you need 2^32 (~4 Billion) Nodes?
-  */
   _IndexType i;
+  */
 
   /* 'flags' : Store flags related to the index.
     Ex: to store if this index is occupied 
@@ -58,10 +58,10 @@ typedef struct _Index {
 */
 
 typedef struct _IndexBlock {
-  /* 'block' : the memory block which stores the node indices. 
+  /* 'address' : the memory block which stores the node indices. 
   .. Used only for freeing when you destroy this block.
   */
-  MemBlock * block;
+  void * address;
  
   /* 'used' : starting node among the occuppied list
   */
@@ -77,7 +77,12 @@ typedef struct _IndexBlock {
 
   /* 'nempty' : Number of empty nodes 
   */
-  uint8_t nempty;
+  uint16_t nempty;
+
+  /* object functions */
+  Flag        (* init)     (_Points * p);
+  (_Index * ) (* add)      (_points * p);
+  Flag        (* remove)   (_Points * p, void * node);
   
 } _IndexBlock;
 
@@ -85,14 +90,14 @@ typedef struct _VariableBlock {
   /* 'block' : the memory block which stores the scalar data. 
   .. Used only for freeing when you destroy this block.
   */
-  MemBlock * block;
+  void * address;
 
   /* 'u' : a memory block allocated for a scalar variable. 
-  .. IMPORTANT. The number of double (or float) a _VariableBlock
-  .. block accomodates, SHOULD be same as the number of
+  .. IMPORTANT. The number of double (or float or any other vartype) 
+  .. a _VariableBlock block accomodates, SHOULD be same as the number of
   .. indices an _IndexBlock can accomodates.
   */
-  _DataType * u;
+  void * u;
 
   /* 'next' :  next variable block corresponding to next index 
   .. block.
@@ -118,24 +123,6 @@ typedef struct _VertexBlock {
   _IndexBlock * block;
 
 }_VariableBlock;
-
-enum VARIABLE_TYPE {
-  /* scalar or vector or tensor*/
-  VAR_TENSOR_RANK = 1|2,
-  /* rank of tensor = (VARIABLE_TYPE & VAR_TENSOR_RANK) */
-  VAR_IS_A_SCALAR = 0,
-  VAR_IS_A_VECTOR = 1,
-  VAR_IS_A_TENSOR = 2,
-  /* constant or variable */
-  VAR_IS_A_CONSTANT = 4,
-  /* corresponds to a vertex or a face */
-  VAR_LOCATION = 8|16,
-  /* (VARIABLE_TYPE & VAR_LOCATION) */
-  VAR_VERTEX = 8,
-  VAR_EDGE   = 16,
-  VAR_FACE   = 8|16,
-  VAR_VOLUME = 0
-};
 
 typedef struct _Scalar {
   /* 'type' : Variable type. 
@@ -188,10 +175,10 @@ typedef struct _ManifoldCells {
   _Scalar s[NVAR_MAX];
 
   /* object functions */
-  Flag      (* init)       (_Points * p);
-  (void * ) (* add)        (_points * p);
-  Flag      (* remove)     (_Points * p, void * node);
-  (void *)  (* var)        (_Points * p, char * name, Flag type);
+  Flag        (* init)   (_Points * p);
+  (_Index * ) (* add)    (_points * p);
+  Flag        (* remove) (_Points * p, void * node);
+  (void *)    (* var)    (_Points * p, char * name, Flag type);
   (void *)  (* var_remove) (_Points * p, char * name);
 
 }_ManifoldCell;
@@ -225,6 +212,9 @@ typedef struct {
   .. ex: a curve, which is a 1-D manifold in 3D Eulerian space,
   .. will have empty face list ('f').
   */
-  _ManifoldCells points, edges, triangles, tetrahedron; 
+  _ManifoldCells * points, 
+                 * edges, 
+                 * triangles, 
+                 * tetrahedron; 
 
 }_Manifold;

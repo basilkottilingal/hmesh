@@ -50,17 +50,19 @@ _Mempool * Mempool(size_t object_size, size_t nobjects) {
   // FIXME: Redo this:
 
   if(object_size < sizeof (void *)){
-    fprintf(stderr, "\nERROR: \
-Oject size should be atleast %ld ", sizeof(void *));
-    // Otherwise you might overwrite when typecasting ..
-    // .. empty memspaces to _FreeNode * 
+    fprintf(stderr, 
+      "\nError : Oject size should be atleast %ld ", 
+      sizeof(void *));
+    /* Otherwise you might overwrite next nodes ..
+    .. when typecasting empty memspaces to _FreeNode * */
     fflush(stderr);  
     return NULL;
   }
   if(object_size%8) {
-    fprintf(stderr, "\nWARNING: \
-Prefer a multiple of 64 bit for object size. \
-Dicarding for the moment");
+    fprintf(stderr, 
+      "\nError : Prefer a multiple of 64 bit for object size. ");
+    fflush(stderr);  
+    return NULL;
   }
     
   _Mempool * pool = 
@@ -158,4 +160,3 @@ void MempoolFree(_Mempool *pool) {
   free(pool->memory_block);
   free(pool);
 }
-
