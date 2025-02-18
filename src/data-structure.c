@@ -1,4 +1,8 @@
 #include <data-structure.h>
+enum NODE_TYPE {
+  NODE_IS_USED = 1,
+  NODE_IS_RESERVED = 2
+};
 
 enum VARIABLE_TYPE {
   /* scalar or vector or tensor*/
@@ -20,53 +24,60 @@ enum VARIABLE_TYPE {
 };
 
 static inline
-_Index * IndexNew(_IndexBlock * block, _Flag d) {
-  /* create new node to this block and return the index*/
-  _Index * index = block->empty;
-  if (!index) {
-#ifdef _MANIFOLD_DEBUG
-    assert(!block->nempty);
-    fprintf(stderr, "Error: Fully occuppied block\n");
-#endif
+_Node * NodeNew(_NodeBlock * block) {
+
+  /* 'NodeNew(block)' : return an available node
+  .. in the 'block', (if any)
+  */
+
+  /* In case there is no empty nodes available,
+  .. return NULL*/ 
+  if (!block->empty) 
     return NULL;
-  }
-  block->empty = index->next;
+
+  _Node * node = block->empty;
+  block->empty = node->next;
 
   /* NOTE: There should be one reserved node each at 
   .. left and right extremum of the block, otherwise 
   .. 'prev' or 'next' might by NULL
   */
-  index->prev = block->used;
-  index->next = block->used->next;
-  block->used = index;
+  node->prev = block->used;
+  node->next = block->used->next;
+  
+  /* 'block->used' does't change at any point */
 
-  index->flags |= NODE_IS_USED;
+  node->flags |= NODE_IS_USED;
 #ifdef _MANIFOLD_DEBUG
-  /* CELL_LOCATION or CELL_TYPE (vertex,edge,face or volume)
+  /* Redundant information. Maybe used only for debugging
   */
-  index->flags |= d << CELL_SHIFT;
   --(block->nempty);
 #endif
   
   /* return index, so you can do something with the index, 
   .. like setting scalar etc*/
-  return index;  
+  return node;  
 }
 
 static inline
-_Flag IndexDestroy(_IndexBlock * block, _Index * index) {
+_Flag NodeDestroy(_NodeBlock * block, _Node * node) {
+
+  /* 'NodeDestroy(block, node)' : destroy an occuppied
+  .. 'node' in the 'block'. Return success (1) if the
+  .. 'node' is occuppied.
+  */
   
-  if(! (index->flags & NODE_IS_USED) )
+  if(! (node->flags & NODE_IS_USED) )
     //error
     return 0;
    
-  index->next->prev = index->prev;
-  index->prev->next = index->next;
+  node->next->prev = node->prev;
+  node->prev->next = node->next;
 
-  index->next  = block->empty;
+  node->next  = block->empty;
   block->empty = index;
 
-  index->flags &= ~NODE_IS_USED;
+  node->flags &= ~NODE_IS_USED;
 #ifdef _MANIFOLD_DEBUG
   ++(block->nempty);
 #endif
@@ -75,16 +86,10 @@ _Flag IndexDestroy(_IndexBlock * block, _Index * index) {
   return 1;  
 }
 
-typedef struct {
-  _Mempool * pool;
-  void * address;
-}_Memblock;
-
-_IndexBlock * IndexBlockNew(_Mempool * pool) {
+_NodeBlock * NodeBlockNew(_Mempool * pool) {
   /* Look for memory of 2^15 nodes in pool or create a new 
   .. pool and add to the linked list of pool*/
-  _Memblock block = 
-    MempoolAllocate(pool, block_size * sizeof(_IndexBlock));
+  _Memblock memblock = MempoolAllocateFrom(pool);
 
   if(!block) {
     fprintf(stderr, 
@@ -92,49 +97,37 @@ _IndexBlock * IndexBlockNew(_Mempool * pool) {
     return NULL;
   }
 
-  /* --------------------------|
-    | struct _Mempool          |
-    |                          |
-    |--------------------------|
-    | struct _IndexBlock       |
-    |                          |
-    |--------------------------|
-    | _Index 0                 |
-    |                          |
-    | _Index 1                 |
-    |                          |
-    |   ...                    |
-    |--------------------------|
-  */
+  _NodeBlock * block = 
+    (_NodeBlock *) malloc (sizeof(_NodeBlock));
 
-
-  _IndexBlock * block = 
-    (_IndexBlock *) malloc (sizeof(_IndexBlock));
-
-  //FIXME : pool might be different;
-  block->pool = pool;
+  /* Set the field of te object block */
   block->address = address;
-  block->start = (_Index *) (address + sizeof(_IndexBlock));
+  block->start = (_Node *) (address + sizeof(_NodeBlock));
    
   /* Set nodes of the blocks as empty.
   .. NOTE: first and last nodes are not reserverd. 
   */
-  _Index * first = (_Index *) address,
+  _Node * first = (_Node *) address,
     * last = first + (block_size - 1);
   /* Used list. It's empty. 'first'/'last' are reserved 
   */
   block->used  = first;
   first->next = last;
   last->prev = first;
+  first->prev = last->next = NULL;
+  first->flags = last->flags = NODE_IS_RESERVED;
 
   /* Empty list. [1, block_size-2] are empty.
   */
   block->empty = first + 1; 
-  for (size_t i = 1; i < block_size - 2; ++i) 
+  for (size_t i = 1; i < block_size - 1; ++i) { 
     first[i].next = first + i + 1;
+    /* first + i is neither reserved nor used */
+    first[i].flags = 0; 
+  }
   first[block_size - 2].next = NULL; 
 }
 
-Flag IndexBlockDestroy(_IndexBlock * block) {
+Flag IndexBlockDestroy(_NodeBlock * block) {
   
 }

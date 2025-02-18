@@ -3,11 +3,19 @@
 
 #define MEMPOOL 
 
+typedef struct _Memblock _Memblock;
+
 /** 
 .. Linked list of free blocks
 .*/
 typedef struct _FreeBlock {
-  _FreeBlock * next; 
+  /* 'next' to form a linked list of empty blocks
+  */
+  _FreeBlock * next;
+
+  /* Store information of pool and block number 
+  */
+  _Memblock memblock; 
 } _FreeBlock;
 
 /** 
@@ -45,152 +53,15 @@ _Mempool{
 
 } _Mempool;
 
-_Mempool * Mempool(size_t object_size, size_t nobjects) {
-  // Initialize the memory pool
-  // FIXME: Redo this:
-
-  if(object_size < sizeof (void *)){
-    /* In this case you might overwrite next used nodes 
-    .. when typecasting empty memspaces to _FreeBlock * 
-    */
-    fprintf(stderr, 
-      "\nError : Oject size should be atleast %ld ", 
-      sizeof(void *));
-    fflush(stderr);  
-    return NULL;
-  }
-    
-  _Mempool * pool =  (_Mempool*)malloc(sizeof(_Mempool));
-
-  size_t block_size = nobjects * object_size;
-  if(block_size > 1<<20) {
-    /* 1MB is the capped limit. You can't override this limit.
-    .. Rounding off the block size to 1MB might destroy the 
-    .. alignment of number of indices per block. So returning.
-    */
-    free(pool);
-    fprintf(stderr, 
-      "\nError : NOBJECTS x OBJ_SIZE exceeds 1 MB");
-    fflush(stderr);  
-    return NULL;
-  }
-
-  if(block_size % 8) {
-    /* You can easily achive this by taking nobjects = 1<<15,
-    .. assuming object_size <= 32 Bytes. 
-    */
-    free(pool);
-    fprintf(stderr, 
-      "\nError : Prefer a multiple of 64 bit for object size. ");
-    fflush(stderr);  
-    return NULL;
-  }
-
-  /* Creating one memory block in the pool
-  */
-  void * address = malloc(block_size);
-  if (!address) {
-    free(pool);
-    fprintf(stderr, 
-      "\nError : Failed to allocate memory for the memory block");
-    fprintf(stderr," in the pool");
-    fflush(stderr);  
-    return NULL;
-  }
- 
-  /* Setting pool object's fields */
-  pool->object_size = object_size;
-  pool->block_size  = block_size;
-  pool->nblocks = 1;
-  pool->blocks = (void **) calloc (1, sizeof(void *));
-  /* The one and only block in the pool */
-  pool->blocks[0] = address; 
-  /* The free node linked list */
-  _FreeBlock * fb = (_FreeBlock *) address;
-  address->next = NULL;
-  pool->free_blocks = fb;
-
-#ifdef _MANIFOLD_DEBUG
-  fprintf(stdout, "\n1 x Pool Created with 1 x MemBlock ");
-  fprintf(stdout, "[%ld bytes = %ldx%ld]"
-    pool->block_size, nobjects, pool->object_size);
-  fflush(stdout);
-#endif
-
-  return pool;
-}
-
-// Allocate memory from the pool
-void * MempoolAllocateFrom(_Mempool * pool) {
-  if (!pool){
-    fprintf(stderr, "Error : No pool Mentioned!");
-    fflush(stderr);
-    return NULL;
-  }
-
-  if (!pool->free_blocks && pool->nblocks == UINT8_MAX) {
-    fprintf(stderr, "\nWarning : No free blocks available.");
-    fprintf(stderr, " Cannot create another block");
-    fflush(stderr);
-    return NULL;
-  }
-
-  /* Send a freeBlock if available 
-  */
-  if(pool->free_blocks) {
-    FreeBlock * block = pool->free_blocks;
-    pool->free_blocks = block->next;
-    return (void *) block;
-  }
-
-  /* create a new block
-  */
-  void * address = malloc(pool->block_size);
-  if (!address) {
-    free(pool);
-    fprintf(stderr, 
-      "\nError : Failed to allocate memory for a new memory block");
-    fprintf(stderr," in the pool");
-    fflush(stderr);  
-    return NULL;
-  }
-
-  ++(pool->nblocks);
-  pool->blocks = (void **) realloc ( pool->blocks,
-    pool->nblocks * sizeof (void *));
-  pool->blocks[pool->nblocks - 1] = address;
-
-  return address;
-}
-
-/* Deallocate memory back to the pool
+/* Struct to store a particular block of the pool 
 */
-_Flag MempoolDeallocateTo(_Mempool * pool, void * block) {
-  if (!pool || !block) {
-    fprintf(stderr, 
-      "Error : Pool/Block not mentioned!");
-    fflush(stderr);
-    return 0;
-  }
+struct _Memblock{
 
-  /* Add this block back to the free list of blocks */
-  _FreeBlock * fb = (_FreeBlock*) block;
-  fb->next = pool->free_blocks;
-  pool->free_blocks = fb;
-  
-  /* success */
-  return 1;
-}
+  /* which pool
+  */
+  _Mempool * pool;
 
-/* Destroy pool*/
-_Flag MempoolFree(_Mempool *pool) {
-  if (!pool) 
-    return 0;
-
-  for(_Flag i=0; i<pool->nblocks; ++i)
-    free(pool->blocks[i]);
-  free(pool->blocks);
-  free(pool);
-  
-  return 1;
-}
+  /* which block. iblock \in [0, pool->nblocks)
+  */
+  _Flag iblock;
+};
