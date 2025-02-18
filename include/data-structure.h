@@ -24,7 +24,9 @@ typedef struct _Index {
 
   /* Global Index for a data node (of same kind) . 
   .. This is used to point to a scalar associated,
-  .. with this data node. 
+  .. with this data node.
+  .. NOTE: This pgm limits number of nodes to 
+  .. UINT8_MAX x 2^15 = 8388608  per processor.
   */
   _IndexType i;
 
