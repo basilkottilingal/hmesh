@@ -6,11 +6,8 @@
 /** 
 .. linked list of free node
 .*/
-
-typedef struct 
-_FreeNode 
-{
-  struct _FreeNode * next; 
+typedef struct _FreeNode {
+  _FreeNode * next; 
 } _FreeNode;
 
 /** 
@@ -19,29 +16,35 @@ _FreeNode
 typedef struct 
 _Mempool{
 
-  /* Size of each object. FIXME: Remove this*/ 
+  /* Size of each object. 
+  .. NOTE : Need to be 64 bit aligned datatype.  
+  */ 
   size_t object_size; 
    
-  /* Number of objects in the block. FIXME: Might remove this too */
-  size_t block_size; 
- 
-  /* No of freenodes in the block: FIXME: Might remove this too */
-  size_t nfree;   
-
-  /* Pointer to the memory block. 
-  .. NOTE: Perfer making blocks that align with ..
-  .. multiples of kB or MB.
+  /* Number of objects in the block.
   */
-  void * memory_block; 
+  size_t block_size; 
+
+  /* list of pointers to the memory blocks. 
+  .. NOTE: Perfer making blocks that align with 2^N.
+  */
+  void ** blocks; 
+
+  /* Total number of blocks allocated.
+  .. NOTE: Limited, nblocks < 256
+  */
+  _Flag nblocks;
  
-  /* Linked list of free slots.
+  /* Linked list of free blocks.
   .. WARNING: There is no provision to know, if you, ..
   .. deallocate same node multiple times 
   */
   _FreeNode * free_list; 
-
-  /* In case you need to nest more than a pool to accomodate the size */
-  _Mempool * next; 
+ 
+  /* No of freenodes in the block.
+  .. NOTE: It should be, nfree <= nblocks < 256
+  */
+  _Flag nfree;   
 
 } _Mempool;
 
@@ -58,7 +61,7 @@ _Mempool * Mempool(size_t object_size, size_t nobjects) {
     fflush(stderr);  
     return NULL;
   }
-  if(object_size%8) {
+  if(object_size % 8) {
     fprintf(stderr, 
       "\nError : Prefer a multiple of 64 bit for object size. ");
     fflush(stderr);  
@@ -122,6 +125,7 @@ void * MempoolAllocateFrom(_Mempool * pool) {
     fflush(stderr);
     return NULL;
   }
+
   if (!pool->free_list) {
     fprintf(stderr, "WARNING:\
 No free slots available in the pool.");

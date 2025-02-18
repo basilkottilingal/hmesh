@@ -25,9 +25,8 @@ typedef struct _Index {
   /* Global Index for a data node (of same kind) . 
   .. This is used to point to a scalar associated,
   .. with this data node. 
-  .. fixme: See if you need 2^32 (~4 Billion) Nodes?
-  _IndexType i;
   */
+  _IndexType i;
 
   /* 'flags' : Store flags related to the index.
     Ex: to store if this index is occupied 
@@ -44,6 +43,9 @@ typedef struct _Index {
   _Index * next;
 
   /* 'prev' : previous of 'this' index.
+  .. NOTE: Why you need 'prev'? The linked list is 
+  .. not a normal stack that follows LIFO, while a
+  .. linked list where you can delete any used index.
   */
   _Index * prev;
 
@@ -80,9 +82,9 @@ typedef struct _IndexBlock {
   uint16_t nempty;
 
   /* object functions */
-  Flag        (* init)     (_Points * p);
-  (_Index * ) (* add)      (_points * p);
-  Flag        (* remove)   (_Points * p, void * node);
+  _Flag       (* init)     (_IndexBlock *, _IndexType );
+  (_Index * ) (* add)      (_IndexBlock * );
+  Flag        (* remove)   (_IndexBlock * , void * node);
   
 } _IndexBlock;
 
@@ -166,7 +168,6 @@ typedef struct _ManifoldCells {
   */
   _ManifoldCells * sub;
 
-
   /* 'vars' : variable block corresponding to each variable */ 
   _VariableBlock * vars[NVAR_MAX];
 
@@ -175,13 +176,13 @@ typedef struct _ManifoldCells {
   _Scalar s[NVAR_MAX];
 
   /* object functions */
-  Flag        (* init)   (_Points * p);
-  (_Index * ) (* add)    (_points * p);
-  Flag        (* remove) (_Points * p, void * node);
-  (void *)    (* var)    (_Points * p, char * name, Flag type);
-  (void *)  (* var_remove) (_Points * p, char * name);
+  Flag        (* init)   (_ManifoldCells * );
+  (_Index * ) (* add)    (_ManifoldCells * );
+  Flag        (* remove) (_ManifoldCells *, void *);
+  (void *)    (* var)    (_ManifoldCells *, char *, Flag);
+  (void *)  (* var_remove) (_ManifoldCells *, char *);
 
-}_ManifoldCell;
+}_ManifoldCells;
 
 /* _Manifold: Mesh or a discretized manifold */
 typedef struct {
