@@ -86,13 +86,22 @@ typedef struct _NodeBlock {
   
 } _NodeBlock;
 
+typedef struct _ManifoldCells _ManifoldCells;
+
 typedef struct _IndexMap {
   /* Map one kind of index to another kind.
   .. Ex1: map indices of triangles to their 0-th vertex.
   .. Ex2: map indices of halfedges to their respective twins
   */
-  _Mempool * map;
+  _Mempool * pool;
+
+  /* Expand the pool in case node block expands.
+  */
+  _Flag (* expand) (_ManifoldCells * cells);
+  
 }_IndexMap;
+
+typedef _IndexMap _ScalarMap;
 
 typedef struct _Scalar {
   /* 'type' : Variable type. 
@@ -103,6 +112,8 @@ typedef struct _Scalar {
   ..  volume center
   */
   _Flag type;
+
+  _ScalarMap map;
 
   /* Name of the variable */
   char * name;
@@ -151,12 +162,9 @@ typedef struct _ManifoldCells {
   */
   _ManifoldCells * sub;
 
-  /* 'vars' : Mempool of blocks corresponding to each variable */ 
-  _Mempool * vars[NVAR_MAX];
-
   /* 's' : s[ivar] contains info of variable stored in indices 
   .. of vars[ivar] */ 
-  _Scalar s[NVAR_MAX];
+  _Scalar * s;
 
   /* object functions */
   Flag       (* init)   (_ManifoldCells * );
@@ -189,9 +197,9 @@ typedef struct {
   .. ex: a curve, which is a 1-D manifold in 3D Eulerian space,
   .. will have empty face list ('f').
   */
-  _ManifoldCells * points, 
-                 * edges, 
-                 * triangles, 
-                 * tetrahedron; 
+  _ManifoldCells points, 
+                 edges, 
+                 triangles, 
+                 tetrahedron; 
 
 }_Manifold;

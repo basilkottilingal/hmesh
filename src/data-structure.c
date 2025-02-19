@@ -108,28 +108,46 @@ _NodeBlock * NodeBlockNew(_Mempool * pool) {
 
   /* Set the field of te object block */
   block->memblock = memblock;
+
+  /* Number of nodes in the block */
+  size_t n = pool->block_size/pool->object_size;
+
+  /* Starting index of first node.
+  .. Used for indexing of nodes. 
+  */
+  _Index i0 = n*memblock.iblock;
    
   /* Set nodes of the blocks as empty.
   .. NOTE: first and last nodes are not reserverd. 
   */
   _Node * first = (_Node *) address,
-    * last = first + (block_size - 1);
-  first->flags = last->flags = NODE_IS_RESERVED;
+    * last = first + (n - 1);
+  /* Reserved nodes */
+  first->flags = NODE_IS_RESRVED;
+  last->flags = NODE_IS_RESERVED;
+  /* index */
+  first->i = i0;
+  last->i = i0 + n;
+  /* Doubly linked list */
   first->next = last;
+  first->prev = NULL; 
   last->prev = first;
-  first->prev = last->next = NULL;
+  last->next = NULL;
 
   /* Used list. It's empty as of now.
   */
   block->used  = last;
 
-  /* Empty list. [1, block_size-2] are empty.
+  /* Empty list. Nodes [1, block_size-2] are empty.
   */
   block->empty = first + 1; 
-  for (size_t i = 1; i < block_size - 1; ++i) { 
+  for (size_t i = 1; i < n - 1; ++i) { 
+    /* next node in empty list */
     first[i].next = first + i + 1;
     /* first + i is neither reserved nor used */
     first[i].flags = 0; 
+    /* index of this node */
+    first[i].i = i0 + i;
   }
   first[block_size - 2].next = NULL; 
 
@@ -152,6 +170,11 @@ Flag NodeBlockDestroy(_NodeBlock * block) {
     return 0;
   } 
 
+  /* NOTE : This memory block is deallocated back to the unused
+  .. part of the pool. Don't re-use the address again.
+  .. Also don't Deallocate again. There is no
+  .. provision to know multiple de-allocation to the pool
+  */
   MempoolDeallocateTo(memblock);
 
   return 1;
