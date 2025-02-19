@@ -121,26 +121,46 @@ typedef struct _Scalar {
   /* 'i' : i \in [0, VAR_MAX) */
   _Flag i;
 
+  /* It's a linked list of scalars */
+  _Scalar * next;
+
 }_Scalar;
+
+typedef struct _NodeList {
+  /* Keep a list of _NodeBlock */
+
+  /* Array of (_NodeBlock *) */
+  _NodeBlock ** blocks;
+
+  /* Number of _NodeBlock */
+  _Flag n;
+
+}_NodeList;
+
+typedef struct _ScalarList {
+  /* Keep a list of scalar */
+
+  /* Linked list of scalars */
+  _Scalar * used;
+
+  /* Empty list of scalars */
+  _Scalar * empty;
+
+  /* Number of scalars */
+  _Flag n;
+
+  /* Oject function. To add a new scalar */
+  (void *)   (* add)    (char * name);
+  _Flag      (* remove) (char * name);
+
+}_ScalarList;
 
 /* Collection of points */
 typedef struct _ManifoldCells {
-  /* A large pool to accomodate blocks of indices of points,
-  .. edges  and triangles (may be polygons too), index of 
-  .. vertices of edges, edges of triangles (may be triangles 
-  .. of tetrahedrons too), scalars of points, edges, triangles
-  .. (may be polygons too).
-  */
-  _Mempool * pool;
 
-  /* Number of blocks (usually 1 block accomodate 1<<15 nodes)
-  .. NOTE: Redundant. this->nblocks = pool->nblocks;
-  */
-  _Flag nblocks;
-
-  /* Each NodeBlock corresponding to pool->blocks[iblock]
+  /* List of NodeBlocks
   */ 
-  _NodeBlock ** indices;
+  _NodeList nodes;
 
   /* 'type' : 0:point, 1:halfedge, 2:triangle, 3:terahedron
   */
@@ -157,14 +177,15 @@ typedef struct _ManifoldCells {
   */
   _IndexMap twin;
   
-  /* 'sub' : for a half-edge it represents points, and for a 
+  /* 'sub' : sub-cells.
+  .. For a half-edge it represents points, and for a 
   .. face it represent half-edges. 
   */
-  _ManifoldCells * sub;
+  _ManifoldCells sub;
 
   /* 's' : s[ivar] contains info of variable stored in indices 
   .. of vars[ivar] */ 
-  _Scalar * s;
+  _ScalarList s;
 
   /* object functions */
   Flag       (* init)   (_ManifoldCells * );
@@ -172,6 +193,7 @@ typedef struct _ManifoldCells {
   Flag       (* remove) (_ManifoldCells *, void *);
   (void *)   (* var)    (_ManifoldCells *, char *, Flag);
   (void *)   (* var_remove) (_ManifoldCells *, char *);
+  _Flag      (* destroy) (_ManifoldCells *);
 
 }_ManifoldCells;
 
