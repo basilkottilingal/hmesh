@@ -71,14 +71,16 @@ typedef struct _NodeBlock {
   */
   _Node * empty;
 
+  /* Memblock. Used only for derefrence */
+  _Memblock memblock;
+
   /* 'nempty' : Number of empty nodes 
-  */
   uint16_t nempty;
+  */
 
   /* object functions .
   .. fixme: remove add(), and remove() from here and 
   .. use inline functions wherever required. */
-  _Flag       (* init)     (_NodeBlock *, _Index );
   (_Node * )  (* add)      (_NodeBlock * );
   Flag        (* remove)   (_NodeBlock * , void * node);
   

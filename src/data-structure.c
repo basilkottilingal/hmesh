@@ -1,10 +1,8 @@
 #include <data-structure.h>
-enum NODE_TYPE {
+enum HMESH_BITS {
+  /* Info on data nodes */
   NODE_IS_USED = 1,
   NODE_IS_RESERVED = 2
-};
-
-enum VARIABLE_TYPE {
   /* scalar or vector or tensor*/
   VAR_TENSOR_RANK = 1|2,
   /* rank of tensor = (VARIABLE_TYPE & VAR_TENSOR_RANK) */
@@ -42,8 +40,8 @@ _Node * NodeNew(_NodeBlock * block) {
   .. left and right extremum of the block, otherwise 
   .. 'prev' or 'next' might by NULL
   */
-  node->prev = block->used;
-  node->next = block->used->next;
+  node->prev = block->used->prev;
+  node->next = block->used;
   
   /* 'block->used' does't change at any point */
 
@@ -66,9 +64,15 @@ _Flag NodeDestroy(_NodeBlock * block, _Node * node) {
   .. 'node' in the 'block'. Return success (1) if the
   .. 'node' is occuppied.
   */
+#ifdef _MANIFOLD_DEBUG
+  if( ! (block && node) )
+    return 0;
+  
+  if( node->flags & NODE_IS_RESERVED )
+    return 0;
+#endif
   
   if(! (node->flags & NODE_IS_USED) )
-    //error
     return 0;
    
   node->next->prev = node->prev;
@@ -91,9 +95,11 @@ _NodeBlock * NodeBlockNew(_Mempool * pool) {
   .. pool and add to the linked list of pool*/
   _Memblock memblock = MempoolAllocateFrom(pool);
 
-  if(!block) {
+  void * address = Memblock(memblock);
+
+  if(!address) {
     fprintf(stderr, 
-      "Error : Couldn't create memory block\n");
+      "Error : Couldn't create memory block for nodes\n");
     return NULL;
   }
 
@@ -101,21 +107,21 @@ _NodeBlock * NodeBlockNew(_Mempool * pool) {
     (_NodeBlock *) malloc (sizeof(_NodeBlock));
 
   /* Set the field of te object block */
-  block->address = address;
-  block->start = (_Node *) (address + sizeof(_NodeBlock));
+  block->memblock = memblock;
    
   /* Set nodes of the blocks as empty.
   .. NOTE: first and last nodes are not reserverd. 
   */
   _Node * first = (_Node *) address,
     * last = first + (block_size - 1);
-  /* Used list. It's empty. 'first'/'last' are reserved 
-  */
-  block->used  = first;
+  first->flags = last->flags = NODE_IS_RESERVED;
   first->next = last;
   last->prev = first;
   first->prev = last->next = NULL;
-  first->flags = last->flags = NODE_IS_RESERVED;
+
+  /* Used list. It's empty as of now.
+  */
+  block->used  = last;
 
   /* Empty list. [1, block_size-2] are empty.
   */
@@ -126,8 +132,27 @@ _NodeBlock * NodeBlockNew(_Mempool * pool) {
     first[i].flags = 0; 
   }
   first[block_size - 2].next = NULL; 
+
+  /* Object functions to add/remove a node to this block
+  */
+  block->add = NodeNew;
+  block->remove = NodeDestroy;
+
+  return block;
 }
 
-Flag IndexBlockDestroy(_NodeBlock * block) {
-  
+Flag NodeBlockDestroy(_NodeBlock * block) {
+  /* Destroy an Node block that stores indices */
+  _Memblock memblock = block->memblock;
+  void * address = Memblock(memblock) 
+    
+  if(!address) {
+    fprintf(stderr, "\nError : Cannot delete this node block");
+    fflush(stderr);
+    return 0;
+  } 
+
+  MempoolDeallocateTo(memblock);
+
+  return 1;
 }

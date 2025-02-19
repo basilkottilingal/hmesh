@@ -9,7 +9,8 @@ void * Memblock(_Memblock * memblock) {
   _Flag iblock = memblock.iblock;
   /* The case "iblock >= pool->nblocks" should never happen
   */
-  void * block_address = (iblock >= pool->nblocks) ? NULL :  
+  void * block_address = !pool ? NULL :
+    (iblock >= pool->nblocks) ? NULL :  
     pool->blocks[iblock];
 
   return block_address;

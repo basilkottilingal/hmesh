@@ -16,6 +16,7 @@ typedef struct _FreeBlock {
   /* Store information of pool and block number 
   */
   _Memblock memblock; 
+
 } _FreeBlock;
 
 /** 
@@ -64,4 +65,11 @@ struct _Memblock{
   /* which block. iblock \in [0, pool->nblocks)
   */
   _Flag iblock;
+
+  /* memory block's address. This information is redundant.
+  .. i.e this.address and this.pool->blocks[this.iblock]
+  .. are literally same. This is for extra verification.
+  void * address;
+  */
+
 };
