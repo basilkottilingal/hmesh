@@ -21,25 +21,6 @@ typedef uint32_t _Index;
 .. or an oriented face (mostly triangle);
 */ 
 typedef struct _Node {
-
-  /* Global Index for a data node (of same kind) . 
-  .. This is used to point to a scalar associated,
-  .. with this data node.
-  .. NOTE: This pgm limits number of nodes to 
-  .. UINT8_MAX x 2^15 = 8388608  per processor.
-  */
-  _Index i;
-
-  /* 'flags' : Store flags related to the index.
-    Ex: to store if this index is occupied 
-  */
-  _Flag flags;
-
-#ifdef MPI_VERSION
-  /* 'pid' : processor ID 
-  */
-  uint32_t pid;
-#endif
   /* 'next' : used to keep a linked list of indices 
   */
   _Node * next;
@@ -50,6 +31,25 @@ typedef struct _Node {
   .. delete any occuppied index.
   */
   _Node * prev;
+
+  /* Global Index for a data node (of same kind) . 
+  .. This is used to point to a scalar associated,
+  .. with this data node.
+  .. NOTE: This pgm limits number of nodes to 
+  .. UINT8_MAX x 2^15 = 8388608  per processor.
+  */
+  _Index i;
+
+  /* 'pid' : processor ID 
+  */
+  int pid;
+
+  /* 'flags' : Store flags related to the index.
+  .. Ex: to store if this index is occupied.
+  .. fixme: May store as a separate array to maintain 
+  .. 8x Byte alignment for structure objects
+  */
+  _Flag flags;
 
 }_Node;
 
