@@ -1,6 +1,6 @@
 #include <mempool.h>
 
-void * Memblock(_Memblock * memblock) {
+void * Memblock(_Memblock memblock) {
   /* Get the block address from a _Memblock object 
   */
 
@@ -16,7 +16,7 @@ void * Memblock(_Memblock * memblock) {
   return block_address;
 }
 
-Pool * Mempool(size_t object_size, size_t nobjects) {
+_Mempool * Mempool(size_t object_size, size_t nobjects) {
     
   _Mempool * pool =  (_Mempool*)malloc(sizeof(_Mempool));
 

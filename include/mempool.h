@@ -7,11 +7,11 @@ typedef struct _Memblock _Memblock;
 
 /** 
 .. Linked list of free blocks
-.*/
+ */
 typedef struct _FreeBlock {
   /* 'next' to form a linked list of empty blocks
   */
-  _FreeBlock * next;
+  struct _FreeBlock * next;
 
   /* Store information of pool and block number 
   */
