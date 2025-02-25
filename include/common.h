@@ -5,8 +5,7 @@
 #ifndef _HEDGE_MESH_COMMON
 #define _HEDGE_MESH_COMMON
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <stdint.h>
 
 /* 
 .. '_Flag' : used for unsigned numbers in the range [0,256), 
@@ -44,21 +43,23 @@ extern void ArrayFree(_Array * a);
 /* 
 .. Copy 'size' bytes of 'data' to the array 'a' 
 */
-extern void ArrayAppend(Array * a, void * data, size_t size);
+extern void ArrayAppend(_Array * a, void * data, size_t size);
 
 /* 
 .. Shrink 'a->p' to 'a->len' bytes
 */
-extern void ArrayShrink(Array * a);
+extern void ArrayShrink(_Array * a);
 
 /*
 .. Error Handling general for the entire hedge mesh project.
-.. Error is stored as char array in '_HmeshErrorBuffer'.
+.. Error is stored as char array in '_HMESH_ERROR_BUFFER_'.
 */
 
-extern _Array _HmeshErrorBuffer = {.p = NULL,.len = 0,.max = 0};
+static
+_Array _HMESH_ERROR_BUFFER_ = {.p = NULL,.len = 0,.max = 0};
 
-extern enum _HMESH_ERROR_TYPES {
+//extern 
+enum _HMESH_ERROR_TYPES {
   _HMESH_NO_ERROR = 0,
   _HMESH_ERROR = 1
 };
