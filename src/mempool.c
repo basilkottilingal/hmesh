@@ -1,10 +1,11 @@
+#include <common.h>
 #include <mempool.h>
 
 void * Memblock(_Memblock memblock) {
   /* Get the block address from a _Memblock object 
   */
 
-  _Mempool * pool = memblock.pool;
+  _Mempool * pool = (_Mempool *) memblock.pool;
 
   _Flag iblock = memblock.iblock;
   /* The case "iblock >= pool->nblocks" should never happen
@@ -16,20 +17,17 @@ void * Memblock(_Memblock memblock) {
   return block_address;
 }
 
-_Mempool * Mempool(size_t object_size, size_t nobjects) {
-    
+_Mempool * Mempool(size_t object_size) {
+      
   _Mempool * pool =  (_Mempool*)malloc(sizeof(_Mempool));
 
-  size_t block_size = nobjects * object_size;
+  size_t block_size = MemblockSize() * object_size;
 
-  if(block_size < sizeof (FreeBlock)){
+  if(block_size < sizeof (_FreeBlock)){
     /* In this case you might overwrite next used block 
     .. when typecasting empty blocks to _FreeBlock * 
     */
-    fprintf(stderr, 
-      "\nError : block size should be atleast %ld ", 
-      sizeof(FreeBlock));
-    fflush(stderr);  
+    HmeshError("Mempool() : Inadequate block size"); 
     return NULL;
   }
 
@@ -39,9 +37,7 @@ _Mempool * Mempool(size_t object_size, size_t nobjects) {
     .. alignment of number of indices per block. So returning.
     */
     free(pool);
-    fprintf(stderr, 
-      "\nError : NOBJECTS x OBJ_SIZE exceeds 1 MB");
-    fflush(stderr);  
+    HmeshError("Mempool() : Block size greater than 1MB"); 
     return NULL;
   }
 
@@ -50,9 +46,7 @@ _Mempool * Mempool(size_t object_size, size_t nobjects) {
     .. assuming object_size <= 32 Bytes. 
     */
     free(pool);
-    fprintf(stderr, 
-      "\nError : Prefer a multiple of 64 bits for memBlock.");
-    fflush(stderr);  
+    HmeshError("Mempool() : Bad block size alignment"); 
     return NULL;
   }
 
@@ -61,10 +55,7 @@ _Mempool * Mempool(size_t object_size, size_t nobjects) {
   void * address = malloc(block_size);
   if (!address) {
     free(pool);
-    fprintf(stderr, 
-      "\nError : Failed to allocate memory for the memblock");
-    fprintf(stderr," in the pool");
-    fflush(stderr);  
+    HmeshError("Mempool() : Couldn't create Memory Block"); 
     return NULL;
   }
  
@@ -95,21 +86,19 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
   /* Allocate a memory bloc  from the pool of blocks */
 
   if (!pool){
-    fprintf(stderr, "Error : No pool Mentioned!");
-    fflush(stderr);
-    return NULL;
+    HmeshError("MempoolAllocateFrom() : No pool Mentioned");
+    return (_Memblock) {.pool = NULL, .iblock = 0};
   }
 
   if (!pool->free_blocks && pool->nblocks == UINT8_MAX) {
-    fprintf(stderr, "\nWarning : No free blocks available.");
-    fflush(stderr);
-    return NULL;
+    HmeshError("MempoolAllocateFrom() : Out of blocks");
+    return (_Memblock) {.pool = NULL, .iblock = 0};
   }
 
   /* Send a free block {pool + iblock}  if available 
   */
   if(pool->free_blocks) {
-    FreeBlock * fb = pool->free_blocks;
+    _FreeBlock * fb = pool->free_blocks;
     pool->free_blocks = fb->next;
     return fb->memblock;
   }
@@ -119,11 +108,8 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
   void * address = malloc(pool->block_size);
   if (!address) {
     free(pool);
-    fprintf(stderr, 
-      "\nError : Failed to allocate memory for a new memblock");
-    fprintf(stderr," in the pool");
-    fflush(stderr);  
-    return NULL;
+    HmeshError("MempoolAllocateFrom() : Cannot create block");
+    return (_Memblock) {.pool = NULL, .iblock = 0};
   }
 
   ++(pool->nblocks);
@@ -140,14 +126,13 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
 */
 _Flag MempoolDeallocateTo(_Memblock memblock) {
 
-  _Mempool * pool = memblock.pool;
-  void * block = Memblock(memblock);
+  _Mempool * pool = (_Mempool *) memblock.pool;
+  void * address = Memblock(memblock);
 
-  if (! (pool && block) ) {
-    fprintf(stderr, 
-      "Error : Pool/Block not mentioned!");
+  if ( !address ) {
+    HmeshError("MempoolDeallocateTo() : block not mentioned");
     fflush(stderr);
-    return 0;
+    return _HMESH_ERROR;
   }
 
   /* Add this block back to the free list of blocks */
@@ -157,18 +142,21 @@ _Flag MempoolDeallocateTo(_Memblock memblock) {
   pool->free_blocks = fb;
   
   /* success */
-  return 1;
+  return _HMESH_NO_ERROR;
 }
 
 /* Destroy pool*/
 _Flag MempoolFree(_Mempool * pool) {
-  if (!pool) 
-    return 0;
+  if (!pool) { 
+    HmeshError("MempoolFree() : pool not mentioned");
+    fflush(stderr);
+    return _HMESH_ERROR;
+  }
 
   for(_Flag i=0; i<pool->nblocks; ++i)
     free(pool->blocks[i]);
   free(pool->blocks);
   free(pool);
   
-  return 1;
+  return _HMESH_NO_ERROR;
 }

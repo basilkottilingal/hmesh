@@ -5,6 +5,13 @@
 #ifndef _HEDGE_MESH_COMMON
 #define _HEDGE_MESH_COMMON
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+
 #include <stdint.h>
 
 /* 

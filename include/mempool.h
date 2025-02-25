@@ -37,7 +37,24 @@
 .. You can access the memory block address using the function
 .. void * Memblock(_Memblock);
 */
-typedef struct _Memblock _Memblock;
+typedef struct{
+
+  /* which pool
+  _Mempool * pool;
+  */
+  void * pool;
+
+  /* which block. iblock \in [0, pool->nblocks)
+  */
+  _Flag iblock;
+
+  /* memory block's address. This information is redundant.
+  .. i.e this.address and this.pool->blocks[this.iblock]
+  .. are literally same. This is for extra verification.
+  void * address;
+  */
+
+} _Memblock;
 
 /* 
 .. Linked list of free blocks
@@ -87,32 +104,12 @@ typedef struct _Mempool{
 
 } _Mempool;
 
-/* Struct to store a particular block of the pool 
-*/
-struct _Memblock{
-
-  /* which pool
-  */
-  _Mempool * pool;
-
-  /* which block. iblock \in [0, pool->nblocks)
-  */
-  _Flag iblock;
-
-  /* memory block's address. This information is redundant.
-  .. i.e this.address and this.pool->blocks[this.iblock]
-  .. are literally same. This is for extra verification.
-  void * address;
-  */
-
-};
-
 /* 
 .. Default number of objs a block stores is 1<<15.
 .. You can reset using MemblockSizeReset(size_t nobj).
 */
 static 
-size_t _MEMBLOCK_SIZE_ 1<<15; 
+size_t _MEMBLOCK_SIZE_ = 1<<15; 
 
 extern _Flag MemblockSizeReset(size_t nobj);
 
