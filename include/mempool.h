@@ -4,11 +4,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+.. Contains datatypes and functions related to pooling/freeing
+.. memory blocks to store nodes (like nodes of vertices,
+.. edges, etc ..) and memory blocks of scalars corresponding
+.. to blocks of node.
+..
+.. A _Mempool is a collection of blocks of same size.
+..   _Mempool
+..   ----------   -----------  ..  ----------
+..   |        |   |         |  ..  |         |
+..   | block-0|   | block-1 |  ..  | block-  |
+..   |        |   |         |  ..  |   (N-1) |
+..   |        |   |         |  ..  |         |
+..   ----------   -----------  ..  ----------
+..
+.. A _Mempool can be a pool of blocks of nodes or blocks
+.. of scalar corresponding to nodes. 
+..
+.. Block of nodes accomodates MEMBLOCK_SIZE nodes
+..    [MEMBLOCK_SIZE x sizeof(_Node)]
+..   
+.. Block of scalars acommodates MEMBLOCK_SIZE double 
+..    [MEMBLOCK_SIZE x double]
+..  
+.. MEMBLOCK_SIZE is set to 1<<15 by default, it guarantees
+.. each block is less than an MB, given sizeof(_Node) <= 32
+*/
+
+/*
+.. _Memblock stores the info on the pool and the block number.
+.. You can access the memory block address using the function
+.. void * Memblock(_Memblock);
+*/
 typedef struct _Memblock _Memblock;
 
-/** 
+/* 
 .. Linked list of free blocks
- */
+*/
 typedef struct _FreeBlock {
   /* 'next' to form a linked list of empty blocks
   */
@@ -20,11 +53,10 @@ typedef struct _FreeBlock {
 
 } _FreeBlock;
 
-/** 
- * linked list of memory blocks
- */
-typedef struct 
-_Mempool{
+/* 
+.. linked list of memory blocks
+*/
+typedef struct _Mempool{
   /* Size of each object. 
   */ 
   size_t object_size; 
@@ -74,5 +106,35 @@ struct _Memblock{
   */
 
 };
+
+/* 
+.. Default number of objs a block stores is 1<<15.
+.. You can reset using MemblockSizeReset(size_t nobj).
+*/
+static 
+size_t MEMBLOCK_SIZE 1<<15; 
+
+extern _Flag MemblockSizeReset(size_t nobj);
+
+extern size_t MemblockSize();
+
+/*
+.. Creates a new memory pool that holds memory blocks of
+.. same size. A pool is a collection of similar blocks of
+.. size [MEMBLOCK_SIZE x obj_size]. The function below,
+.. creates a pool with 1 free memory block.
+*/
+extern _Mempool * Mempool(size_t obj_size);
+
+/* 
+.. Free a mempool and all the blocks it holds
+*/
+extern _Flag MempoolFree(_Mempool * pool);
+
+/*
+.. Allocate a block from/deallocate a block back to pool
+*/
+extern _Memblock _MempoolAllocateFrom(_Mempool * pool);
+extern _Flag _MempoolDeallocateTo(_Memblock memblock);
 
 #endif
