@@ -22,13 +22,13 @@
 .. A _Mempool can be a pool of blocks of nodes or blocks
 .. of scalar corresponding to nodes. 
 ..
-.. Block of nodes accomodates MEMBLOCK_SIZE nodes
-..    [MEMBLOCK_SIZE x sizeof(_Node)]
+.. Block of nodes accomodates _MEMBLOCK_SIZE_ nodes
+..    [_MEMBLOCK_SIZE_ x sizeof(_Node)]
 ..   
-.. Block of scalars acommodates MEMBLOCK_SIZE double 
-..    [MEMBLOCK_SIZE x double]
+.. Block of scalars acommodates _MEMBLOCK_SIZE_ double 
+..    [_MEMBLOCK_SIZE_ x double]
 ..  
-.. MEMBLOCK_SIZE is set to 1<<15 by default, it guarantees
+.. _MEMBLOCK_SIZE_ is set to 1<<15 by default, it guarantees
 .. each block is less than an MB, given sizeof(_Node) <= 32
 */
 
@@ -112,7 +112,7 @@ struct _Memblock{
 .. You can reset using MemblockSizeReset(size_t nobj).
 */
 static 
-size_t MEMBLOCK_SIZE 1<<15; 
+size_t _MEMBLOCK_SIZE_ 1<<15; 
 
 extern _Flag MemblockSizeReset(size_t nobj);
 
@@ -121,7 +121,7 @@ extern size_t MemblockSize();
 /*
 .. Creates a new memory pool that holds memory blocks of
 .. same size. A pool is a collection of similar blocks of
-.. size [MEMBLOCK_SIZE x obj_size]. The function below,
+.. size [_MEMBLOCK_SIZE_ x obj_size]. The function below,
 .. creates a pool with 1 free memory block.
 */
 extern _Mempool * Mempool(size_t obj_size);

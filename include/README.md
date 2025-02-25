@@ -40,3 +40,8 @@
     * Return 0 : success.
     * > 0 : failed. Identify error type.
     * may include an error.h
+  * Coding Style
+    * typedef datatypes starts with underscore followed by caps letter, and the rest are small letters. Ex: \_Mempool, \_Flag
+    * Function name. Starts with word that represent the datatype, each word starts with caps, no underscore in b/w. 
+Example : Mempool(\_Mempool \*);
+    * Good intendation. 
