@@ -1,4 +1,3 @@
-
 #ifndef _HEDGE_MESH
 #define _HEDGE_MESH
 

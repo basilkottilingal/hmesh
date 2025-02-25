@@ -1,7 +1,8 @@
+#ifndef _HEDGE_MESH_POOL
+#define _HEDGE_MESH_POOL
+
 #include <stdio.h>
 #include <stdlib.h>
-
-#define MEMPOOL 
 
 typedef struct _Memblock _Memblock;
 
@@ -73,3 +74,5 @@ struct _Memblock{
   */
 
 };
+
+#endif
