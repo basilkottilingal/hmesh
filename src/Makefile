@@ -1,19 +1,19 @@
-#SOURCE	= common.c mempool.c hmesh.c
-SOURCE	= common.c 
+SOURCE	= common.c mempool.c
 PARENT := $(CURDIR)/..
-INCLUDE = $(PARENT)/include/
-OBJPATH = $(PARENT)/obj/
+INCDIR  = $(PARENT)/include
+OBJDIR  = $(PARENT)/obj
 
 CC99		= gcc -std=c99
 CFLAGS += -O2 -Wall -Wextra
-CFLAGS += -I $(INCLUDE)	
+CFLAGS += -I $(INCDIR)	
 
-%.o: %.c
-	mkdir -p $(OBJPATH)
-	$(CC99) $(CFLAGS) -c $< -o $(OBJPATH)/$@
+$(OBJDIR)/%.o: %.c
+	mkdir -p $(OBJDIR)
+	$(CC99) $(CFLAGS) -c $< -o $@
 
-OBJECTS = $(SOURCE:.c=.o)
+OBJECTS = $(patsubst %.c, $(OBJDIR)/%.o, $(SOURCE))
 
-#libhmesh.a: $(OBJECTS)
+libhmesh.a: $(OBJECTS)
+	ar -cr $@ $^ 
 
-all: OBJECTS
+all: libhmesh.a

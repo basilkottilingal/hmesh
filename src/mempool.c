@@ -1,7 +1,7 @@
 #include <common.h>
 #include <mempool.h>
 
-void * Memblock(_Memblock memblock) {
+void * MemblockAddress(_Memblock memblock) {
   /* Get the block address from a _Memblock object 
   */
 
@@ -15,6 +15,17 @@ void * Memblock(_Memblock memblock) {
     pool->blocks[iblock];
 
   return block_address;
+}
+
+_Flag MemblockSizeReset(size_t new_nobj) {
+  if(new_nobj > (1<<16))
+    return 0;
+  _MEMBLOCK_SIZE_ = new_nobj;
+  return 1; 
+}
+
+size_t MemblockSize() {
+  return _MEMBLOCK_SIZE_;
 }
 
 _Mempool * Mempool(size_t object_size) {
@@ -69,13 +80,14 @@ _Mempool * Mempool(size_t object_size) {
   /* The free blocks linked list */
   _FreeBlock * fb = (_FreeBlock *) address;
   fb->next = NULL;
-  fb->memblock = (_Memblock) {.pool = pool, .iblock = 0};
+  fb->safety = 0xFBC9183;
+  fb->memblock = (_Memblock) {.pool = pool,.iblock = 0};
   pool->free_blocks = fb;
 
-#ifdef _MANIFOLD_DEBUG
+#ifndef _MANIFOLD_VERBOSE_OFF
   fprintf(stdout, "\n1 x Pool Created with 1 x MemBlock ");
-  fprintf(stdout, "[%ld bytes = %ldx%ld]"
-    pool->block_size, nobjects, pool->object_size);
+  fprintf(stdout, "[%ld bytes = %ldx%ld]",
+    pool->block_size, MemblockSize(), pool->object_size);
   fflush(stdout);
 #endif
 
@@ -99,6 +111,11 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
   */
   if(pool->free_blocks) {
     _FreeBlock * fb = pool->free_blocks;
+    if(fb->safety != 0xFBC9183) {
+      HmeshError("MempoolAllocateFrom() : Double allocation"); 
+      return (_Memblock) {.pool = NULL, .iblock = 0};
+    }
+    fb->safety = 0xC1C2A9F;  
     pool->free_blocks = fb->next;
     return fb->memblock;
   }
@@ -111,6 +128,7 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
     HmeshError("MempoolAllocateFrom() : Cannot create block");
     return (_Memblock) {.pool = NULL, .iblock = 0};
   }
+  ((_FreeBlock *)address)->safety = 0xC1C2A9F;
 
   ++(pool->nblocks);
   pool->blocks = (void **) realloc ( pool->blocks,
@@ -119,7 +137,8 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
   _Flag iblock = pool->nblocks - 1;
   pool->blocks[iblock] = address;
 
-  return (_Memblock) {.pool = pool, .iblock = iblock};
+  return (_Memblock) 
+    {.pool = pool, iblock = iblock};
 }
 
 /* Deallocate memory back to the pool
@@ -127,7 +146,7 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
 _Flag MempoolDeallocateTo(_Memblock memblock) {
 
   _Mempool * pool = (_Mempool *) memblock.pool;
-  void * address = Memblock(memblock);
+  void * address = MemblockAddress(memblock);
 
   if ( !address ) {
     HmeshError("MempoolDeallocateTo() : block not mentioned");
@@ -138,6 +157,11 @@ _Flag MempoolDeallocateTo(_Memblock memblock) {
   /* Add this block back to the free list of blocks */
   _FreeBlock * fb = (_FreeBlock*) address;
   fb->next = pool->free_blocks;
+  if(fb->safety == 0xFBC9183) {
+    HmeshError("MempoolDeallocateTo() : double freeing");
+    return _HMESH_ERROR;
+  }
+  fb->safety = 0xFBC9183;
   fb->memblock = memblock;
   pool->free_blocks = fb;
   

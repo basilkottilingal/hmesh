@@ -64,6 +64,11 @@ typedef struct _FreeBlock {
   */
   struct _FreeBlock * next;
 
+  /* 'safety' is an encoded number to make sure,
+  .. you don't allocate or free same block twice
+  */
+  uint32_t safety;
+
   /* Store information of pool and block number 
   */
   _Memblock memblock; 
@@ -111,9 +116,14 @@ typedef struct _Mempool{
 static 
 size_t _MEMBLOCK_SIZE_ = 1<<15; 
 
+/* Reset the number of nodes per block */
 extern _Flag MemblockSizeReset(size_t nobj);
 
+/* get the number of nodes per block */
 extern size_t MemblockSize();
+
+/* Get the memroy address of the block */
+extern void * MemblockAddress(_Memblock block);
 
 /*
 .. Creates a new memory pool that holds memory blocks of
@@ -131,7 +141,7 @@ extern _Flag MempoolFree(_Mempool * pool);
 /*
 .. Allocate a block from/deallocate a block back to pool
 */
-extern _Memblock _MempoolAllocateFrom(_Mempool * pool);
-extern _Flag _MempoolDeallocateTo(_Memblock memblock);
+extern _Memblock MempoolAllocateFrom(_Mempool * pool);
+extern _Flag MempoolDeallocateTo(_Memblock memblock);
 
 #endif
