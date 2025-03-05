@@ -5,7 +5,7 @@ OBJDIR  = $(PARENT)/obj
 
 CC99		= gcc -std=c99
 CFLAGS += -O2 -Wall -Wextra
-CFLAGS += -I $(INCDIR)	
+CFLAGS += -I $(INCDIR)
 
 $(OBJDIR)/%.o: %.c
 	mkdir -p $(OBJDIR)
@@ -14,6 +14,6 @@ $(OBJDIR)/%.o: %.c
 OBJECTS = $(patsubst %.c, $(OBJDIR)/%.o, $(SOURCE))
 
 libhmesh.a: $(OBJECTS)
-	ar -cr $@ $^ 
+	ar -cr $@ $^
 
 all: libhmesh.a

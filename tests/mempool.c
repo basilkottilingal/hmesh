@@ -2,7 +2,6 @@
 #include <mempool.h>
 
 int main() {
-  HmeshError("error checking in mempool.");
 
   /* Create a Memory pool to accomodate, blocks each of size
   .. MemblockSize() x 8 Bytes
@@ -13,8 +12,10 @@ int main() {
   _Memblock block1 = MempoolAllocateFrom(pool); 
   /* Anothher block */
   _Memblock block2 = MempoolAllocateFrom(pool);
+  _Memblock block3 = MempoolAllocateFrom(pool);
+  (void)block3;
 
-  /* Get the memory address of the block */
+  /* Get the memory address of the block2 */
   double * mem = (double *) MemblockAddress( block2 );
   if(!mem)
     HmeshError("main() : Memblock() failed");
@@ -28,10 +29,10 @@ int main() {
   /* Get a block */
   block1 = MempoolAllocateFrom(pool);
  
-  /* See if any function throw any error */ 
+  /* Expect No error*/ 
+  HmeshError("expect no error");
   HmeshErrorFlush(2);
 
-  HmeshError("error checking in mempool.");
   /* Followig will show an error */
   MempoolDeallocateTo(block1);
   MempoolDeallocateTo(block1);
@@ -40,6 +41,10 @@ int main() {
 
   /* Free the pool with all the blocks */ 
   MempoolFree(pool); 
+
+  /* Freeing pool without freeing it's block 
+  .. would have produced the error */
+  HmeshErrorFlush(2);
 
   return 0;
 }

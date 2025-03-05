@@ -57,22 +57,15 @@ extern void ArrayAppend(_Array * a, void * data, size_t size);
 */
 extern void ArrayShrink(_Array * a);
 
+
 /*
 .. Error Handling general for the entire hedge mesh project.
-.. Error is stored as char array in '_HMESH_ERROR_BUFFER_'.
 */
 
-static
-_Array _HMESH_ERROR_BUFFER_ = {.p = NULL,.len = 0,.max = 0};
-
-//extern 
 enum _HMESH_ERROR_TYPES {
   _HMESH_NO_ERROR = 0,
   _HMESH_ERROR = 1
 };
-
-static 
-int _HMESH_ERROR_ = 0;
 
 /*
 .. Append the error string 'err' to the buffer.

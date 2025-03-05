@@ -109,12 +109,6 @@ typedef struct _Mempool{
 
 } _Mempool;
 
-/* 
-.. Default number of objs a block stores is 1<<15.
-.. You can reset using MemblockSizeReset(size_t nobj).
-*/
-static 
-size_t _MEMBLOCK_SIZE_ = 1<<15; 
 
 /* Reset the number of nodes per block */
 extern _Flag MemblockSizeReset(size_t nobj);

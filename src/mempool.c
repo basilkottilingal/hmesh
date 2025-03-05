@@ -17,6 +17,13 @@ void * MemblockAddress(_Memblock memblock) {
   return block_address;
 }
 
+/* 
+.. Default number of objs a block stores is 1<<15.
+.. You can reset using MemblockSizeReset(size_t nobj).
+*/
+static 
+size_t _MEMBLOCK_SIZE_ = 1<<15;
+
 _Flag MemblockSizeReset(size_t new_nobj) {
   if(new_nobj > (1<<16))
     return 0;
@@ -75,18 +82,19 @@ _Mempool * Mempool(size_t object_size) {
   pool->block_size  = block_size;
   pool->nblocks = 1;
   pool->blocks = (void **) calloc (1, sizeof(void *));
-  /* The one and only block in the pool */
+  /* The only available block in the pool, as of now */
   pool->blocks[0] = address; 
   /* The free blocks linked list */
   _FreeBlock * fb = (_FreeBlock *) address;
   fb->next = NULL;
+  /* Encode this safety number to avoid double freeing */
   fb->safety = 0xFBC9183;
   fb->memblock = (_Memblock) {.pool = pool,.iblock = 0};
   pool->free_blocks = fb;
 
-#ifndef _MANIFOLD_VERBOSE_OFF
-  fprintf(stdout, "\n1 x Pool Created with 1 x MemBlock ");
-  fprintf(stdout, "[%ld bytes = %ldx%ld]",
+#ifndef _HMESH_VERBOSE_OFF
+  fprintf(stdout, "\n1 x Pool Created with \n1 x MemBlock "
+    "[%ld Bytes = %ld x %ld Bytes]",
     pool->block_size, MemblockSize(), pool->object_size);
   fflush(stdout);
 #endif
@@ -137,8 +145,7 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
   _Flag iblock = pool->nblocks - 1;
   pool->blocks[iblock] = address;
 
-  return (_Memblock) 
-    {.pool = pool, iblock = iblock};
+  return (_Memblock) {.pool = pool, iblock = iblock};
 }
 
 /* Deallocate memory back to the pool
@@ -177,10 +184,19 @@ _Flag MempoolFree(_Mempool * pool) {
     return _HMESH_ERROR;
   }
 
-  for(_Flag i=0; i<pool->nblocks; ++i)
+  _Flag status = _HMESH_NO_ERROR;
+  for(_Flag i=0; i<pool->nblocks; ++i) {
+    _FreeBlock * fr = (_FreeBlock *) pool->blocks[i];
+    if(fr->safety != 0xFBC9183) {
+      /* Warning. Does not interrrupt */
+      HmeshError("MempoolFree() : Warning : "
+        "block might still be in use");
+      status = _HMESH_ERROR;
+    }
     free(pool->blocks[i]);
+  }
   free(pool->blocks);
   free(pool);
   
-  return _HMESH_NO_ERROR;
+  return status;
 }

@@ -6,7 +6,7 @@ OBJDIR	= $(PARENT)/obj
 CC99		= gcc -std=c99
 
 CFLAGS += -O2 -Wall -Wextra -D_MANIFOLD_DEBUG
-CFLAGS += -I $(INCDIR)	
+CFLAGS += -I $(INCDIR)
 
 %.tst: %.c 
 	cd $(SRCDIR) && make libhmesh.a 

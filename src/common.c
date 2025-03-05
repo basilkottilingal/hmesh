@@ -37,8 +37,15 @@ void ArrayShrink (_Array * a)
 }
 
 /*
-.. definition related to error handling
+.. definition related to error handling. 
+.. Error is stored as char array in '_HMESH_ERROR_BUFFER_'.
 */
+
+static
+_Array _HMESH_ERROR_BUFFER_ = {.p = NULL,.len = 0,.max = 0};
+
+static 
+int _HMESH_ERROR_ = 0;
 
 char * HmeshErrorGet() {
   return (char *) _HMESH_ERROR_BUFFER_.p;  

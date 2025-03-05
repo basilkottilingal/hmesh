@@ -5,6 +5,33 @@
 extern "C" {
 #endif
   
+  /* '_HmeshAttribute' : a list of memory blocks.
+  .. It can be used to store nodes, or attributes of nodes
+  .. like scalars etc.*/
+  typedef struct {
+    /* Pool from which blocks are allocated */
+    _Mempool * pool;
+    
+    /*'address' of blocks. for easy access */
+    void ** address;
+
+    /*'name' : name of the attribute ,
+    .. in case this is an attribute to a node. */
+    char * name;
+  } _HmeshAttribute;
+
+  extern 
+  void * HmeshAttributeAdd(_HmeshAttribute *, _Flag);
+
+  extern 
+  _Flag HmeshAttributeRemove(_HmeshAttribute *, _Flag);
+
+  extern
+  _HmeshAttribute * HmeshAttribute(char *, size_t);
+ 
+  extern
+  _Flag _HmeshAttributeDestroy(_HmeshAttribute *);
+ 
   /* _DataType : Precision used in scientific computation.
   .. 32 bits is Preferred data type precision for GPU vectors.
   .. Everywhere else (and by default) it's used as 64.
@@ -17,21 +44,21 @@ extern "C" {
   #endif
   typedef uint32_t _Index;
 
-  /* '_Node' : a node of the Linked list . 
+  /* '_HmeshNode' : a node of the Linked list . 
   .. A data node may represent a point, or a halfedge, 
   .. or an oriented face (mostly triangle);
   */ 
-  typedef struct _Node {
+  typedef struct _HmeshNode {
     /* 'next' : used to keep a linked list of indices 
     */
-    _Node * next;
+    struct _HmeshNode * next;
 
     /* 'prev' : previous of 'this' index.
     .. NOTE: Why you need 'prev'? The linked list is 
     .. a 'doubly linked list' only which can let you
     .. delete any occuppied index.
     */
-    _Node * prev;
+    struct _HmeshNode * prev;
 
     /* Global Index for a data node (of same kind) . 
     .. This is used to point to a scalar associated,
@@ -43,18 +70,18 @@ extern "C" {
 
     /* 'pid' : processor ID 
     */
-    int pid;
+    _Index pid;
 
     /* 'flags' : Store flags related to the index.
     .. Ex: to store if this index is occupied.
     .. fixme: May store as a separate array to maintain 
     .. 8x Byte alignment for structure objects
-    */
     _Flag flags;
+    */
 
-  }_Node;
+  }_HmeshNode;
 
-  /* '_NodeBlock' : Chunks of indices. 
+  /* '_HmeshNodeBlock' : Chunks of indices. 
   .. (a) avoids repeated malloc/realloc,
   .. (b) chunks of size close L2 cache (need optimization)
   ..  can help to maintain locality of 'next' node within
@@ -62,47 +89,22 @@ extern "C" {
   ..  pointer traversal.
   */
 
-  typedef struct _NodeBlock {
+  typedef struct _HmeshNodeBlock {
     /* 'used' : starting node among the occuppied list
     */
-    _Node * used;
+    _HmeshNode * used;
 
     /* 'empty' : starting node in the empty/free list 
     .. All the occuppied+empty constitutes a memory block.
     */
-    _Node * empty;
+    _HmeshNode * empty;
 
-    /* Memblock. Used only for derefrence */
-    _Memblock memblock;
+  } _HmeshNodeBlock;
 
-    /* 'nempty' : Number of empty nodes 
-    uint16_t nempty;
-    */
-
-    /* object functions .
-    .. fixme: remove add(), and remove() from here and 
-    .. use inline functions wherever required. */
-    (_Node * )  (* add)      (_NodeBlock * );
-    Flag        (* remove)   (_NodeBlock * , void * node);
-  
-  } _NodeBlock;
+  extern Node * NodeAdd(_HmeshNodeBlock * block);
+  extern Flag NodeRemove(_HmeshNodeBlock * block, _HmeshNode * node);
 
   typedef struct _ManifoldCells _ManifoldCells;
-
-  typedef struct _IndexMap {
-    /* Map one kind of index to another kind.
-    .. Ex1: map indices of triangles to their 0-th vertex.
-    .. Ex2: map indices of halfedges to their respective twins
-    */
-    _Mempool * pool;
-
-    /* Expand the pool in case node block expands.
-    */
-    _Flag (* expand) (_ManifoldCells * cells);
-  
-  }_IndexMap;
-
-  typedef _IndexMap _ScalarMap;
 
   typedef struct _Scalar {
     /* 'type' : Variable type. 
@@ -123,20 +125,20 @@ extern "C" {
     _Flag i;
 
     /* It's a linked list of scalars */
-    _Scalar * next;
+    struct _Scalar * next;
 
-  }_Scalar;
+  } _Scalar;
 
-  typedef struct _NodeList {
-    /* Keep a list of _NodeBlock */
+  typedef struct _HmeshNodeList {
+    /* Keep a list of _HmeshNodeBlock */
   
-    /* Array of (_NodeBlock *) */
-    _NodeBlock ** blocks;
+    /* Array of (_HmeshNodeBlock *) */
+    _HmeshNodeBlock ** blocks;
 
-    /* Number of _NodeBlock */
+    /* Number of _HmeshNodeBlock */
     _Flag n;
 
-  }_NodeList;
+  }_HmeshNodeList;
 
   typedef struct _ScalarList {
     /* Keep a list of scalar */
@@ -161,7 +163,7 @@ extern "C" {
 
     /* List of NodeBlocks
     */ 
-    _NodeList nodes;
+    _HmeshNodeList nodes;
 
     /* 'type' : 0:point, 1:halfedge, 2:triangle, 3:terahedron
     */
@@ -190,7 +192,7 @@ extern "C" {
 
     /* object functions */
     Flag       (* init)   (_ManifoldCells * );
-    (_Node *)  (* add)    (_ManifoldCells * );
+    (_HmeshNode *)  (* add)    (_ManifoldCells * );
     Flag       (* remove) (_ManifoldCells *, void *);
     (void *)   (* var)    (_ManifoldCells *, char *, Flag);
     (void *)   (* var_remove) (_ManifoldCells *, char *);
