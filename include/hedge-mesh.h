@@ -4,31 +4,48 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+  #define HMESH_MAX_NBLOCKS 16
+  #define HMESH_MAX_NVARS   64
   
   /* '_HmeshAttribute' : a list of memory blocks.
   .. It can be used to store nodes, or attributes of nodes
-  .. like scalars etc.*/
+  .. like scalars etc.
+  */
   typedef struct {
-    /* Pool from which blocks are allocated */
+    /* memory 'pool' from which blocks are allocated */
     _Mempool * pool;
     
     /*'address' of blocks. for easy access */
     void ** address;
+
+    /* 'n' : size of 'address' array 
+    .. 'i' : i is the block number corresponding to
+    .. each block in the 'pool'.*/
+    _Flag n, i[HMESH_MAX_NBLOCKS];
 
     /*'name' : name of the attribute ,
     .. in case this is an attribute to a node. */
     char * name;
   } _HmeshAttribute;
 
-  extern 
-  void * HmeshAttributeAdd(_HmeshAttribute *, _Flag);
+  /* Scalar is one type of attribute */
+  typedef _HmeshAttribute _HmeshScalar;
 
+  /* To add a block */
+  extern 
+  void * 
+  HmeshAttributeAdd(_HmeshAttribute *, _Flag);
+
+  /* To delete a block */
   extern 
   _Flag HmeshAttributeRemove(_HmeshAttribute *, _Flag);
 
-  extern
-  _HmeshAttribute * HmeshAttribute(char *, size_t);
+  /* Create an new HmeshAttribute obj */
+  extern _HmeshAttribute * 
+  HmeshAttribute(char *, size_t, Mempool *);
  
+  /* Destroy a HmeshAttribute obj*/
   extern
   _Flag _HmeshAttributeDestroy(_HmeshAttribute *);
  
@@ -44,21 +61,16 @@ extern "C" {
   #endif
   typedef uint32_t _Index;
 
-  /* '_HmeshNode' : a node of the Linked list . 
+  /* '_HmeshNode' : a node in the Linked list . 
   .. A data node may represent a point, or a halfedge, 
   .. or an oriented face (mostly triangle);
   */ 
   typedef struct _HmeshNode {
-    /* 'next' : used to keep a linked list of indices 
+    /* 'next' and 'prev' : for linked list.
+    .. The linked list is a 'doubly linked list' 
+    .. only which can let you delete any occuppied index.
     */
-    struct _HmeshNode * next;
-
-    /* 'prev' : previous of 'this' index.
-    .. NOTE: Why you need 'prev'? The linked list is 
-    .. a 'doubly linked list' only which can let you
-    .. delete any occuppied index.
-    */
-    struct _HmeshNode * prev;
+    struct _HmeshNode * next, * prev;
 
     /* Global Index for a data node (of same kind) . 
     .. This is used to point to a scalar associated,
@@ -101,104 +113,47 @@ extern "C" {
 
   } _HmeshNodeBlock;
 
-  extern Node * NodeAdd(_HmeshNodeBlock * block);
-  extern Flag NodeRemove(_HmeshNodeBlock * block, _HmeshNode * node);
+  /* Add a new node to the block */
+  extern 
+  _Node * NodeAdd(_HmeshNodeBlock * block);
 
-  typedef struct _ManifoldCells _ManifoldCells;
+  /* Remove an occuppied node from the block*/
+  extern 
+  _Flag NodeRemove(_HmeshNodeBlock *, _HmeshNode *);
 
-  typedef struct _Scalar {
-    /* 'type' : Variable type. 
-    .. Encodes information on variable type. is it
-    .. (a) a constant ?,
-    .. (b) is it a scalar, a vector or a tensor,
-    .. (c) correspond for a vertex, edge center, face center,
-    ..  volume center
+  /* cells of mesh : vertices/edges/triangle/tetrahedrons 
+  */
+  typedef struct _HmeshCells {
+    /* Node : vertex/edge/face/tetrahedron */
+    _HmeshAttribute * nodes;
+
+    /* Integer mapping. 
+    .. Ex: mapping to vertices or twins etc.
     */
-    _Flag type;
+    _HmeshAttribute * maps[5];
 
-    _ScalarMap map;
-
-    /* Name of the variable */
-    char * name;
-
-    /* 'i' : i \in [0, VAR_MAX) */
-    _Flag i;
-
-    /* It's a linked list of scalars */
-    struct _Scalar * next;
-
-  } _Scalar;
-
-  typedef struct _HmeshNodeList {
-    /* Keep a list of _HmeshNodeBlock */
-  
-    /* Array of (_HmeshNodeBlock *) */
-    _HmeshNodeBlock ** blocks;
-
-    /* Number of _HmeshNodeBlock */
-    _Flag n;
-
-  }_HmeshNodeList;
-
-  typedef struct _ScalarList {
-    /* Keep a list of scalar */
-
-    /* Linked list of scalars */
-    _Scalar * used;
-
-    /* Empty list of scalars */
-    _Scalar * empty;
+    /* Scalar list of type double (or float in some cases)*/
+    _HmeshScalar ** s;
 
     /* Number of scalars */
-    _Flag n;
+    _Flag nscalars; 
 
-    /* Oject function. To add a new scalar */
-    (void *)   (* add)    (char * name);
-    _Flag      (* remove) (char * name);
-
-  }_ScalarList;
-
-  /* Collection of points */
-  typedef struct _ManifoldCells {
-
-    /* List of NodeBlocks
-    */ 
-    _HmeshNodeList nodes;
-
-    /* 'type' : 0:point, 1:halfedge, 2:triangle, 3:terahedron
-    */
+    /* type of manifoldcell */
     _Flag type;
 
-    /* vertices of cells. For points i,j,k = NULL. 
-    .. For edges k = NULL.
-    .. NOTE: vertices are ordered.
-    .. Ex: (i,j) will be ordered set of half-edges.
-    */
-    _IndexMap i, j, k;
+  } _HmeshCells;
 
-    /* 'twin' : it applies for a half-edge or a half-face.
-    */
-    _IndexMap twin;
+  extern
+  _Flag _HmeshCellsInit(_HmeshCells *, _Flag);
+
+  extern
+  _Flag _HmeshCellsDestroy(_HmeshCells *);
   
-    /* 'sub' : sub-cells.
-    .. For a half-edge it represents points, and for a 
-    .. face it represent half-edges. 
-    */
-    struct _ManifoldCells sub;
-
-    /* 's' : s[ivar] contains info of variable stored in 
-    .. indices  of vars[ivar] */ 
-    _ScalarList s;
-
-    /* object functions */
-    Flag       (* init)   (_ManifoldCells * );
-    (_HmeshNode *)  (* add)    (_ManifoldCells * );
-    Flag       (* remove) (_ManifoldCells *, void *);
-    (void *)   (* var)    (_ManifoldCells *, char *, Flag);
-    (void *)   (* var_remove) (_ManifoldCells *, char *);
-    _Flag      (* destroy) (_ManifoldCells *);
-
-  }_ManifoldCells;
+  extern
+  _Flag _HmeshCellsAddScalar(_HmeshCells *, char *);
+  
+  extern
+  _Flag _HmeshCellsRemoveScalar(_HmeshCells *, char *);
 
   /* _Manifold: Mesh or a discretized manifold */
   typedef struct {
@@ -221,12 +176,15 @@ extern "C" {
     .. Ex: a curve, which is a 1-D manifold in 3D 
     .. Eulerian space will have empty face list ('triangles').
     */
-    _ManifoldCells points, 
-                 edges, 
-                 triangles, 
-                 tetrahedron; 
+    _HmeshCells points, edges, triangles, tetrahedron; 
 
-  }_Manifold;
+  }_Hmesh;
+
+  extern
+  _Hmesh * Hmesh(_Flag d, _Flag D);
+  
+  extern
+  _Flag * HmeshDestroy(_Hmesh *);
 
 #ifdef __cplusplus
 }
