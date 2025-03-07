@@ -1,13 +1,14 @@
 #include <common.h>
 #include <mempool.h>
 
+
 void * MemblockAddress(_Memblock memblock) {
   /* Get the block address from a _Memblock object 
   */
 
   _Mempool * pool = (_Mempool *) memblock.pool;
 
-  _Flag iblock = memblock.iblock;
+  int iblock = memblock.iblock;
   /* The case "iblock >= pool->nblocks" should never happen
   */
   void * block_address = !pool ? NULL :
@@ -19,20 +20,34 @@ void * MemblockAddress(_Memblock memblock) {
 
 /* 
 .. Default number of objs a block stores is 1<<15.
+.. (NOT the size of block in bytes)
 .. You can reset using MemblockSizeReset(size_t nobj).
 */
 static 
-size_t _MEMBLOCK_SIZE_ = 1<<15;
+size_t HMESH_MEMBLOCK_SIZE = 1<<15;
 
 _Flag MemblockSizeReset(size_t new_nobj) {
-  if(new_nobj > (1<<16))
+  if(new_nobj > (1<<16)) {
+    HmeshError("MemblockSizeReset() : obj size is too large");
     return 0;
-  _MEMBLOCK_SIZE_ = new_nobj;
+  }
+  size_t n = new_nobj, reminder = 0;
+  while(n) {
+    /* Checking 2^N alignment */
+    reminder = n & 1;
+    n = n >> 1;
+    if(n && reminder) {
+      HmeshError("MemblockSizeReset() : "
+                "Doesn't follow 2^N alignment");
+      return 0;
+    }
+  } 
+  HMESH_MEMBLOCK_SIZE = new_nobj;
   return 1; 
 }
 
 size_t MemblockSize() {
-  return _MEMBLOCK_SIZE_;
+  return HMESH_MEMBLOCK_SIZE;
 }
 
 _Mempool * Mempool(size_t object_size) {
@@ -102,6 +117,8 @@ _Mempool * Mempool(size_t object_size) {
   return pool;
 }
 
+/* The number of blocks a pool can accomodate */
+#define HMESH_MEMPOOL_SIZE 256
 _Memblock MempoolAllocateFrom(_Mempool * pool) {
   /* Allocate a memory bloc  from the pool of blocks */
 
@@ -110,7 +127,8 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
     return (_Memblock) {.pool = NULL, .iblock = 0};
   }
 
-  if (!pool->free_blocks && pool->nblocks == UINT8_MAX) {
+  if ( !pool->free_blocks && 
+        pool->nblocks == HMESH_MEMPOOL_SIZE ) {
     HmeshError("MempoolAllocateFrom() : Out of blocks");
     return (_Memblock) {.pool = NULL, .iblock = 0};
   }
@@ -166,14 +184,14 @@ _Flag MempoolDeallocateTo(_Memblock memblock) {
   fb->next = pool->free_blocks;
   if(fb->safety == 0xFBC9183) {
     HmeshError("MempoolDeallocateTo() : double freeing");
-    return _HMESH_ERROR;
+    return HMESH_ERROR;
   }
   fb->safety = 0xFBC9183;
   fb->memblock = memblock;
   pool->free_blocks = fb;
   
   /* success */
-  return _HMESH_NO_ERROR;
+  return HMESH_NO_ERROR;
 }
 
 /* Destroy pool*/

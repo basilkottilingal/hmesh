@@ -46,7 +46,7 @@ typedef struct{
 
   /* which block. iblock \in [0, pool->nblocks)
   */
-  _Flag iblock;
+  int iblock;
 
   /* memory block's address. This information is redundant.
   .. i.e this.address and this.pool->blocks[this.iblock]
@@ -95,17 +95,17 @@ typedef struct _Mempool{
   .. NOTE: Perfer making blocks that align with 2^N.
   */
   void ** blocks; 
-
-  /* Total number of blocks allocated.
-  .. NOTE: Limited, nblocks < 256
-  */
-  _Flag nblocks;
  
   /* Linked list of free blocks.
   .. WARNING: There is no provision to know, if you, ..
   .. deallocate same node multiple times 
   */
   _FreeBlock * free_blocks; 
+
+  /* Total number of blocks allocated.
+  .. NOTE: Limited, 0 <= nblocks <= 256
+  */
+  int nblocks;
 
 } _Mempool;
 

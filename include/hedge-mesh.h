@@ -19,14 +19,18 @@ extern "C" {
     /*'address' of blocks. for easy access */
     void ** address;
 
-    /* 'n' : size of 'address' array 
-    .. 'i' : i is the block number corresponding to
-    .. each block in the 'pool'.*/
-    _Flag n, i[HMESH_MAX_NBLOCKS];
-
     /*'name' : name of the attribute ,
     .. in case this is an attribute to a node. */
     char * name;
+
+    /*  'i' : i is the block number corresponding to
+    .. each block in the 'pool'.*/
+    _Flag i[HMESH_MAX_NBLOCKS];
+
+    /* 'n' : size of 'address' array
+    */
+    int n; 
+
   } _HmeshAttribute;
 
   /* Scalar is one type of attribute */
@@ -34,8 +38,7 @@ extern "C" {
 
   /* To add a block */
   extern 
-  void * 
-  HmeshAttributeAdd(_HmeshAttribute *, _Flag);
+  void * HmeshAttributeAdd(_HmeshAttribute *, _Flag);
 
   /* To delete a block */
   extern 
@@ -176,7 +179,7 @@ extern "C" {
     .. Ex: a curve, which is a 1-D manifold in 3D 
     .. Eulerian space will have empty face list ('triangles').
     */
-    _HmeshCells points, edges, triangles, tetrahedron; 
+    _HmeshCells * points, * edges, * triangles, * tetrahedron; 
 
   }_Hmesh;
 

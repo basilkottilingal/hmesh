@@ -4,22 +4,19 @@
 .. Function definitions related to _Array
 */
 
-_Array * ArrayNew()
-{
+_Array * ArrayNew() {
   _Array * a = (_Array *) malloc (sizeof(_Array));
   a->p = NULL;
   a->max = a->len = 0;
   return a;
 }
 
-void ArrayFree (_Array * a)
-{
+void ArrayFree (_Array * a) {
   free (a->p);
   free (a);
 }
 
-void ArrayAppend (_Array * a, void * data, size_t size)
-{
+void ArrayAppend (_Array * a, void * data, size_t size) {
   if (a->len + size >= a->max) {
     a->max += size >4096 ? size : 4096;
     a->p = realloc (a->p, a->max);
@@ -28,8 +25,7 @@ void ArrayAppend (_Array * a, void * data, size_t size)
   a->len += size;
 }
 
-void ArrayShrink (_Array * a)
-{
+void ArrayShrink (_Array * a) {
   if(a->len < a->max) {
     a->p = realloc (a->p, a->len);
     a->max = a->len;
@@ -38,22 +34,22 @@ void ArrayShrink (_Array * a)
 
 /*
 .. definition related to error handling. 
-.. Error is stored as char array in '_HMESH_ERROR_BUFFER_'.
+.. Error is stored as char array in 'HMESH_ERROR_MSG_BUFFER_'.
 */
 
 static
-_Array _HMESH_ERROR_BUFFER_ = {.p = NULL,.len = 0,.max = 0};
+_Array HMESH_ERROR_MSG_BUFFER = {.p = NULL,.len = 0,.max = 0};
 
 static 
-int _HMESH_ERROR_ = 0;
+int HMESH_ERROR_STATUS = 0;
 
 char * HmeshErrorGet() {
-  return (char *) _HMESH_ERROR_BUFFER_.p;  
+  return (char *) HMESH_ERROR_MSG_BUFFER.p;  
 }
 
 void HmeshError(char * err) {
-  _HMESH_ERROR_ |= _HMESH_ERROR;
-  _Array * b = &_HMESH_ERROR_BUFFER_;  
+  HMESH_ERROR_STATUS |= HMESH_ERROR;
+  _Array * b = &HMESH_ERROR_MSG_BUFFER;  
   _Flag n = 0;
   char * c = err, end[2] = {'\n','\0'};
   /* Get the count of char in err*/
@@ -77,8 +73,8 @@ void HmeshErrorFree() {
   /* Empty all error message. 
   .. Set as HMESH_NO_ERROR.
   */
-  _HMESH_ERROR_ = _HMESH_NO_ERROR;
-  _Array * b = &_HMESH_ERROR_BUFFER_;  
+  HMESH_ERROR_STATUS = HMESH_NO_ERROR;
+  _Array * b = &HMESH_ERROR_MSG_BUFFER;  
   b->len = b->max = 0;
   if(b->p)
     free(b->p);
@@ -86,7 +82,7 @@ void HmeshErrorFree() {
 }
 
 void HmeshErrorFlush(int fd) {
-  _Array * b = &_HMESH_ERROR_BUFFER_;  
+  _Array * b = &HMESH_ERROR_MSG_BUFFER;  
   if(!b->p)
     return;
   fd = fd < 2 ? 2 : fd;

@@ -21,6 +21,7 @@
 ..  etc.
 */
 typedef uint8_t _Flag;
+#define HMESH_FLAG_MAX UINT8_MAX
 
 /* 
 .. An "Array" is used to store dynamic data. You can create, 
@@ -62,9 +63,9 @@ extern void ArrayShrink(_Array * a);
 .. Error Handling general for the entire hedge mesh project.
 */
 
-enum _HMESH_ERROR_TYPES {
-  _HMESH_NO_ERROR = 0,
-  _HMESH_ERROR = 1
+enum HMESH_ERROR_TYPES {
+  HMESH_NO_ERROR = 0,
+  HMESH_ERROR = 1
 };
 
 /*
