@@ -21,41 +21,6 @@ enum HMESH_BITS {
   CELL_VOLUME = 3<<CELL_SHIFT
 };
 
-static inline
-_Node * NodeNew(_NodeBlock * block) {
-
-  /* 'NodeNew(block)' : return an available node
-  .. in the 'block', (if any)
-  */
-
-  /* In case there is no empty nodes available,
-  .. return NULL*/ 
-  if (!block->empty) 
-    return NULL;
-
-  _Node * node = block->empty;
-  block->empty = node->next;
-
-  /* NOTE: There should be one reserved node each at 
-  .. left and right extremum of the block, otherwise 
-  .. 'prev' or 'next' might by NULL
-  */
-  node->prev = block->used->prev;
-  node->next = block->used;
-  
-  /* 'block->used' does't change at any point */
-
-  node->flags |= NODE_IS_USED;
-#ifdef _MANIFOLD_DEBUG
-  /* Redundant information. Maybe used only for debugging
-  */
-  --(block->nempty);
-#endif
-  
-  /* return index, so you can do something with the index, 
-  .. like setting scalar etc*/
-  return node;  
-}
 
 static inline
 _Flag NodeDestroy(_NodeBlock * block, _Node * node) {

@@ -38,6 +38,28 @@ HmeshAttributeAdd(_HmeshAttribute * a, _Flag iblock) {
   return m;
 }
 
+_Flag
+HmeshAttributeAccomodate(_HmeshAttribute * nodes,
+  _HmeshAttribute * a) 
+{
+  if(!(nodes && a)) {
+    HmeshError("HmeshAttributeAccomodate() : aborted");
+    return HMESH_ERROR;
+  }
+
+  for(int i=0; i< nodes->n; ++i) {
+    _Flag yes = (i < a->n) ? (a->address[i] != NULL) : 1; 
+    if ( yes )
+      if( !HmeshAttributeAdd(a, i) ) {
+        HmeshError("HmeshAttributeAccomodate() : "
+                   "HmeshAttributeAdd() : failed");
+        return HMESH_ERROR;
+      }
+  }
+
+  return HMESH_NO_ERROR;
+}
+
 /* deallocate an existing block @ iblock-th position 
 .. Return HMESH_NO_ERROR if successful*/
 _Flag 
@@ -130,3 +152,99 @@ HmeshAttributeDestroy(_HmeshAttrribute * a) {
   return status;
 }
 
+/* add a new scalar 'name' to the cells 'c' 
+*/
+_Flag
+_HmeshCellsAddScalar(_HmeshCells * c, char * name) {
+
+  size_t len = name ? strlen(name) : 0;  
+  if( (!len) || (len > HMESH_MAX_VARNAME) || 
+      (c->nscalars == HMESH_MAX_NVARS) ){
+    HmeshError("HmeshCellsAddScalar() : aborted()");
+    return HMESH_ERROR;
+  }
+
+  for(int i=0; i < c->nscalars; ++i) {
+    _HmeshScalar * s = c->s[i];
+    if(!s) continue;
+    if(! strcmp( name, s->name) ) {
+      char err[100];
+      sprintf(err, "HmeshCellsAddScalar() : scalar with name "
+              "'%s' exists", name);
+      HmeshError(err);
+      return HMESH_ERROR;
+    }
+  }
+  _HmeshScalar * s = (_HmeshScalar *) 
+    HmeshAttribute(name, sizeof(_DataType), HMESH_SCALAR_POOL);
+  if(!s) return HMESH_ERROR;
+  
+  c->nscalars += 1;
+  c->s = (_HmeshScalar **) 
+    realloc((c->nscalars)*sizeof(_HmeshScalar *));
+  c->s[c->nscalars - 1] = s;
+
+  HmeshAttributeAccomodate(c->nodes, s);
+
+  return HMESH_NO_ERROR;
+}
+
+/* remove scalar 'name' from the cells 'c' 
+*/
+_Flag
+_HmeshCellsAddScalar(_HmeshCells * c, char * name) {
+
+  size_t len = name ? strlen(name) : 0;  
+  if( (!len) || (len > HMESH_MAX_VARNAME) || 
+      (c->nscalars == 0) ){
+    HmeshError("HmeshCellsRemoveScalar() : aborted()");
+    return HMESH_ERROR;
+  }
+
+  for(int i=0; i < c->nscalars; ++i) {
+    _HmeshScalar * s = c->s[i];
+    if(!s) continue;
+    if( !strcmp( name, s->name) ) {
+      /* found the scalar */
+      if( HmeshAttributeDestroy((_HmeshAttribute *)s) !=
+          HMESH_NO_ERROR ) {
+        HmeshError("HmeshCellsRemoveScalar() : remove failed");
+        return HMESH_ERROR;
+      }
+      c->s[i] = c->s[c->nscalars - 1];
+      c->nscalars -= 1;
+      c->s = (_HmeshScalar **) 
+        realloc (c->nscalars * sizeof(_HmeshScalar *));
+      return HMESH_NO_ERROR;
+    }
+  }
+
+  HmeshError("HmeshCellsRemoveScalar() : scalar not found");
+  return HMESH_ERROR;
+}
+
+_HmeshNode * HmeshNodeNew(_HmeshNodeBlock * block) {
+
+  /* 'NodeNew(block)' : return an available node
+  .. in the 'block', (if any)
+  */
+
+  /* In case there is no empty nodes available,
+  .. return NULL*/ 
+  if (!block->empty) 
+    return NULL;
+
+  _HmeshNode * node = block->empty;
+  block->empty = node->next;
+
+  /* NOTE: There should be one reserved node each at 
+  .. left and right extremum of the block, otherwise 
+  .. 'prev' or 'next' might by NULL
+  */
+  node->prev = block->used->prev;
+  node->next = block->used;
+  
+  /* return index, so you can do something with the index, 
+  .. like setting scalar etc*/
+  return node;  
+}

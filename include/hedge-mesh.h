@@ -7,6 +7,7 @@ extern "C" {
 
   #define HMESH_MAX_NBLOCKS 16
   #define HMESH_MAX_NVARS   64
+  #define HMESH_MAX_VARNAME 31
   
   /* '_HmeshAttribute' : a list of memory blocks.
   .. It can be used to store nodes, or attributes of nodes
@@ -114,9 +115,6 @@ extern "C" {
     .. All the occuppied+empty constitutes a memory block.
     */
     _HmeshNode * empty;
-
-    /* It's a linked list*/
-    struct _HmeshNodeBlock * next;
 
   } _HmeshNodeBlock;
 
