@@ -1,7 +1,6 @@
 #include <common.h>
 #include <mempool.h>
 
-
 void * MemblockAddress(_Memblock memblock) {
   /* Get the block address from a _Memblock object 
   */
@@ -119,6 +118,8 @@ _Mempool * Mempool(size_t object_size) {
 
 /* The number of blocks a pool can accomodate */
 #define HMESH_MEMPOOL_SIZE 256
+
+/* returns a memory block from the pool */
 _Memblock MempoolAllocateFrom(_Mempool * pool) {
   /* Allocate a memory bloc  from the pool of blocks */
 
@@ -166,7 +167,7 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
   return (_Memblock) {.pool = pool, iblock = iblock};
 }
 
-/* Deallocate memory back to the pool
+/* Deallocate memory block back to the pool
 */
 _Flag MempoolDeallocateTo(_Memblock memblock) {
 

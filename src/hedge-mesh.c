@@ -12,8 +12,8 @@ HmeshAttributeAdd(_HmeshAttribute * a, _Flag iblock) {
   if(iblock < a->n) {
     /* In case a block already exist @ this location */
     if(address[iblock]) {
-      HmeshError("HmeshAttributeAdd() : block already in use");
-      return address[iblock];
+      HmeshError("HmeshAttributeAdd() : iblock in use");
+      return NULL;
     }
   }
   else {
@@ -38,6 +38,9 @@ HmeshAttributeAdd(_HmeshAttribute * a, _Flag iblock) {
   return m;
 }
 
+/* Make sure that attribute 'a' has same number of
+.. blocks as that of the 'nodes' it's representing
+*/
 _Flag
 HmeshAttributeAccomodate(_HmeshAttribute * nodes,
   _HmeshAttribute * a) 
@@ -90,7 +93,7 @@ HmeshAttribute(char * name, size_t size, _Mempool * p) {
 
   _Mempool * pool = !p ? NULL :
     (p->object_size != size) ? NULL : p;
-  if(!p) {
+  if(!pool) {
     HmeshError("HmeshAttribute() : aborted");
     return NULL;
   }
@@ -105,7 +108,7 @@ HmeshAttribute(char * name, size_t size, _Mempool * p) {
   if(!name) { 
     HmeshError("HmeshAttribute() : "
                "Warning. attribute with no specified name");
-    a->name = NULL;
+    a->name[0] = '\0';
     return a;
   }
 
@@ -184,6 +187,7 @@ _HmeshCellsAddScalar(_HmeshCells * c, char * name) {
     realloc((c->nscalars)*sizeof(_HmeshScalar *));
   c->s[c->nscalars - 1] = s;
 
+  /* make sure attribute has same number of blocks as nodes */
   HmeshAttributeAccomodate(c->nodes, s);
 
   return HMESH_NO_ERROR;
@@ -192,7 +196,7 @@ _HmeshCellsAddScalar(_HmeshCells * c, char * name) {
 /* remove scalar 'name' from the cells 'c' 
 */
 _Flag
-_HmeshCellsAddScalar(_HmeshCells * c, char * name) {
+_HmeshCellsRemoveScalar(_HmeshCells * c, char * name) {
 
   size_t len = name ? strlen(name) : 0;  
   if( (!len) || (len > HMESH_MAX_VARNAME) || 
@@ -223,11 +227,10 @@ _HmeshCellsAddScalar(_HmeshCells * c, char * name) {
   return HMESH_ERROR;
 }
 
+/* return a newly allocated node in the block. 
+.. In case block if fully occupied, return NULL*/
+static inline
 _HmeshNode * HmeshNodeNew(_HmeshNodeBlock * block) {
-
-  /* 'NodeNew(block)' : return an available node
-  .. in the 'block', (if any)
-  */
 
   /* In case there is no empty nodes available,
   .. return NULL*/ 
@@ -248,3 +251,108 @@ _HmeshNode * HmeshNodeNew(_HmeshNodeBlock * block) {
   .. like setting scalar etc*/
   return node;  
 }
+
+/* Deallocate a node back to block.
+.. TODO: add a safety check to avoid double freeing */
+static inline _Flag 
+HmeshNodeDestroy(_HmeshNodeBlock * block, _HmeshNode * node) {
+   
+  node->next->prev = node->prev;
+  node->prev->next = node->next;
+
+  node->next = block->empty;
+  block->empty = index;
+
+  return 1;  
+}
+
+/* Create a new block */
+
+_HmeshNodeBlock * 
+HmeshNodeBlockNew(_HmeshAttribute * a, _Flag iblock) {
+
+  void * address = a->address[iblock];
+
+  if(!address) {
+    HmeshError("HmeshNodeBlockNew() : aborted()");
+    return NULL;
+  }
+
+  _HmeshNodeBlock * block = 
+    (_HmeshNodeBlock *) malloc (sizeof(_NodeBlock));
+
+  /* Set the field of te object block */
+  block->memblock = memblock;
+
+  /* Number of nodes in the block */
+  size_t n = pool->block_size/pool->object_size;
+
+  /* Starting index of first node.
+  .. Used for indexing of nodes. 
+  */
+  _Index i0 = n*memblock.iblock;
+   
+  /* Set nodes of the blocks as empty.
+  .. NOTE: first and last nodes are not reserverd. 
+  */
+  _Node * first = (_Node *) address,
+    * last = first + (n - 1);
+  /* Reserved nodes */
+  first->flags = NODE_IS_RESRVED;
+  last->flags = NODE_IS_RESERVED;
+  /* index */
+  first->i = i0;
+  last->i = i0 + n;
+  /* Doubly linked list */
+  first->next = last;
+  first->prev = NULL; 
+  last->prev = first;
+  last->next = NULL;
+
+  /* Used list. It's empty as of now.
+  */
+  block->used  = last;
+
+  /* Empty list. Nodes [1, block_size-2] are empty.
+  */
+  block->empty = first + 1; 
+  for (size_t i = 1; i < n - 1; ++i) { 
+    /* next node in empty list */
+    first[i].next = first + i + 1;
+    /* first + i is neither reserved nor used */
+    first[i].flags = 0; 
+    /* index of this node */
+    first[i].i = i0 + i;
+  }
+  first[block_size - 2].next = NULL; 
+
+  /* Object functions to add/remove a node to this block
+  */
+  block->add = NodeNew;
+  block->remove = NodeDestroy;
+
+  return block;
+}
+
+Flag NodeBlockDestroy(_NodeBlock * block) {
+  /* Destroy an Node block that stores indices */
+  _Memblock memblock = block->memblock;
+  void * address = Memblock(memblock) 
+    
+  if(!address) {
+    fprintf(stderr, "\nError : Cannot delete this node block");
+    fflush(stderr);
+    return 0;
+  } 
+
+  /* NOTE : This memory block is deallocated back to the unused
+  .. part of the pool. Don't re-use the address again.
+  .. Also don't Deallocate again. There is no
+  .. provision to know multiple de-allocation to the pool
+  */
+  MempoolDeallocateTo(memblock);
+
+  return 1;
+}
+
+

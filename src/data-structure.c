@@ -22,39 +22,6 @@ enum HMESH_BITS {
 };
 
 
-static inline
-_Flag NodeDestroy(_NodeBlock * block, _Node * node) {
-
-  /* 'NodeDestroy(block, node)' : destroy an occuppied
-  .. 'node' in the 'block'. Return success (1) if the
-  .. 'node' is occuppied.
-  */
-#ifdef _MANIFOLD_DEBUG
-  if( ! (block && node) )
-    return 0;
-  
-  if( node->flags & NODE_IS_RESERVED )
-    return 0;
-#endif
-  
-  if(! (node->flags & NODE_IS_USED) )
-    return 0;
-   
-  node->next->prev = node->prev;
-  node->prev->next = node->next;
-
-  node->next  = block->empty;
-  block->empty = index;
-
-  node->flags &= ~NODE_IS_USED;
-#ifdef _MANIFOLD_DEBUG
-  ++(block->nempty);
-#endif
-
-  //successfully removed index out of 'used' list
-  return 1;  
-}
-
 _NodeBlock * NodeBlockNew(_Mempool * pool) {
   /* Look for memory of 2^15 nodes in pool or create a new 
   .. pool and add to the linked list of pool*/
