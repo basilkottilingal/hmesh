@@ -20,8 +20,9 @@ extern "C" {
     void ** address;
 
     /*'name' : name of the attribute ,
-    .. in case this is an attribute to a node. */
-    char * name;
+    .. in case this is an attribute to a node. 
+    .. Warning: Name of attribute limited to 31 characters!*/
+    char name[32];
 
     /*  'i' : i is the block number corresponding to
     .. each block in the 'pool'.*/
@@ -113,6 +114,9 @@ extern "C" {
     .. All the occuppied+empty constitutes a memory block.
     */
     _HmeshNode * empty;
+
+    /* It's a linked list*/
+    struct _HmeshNodeBlock * next;
 
   } _HmeshNodeBlock;
 

@@ -176,7 +176,7 @@ _Flag MempoolDeallocateTo(_Memblock memblock) {
   if ( !address ) {
     HmeshError("MempoolDeallocateTo() : block not mentioned");
     fflush(stderr);
-    return _HMESH_ERROR;
+    return HMESH_ERROR;
   }
 
   /* Add this block back to the free list of blocks */
@@ -199,17 +199,17 @@ _Flag MempoolFree(_Mempool * pool) {
   if (!pool) { 
     HmeshError("MempoolFree() : pool not mentioned");
     fflush(stderr);
-    return _HMESH_ERROR;
+    return HMESH_ERROR;
   }
 
-  _Flag status = _HMESH_NO_ERROR;
+  _Flag status = HMESH_NO_ERROR;
   for(_Flag i=0; i<pool->nblocks; ++i) {
     _FreeBlock * fr = (_FreeBlock *) pool->blocks[i];
     if(fr->safety != 0xFBC9183) {
       /* Warning. Does not interrrupt */
       HmeshError("MempoolFree() : Warning : "
         "block might still be in use");
-      status = _HMESH_ERROR;
+      status = HMESH_ERROR;
     }
     free(pool->blocks[i]);
   }
