@@ -171,10 +171,8 @@ _HmeshCellsAddScalar(_HmeshCells * c, char * name) {
     _HmeshScalar * s = c->s[i];
     if(!s) continue;
     if(! strcmp( name, s->name) ) {
-      char err[100];
-      sprintf(err, "HmeshCellsAddScalar() : scalar with name "
-              "'%s' exists", name);
-      HmeshError(err);
+      HmeshError("HmeshCellsAddScalar() : scalar with name "
+                 "'%s' exists", name);
       return HMESH_ERROR;
     }
   }

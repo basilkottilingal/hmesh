@@ -21,23 +21,29 @@ void * MemblockAddress(_Memblock memblock) {
 .. Default number of objs a block stores is 1<<15.
 .. (NOT the size of block in bytes)
 .. You can reset using MemblockSizeReset(size_t nobj).
+.. Maximum allowed no: nodes/block = 1<<16 = 1 + UINT16_MAX
 */
 static 
-size_t HMESH_MEMBLOCK_SIZE = 1<<15;
+size_t  HMESH_MEMBLOCK_SIZE   = 1<<15;
+
+#define HMESH_MAX_MEMBLOCK_SIZE 1<<16
 
 _Flag MemblockSizeReset(size_t new_nobj) {
-  if(new_nobj > (1<<16)) {
+  /* fixme: Once some pool is already created,
+  .. this function should return error */
+  if( new_nobj > HMESH_MAX_MEMBLOCK_SIZE ) {
     HmeshError("MemblockSizeReset() : obj size is too large");
     return 0;
   }
+
+  /* Checking 2^N alignment */
   size_t n = new_nobj, reminder = 0;
   while(n) {
-    /* Checking 2^N alignment */
     reminder = n & 1;
     n = n >> 1;
     if(n && reminder) {
       HmeshError("MemblockSizeReset() : "
-                "Doesn't follow 2^N alignment");
+                 "Doesn't follow 2^N alignment");
       return 0;
     }
   } 

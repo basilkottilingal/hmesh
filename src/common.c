@@ -47,16 +47,18 @@ char * HmeshErrorGet() {
   return (char *) HMESH_ERROR_MSG_BUFFER.p;  
 }
 
-void HmeshError(char * err) {
+void HmeshError(const char * err, ...) {
+     
+  char errmsg[100];
+  va_list args;      
+  va_start(args, err);
+  /* Warning: error msg will be truncated to 100 chars */
+  vsnprintf(errmsg, 100, err, args);  
+  va_end(args);      
+
   HMESH_ERROR_STATUS |= HMESH_ERROR;
   _Array * b = &HMESH_ERROR_MSG_BUFFER;  
-  _Flag n = 0;
-  char * c = err, end[2] = {'\n','\0'};
-  /* Get the count of char in err*/
-  while(n<UINT8_MAX-1 && *c++)
-    n++;
-  if(!n)
-    return;
+  char end[] = "\n";
   if(b->len)
     b->len--;
   else {
@@ -64,7 +66,7 @@ void HmeshError(char * err) {
     ArrayAppend(b, e, 21);
   }
   /* Copy error to buffer. Excluding the '\0' */
-  ArrayAppend(b, err, n);
+  ArrayAppend(b, errmsg, strlen(errmsg));
   ArrayAppend(b, end, 2);
 }
 

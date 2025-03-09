@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -71,7 +72,7 @@ enum HMESH_ERROR_TYPES {
 /*
 .. Append the error string 'err' to the buffer.
 */
-extern void HmeshError(char * err);
+extern void HmeshError(const char *format, ...);
 
 /* 
 .. Flush the error buffer to stream with file descriptor 'fd'.

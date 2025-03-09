@@ -1,3 +1,9 @@
+/* TODO:
+  Dynamic data structure architecture for gpu.
+  Vectorization for gpu.
+  Multithreading.
+*/
+
 #ifndef _HEDGE_MESH
 #define _HEDGE_MESH
 
@@ -64,67 +70,26 @@ extern "C" {
   #else 
   typedef double _DataType;
   #endif
-  typedef uint32_t _Index;
+  
+  typedef uint16_t _Index;
 
   /* '_HmeshNode' : a node in the Linked list . 
   .. A data node may represent a point, or a halfedge, 
   .. or an oriented face (mostly triangle);
+  .. size(_HmeshNode) = 8 Bytes
   */ 
   typedef struct _HmeshNode {
     /* 'next' and 'prev' : for linked list.
     .. The linked list is a 'doubly linked list' 
     .. only which can let you delete any occuppied index.
     */
-    struct _HmeshNode * next, * prev;
-
-    /* Global Index for a data node (of same kind) . 
-    .. This is used to point to a scalar associated,
-    .. with this data node.
-    .. NOTE: This pgm limits number of nodes to 
-    .. UINT8_MAX x 2^15 = 8388608  per processor.
-    */
-    _Index i;
+    _Index next, prev;
 
     /* 'pid' : processor ID 
     */
-    _Index pid;
-
-    /* 'flags' : Store flags related to the index.
-    .. Ex: to store if this index is occupied.
-    .. fixme: May store as a separate array to maintain 
-    .. 8x Byte alignment for structure objects
-    _Flag flags;
-    */
+    int pid;
 
   }_HmeshNode;
-
-  /* '_HmeshNodeBlock' : Chunks of indices. 
-  .. (a) avoids repeated malloc/realloc,
-  .. (b) chunks of size close L2 cache (need optimization)
-  ..  can help to maintain locality of 'next' node within
-  ..  easily accessible range reducing overhead while
-  ..  pointer traversal.
-  */
-
-  typedef struct _HmeshNodeBlock {
-    /* 'used' : starting node among the occuppied list
-    */
-    _HmeshNode * used;
-
-    /* 'empty' : starting node in the empty/free list 
-    .. All the occuppied+empty constitutes a memory block.
-    */
-    _HmeshNode * empty;
-
-  } _HmeshNodeBlock;
-
-  /* Add a new node to the block */
-  extern 
-  _Node * NodeAdd(_HmeshNodeBlock * block);
-
-  /* Remove an occuppied node from the block*/
-  extern 
-  _Flag NodeRemove(_HmeshNodeBlock *, _HmeshNode *);
 
   /* cells of mesh : vertices/edges/triangle/tetrahedrons 
   */
