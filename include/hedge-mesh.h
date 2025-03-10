@@ -31,20 +31,23 @@ extern "C" {
     .. Warning: Name of attribute limited to 31 characters!*/
     char name[32];
 
-    /*  'i' : i is the block number corresponding to
-    .. each block in the 'pool'.*/
-    _Flag i[HMESH_MAX_NBLOCKS];
-
-    /* 'n' : size of 'address' array
+    /*  'i' : or iblock is the number corresponding to
+    .. each block in the 'pool'.
+    .. iblock in [1,HMESH_MAX_NBLOCKS] are used and
+    .. iblock '0' is reserved
     */
-    int n; 
+    _Flag i[HMESH_MAX_NBLOCKS+1];
+
+    /* 'n' : size of 'address' array (in use).
+    */
+    int n, max; 
 
   } _HmeshArray;
 
 
   /* Create an new HmeshArray obj */
   extern _HmeshArray * 
-  HmeshArray(char *, size_t, Mempool *);
+  HmeshArray(char *, size_t);
  
   /* Destroy a HmeshArray obj*/
   extern
@@ -69,6 +72,15 @@ extern "C" {
     */
     _HmeshArray * prev, * next;
 
+    /* nodes blocks with atleast one empty node, and
+    .. node blocks which is totally consumed. 
+    .. Encode '0' as the end of array. 
+    */
+    _Index * free_blocks, * full_blocks;
+
+    /* number of blocks */
+    _Flag n, max; 
+
 #ifdef _HMESH_MPI
     /* In case of MPI, 
     .. pid : processor id,
@@ -92,20 +104,20 @@ extern "C" {
     _HmeshArray ** s;
 
     /* Number of scalars */
-    _Flag nscalars; 
+    _Flag n, max; 
   };
 
   /* cells of mesh : vertices/edges/triangle/tetrahedrons 
   */
   typedef struct _HmeshCells {
     /* Node : vertex/edge/face/tetrahedron */
-    struct _HmeshNode   nodes;
+    struct _HmeshNode * nodes;
 
-    /* Apply only for d>0. */
-    struct _HmeshMap v[4], twin;
+    /* Vertices of edge. Apply only for d>0. */
+    struct _HmeshMap ** v, * twin, * next;
 
     /* List of scalars */
-    struct _HmeshScalar scalars;
+    struct _HmeshScalar * scalars;
 
     /* type( = 'd' ) of manifoldcell  */
     _Flag type;
