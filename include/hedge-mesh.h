@@ -41,13 +41,6 @@ extern "C" {
 
   } _HmeshArray;
 
-  /* To add a block */
-  extern 
-  void * HmeshArrayAdd(_HmeshArray *, _Flag);
-
-  /* To delete a block */
-  extern 
-  _Flag HmeshArrayRemove(_HmeshArray *, _Flag);
 
   /* Create an new HmeshArray obj */
   extern _HmeshArray * 
@@ -63,9 +56,9 @@ extern "C" {
   */
 
   #ifdef _PRECISION32
-  typedef float _DataType;
+  typedef float _Real;
   #else 
-  typedef double _DataType;
+  typedef double _Real;
   #endif
   
   typedef uint16_t _Index;
@@ -85,15 +78,13 @@ extern "C" {
 #endif
   };
 
+  /* Mapping of indices.. 
+  .. Ex: (a) Half-edge mapping H = (V0, V1) . 
+  ..     (b) Triangle mapping  T = (H0, H1, H2); 
+  */
   struct _HmeshMap {
-    /* Mapping of indices.. 
-    .. Ex: (a) Half-edge mapping H = (V0, V1) . 
-    ..     (b) Triangle mapping  T = (H0, H1, H2); 
-    */
-    _HmeshArray * _0, * _1, * _2, * _3;
-  
-    /* Twin (half-edge mesh). (iff d>0)*/
-    _HmeshArray * index;
+    /* identify mapped index by block and index. */
+    _HmeshArray * iblock, * index;
   };
 
   struct _HmeshScalar {
@@ -102,7 +93,6 @@ extern "C" {
 
     /* Number of scalars */
     _Flag nscalars; 
-
   };
 
   /* cells of mesh : vertices/edges/triangle/tetrahedrons 
@@ -112,12 +102,12 @@ extern "C" {
     struct _HmeshNode   nodes;
 
     /* Apply only for d>0. */
-    struct _HmeshMap    maps;
+    struct _HmeshMap v[4], twin;
 
     /* List of scalars */
     struct _HmeshScalar scalars;
 
-    /* type of manifoldcell */
+    /* type( = 'd' ) of manifoldcell  */
     _Flag type;
 
   } _HmeshCells;
