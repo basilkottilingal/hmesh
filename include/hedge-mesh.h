@@ -2,6 +2,8 @@
   Dynamic data structure architecture for gpu.
   Vectorization for gpu.
   Multithreading.
+  May use a hashtable to faster insertion/deletion,
+    ,, but memory of scalar should be taken care!
 */
 
 #ifndef _HEDGE_MESH
@@ -38,16 +40,15 @@ extern "C" {
     */
     _Flag i[HMESH_MAX_NBLOCKS+1];
 
-    /* 'n' : size of 'address' array (in use).
+    /* 'max' : size of 'address'.
     */
-    int n, max; 
+    _Flag max; 
 
   } _HmeshArray;
 
 
   /* Create an new HmeshArray obj */
-  extern _HmeshArray * 
-  HmeshArray(char *, size_t);
+  extern _HmeshArray * HmeshArray(char *, size_t);
  
   /* Destroy a HmeshArray obj*/
   extern
@@ -79,7 +80,7 @@ extern "C" {
     _Index * free_blocks, * full_blocks;
 
     /* number of blocks */
-    _Flag n, max; 
+    _Flag max, nfree, nfull; 
 
 #ifdef _HMESH_MPI
     /* In case of MPI, 
@@ -103,8 +104,17 @@ extern "C" {
     /* Scalar list of type double (or float in some cases)*/
     _HmeshArray ** s;
 
-    /* Number of scalars */
-    _Flag n, max; 
+    /* Size of s array */
+    _Flag max;
+
+    /* Number of scalars in use*/
+    _Flag n;
+
+    /* To maintain a free list of scalars.
+    .. fixme : This should be removed later,
+    .. where flex is used to pop/push global and local vars*/
+    _Flag nfree, * free_list;
+
   };
 
   /* cells of mesh : vertices/edges/triangle/tetrahedrons 
@@ -125,16 +135,16 @@ extern "C" {
   } _HmeshCells;
 
   extern
-  _Flag _HmeshCellsInit(_HmeshCells *, _Flag);
+  _HmeshCells * HmeshCells(_Flag d);
 
   extern
-  _Flag _HmeshCellsDestroy(_HmeshCells *);
+  _Flag HmeshCellsDestroy(_HmeshCells *);
   
   extern
-  _Flag _HmeshCellsAddScalar(_HmeshCells *, char *);
+  _Flag HmeshCellsAddScalar(_HmeshCells *, char *);
   
   extern
-  _Flag _HmeshCellsRemoveScalar(_HmeshCells *, char *);
+  _Flag HmeshCellsRemoveScalar(_HmeshCells *, char *);
 
   /* _Manifold: Mesh or a discretized manifold */
   typedef struct {
