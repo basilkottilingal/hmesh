@@ -7,7 +7,7 @@ int main() {
 
   _IndexStack stack = IndexStack(10, 3, NULL);  
 
-  for(_Index index = 0; index < 15; ++index) {
+  for(_Index i = 0; i < 15; ++i) {
     if(IndexStackFreeHead(&stack, 1) == UINT16_MAX)
       HmeshError("Out of free index");
   }
@@ -28,6 +28,30 @@ int main() {
   /* indices 0-4 are still in use */
   HmeshErrorFlush(2);
 
+  /* Delete arrays */
   IndexStackDestroy(&stack);
+
+  /* Create a new stack with attribute */
+  void ** attributes = NULL;
+  stack = IndexStack(10, 6, &attributes);
+
+  for(_Index i = 0; i < 10; ++i) {
+    _Index index = IndexStackFreeHead(&stack, 1);
+    if(index != UINT16_MAX) 
+      attributes[index] = malloc(8);
+  }
+
+  for(_Index index = 0; index < 10; ++index) {
+    if(index&1) {
+      free(attributes[index]);
+      attributes[index] = NULL;
+    }
+    if(IndexStackDeallocate(&stack, index) == HMESH_ERROR)
+      HmeshError("attribute of index %d still not freed", 
+        index);
+  }
+  /* even number indices shows error */
+  HmeshErrorFlush(2);
+
   return 0;
 }
