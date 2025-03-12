@@ -59,6 +59,7 @@ int main() {
   /* expect error */
   HmeshErrorFlush(2);
 
+  HmeshError("There should be no error!");
   for(_Index index = 0; index < 10; ++index) {
     if(attributes[index]) {
       free(attributes[index]);

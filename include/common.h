@@ -200,14 +200,18 @@ IndexStackDeallocate(_IndexStack * stack, _Index index) {
     (index >= stack->max) ? UINT16_MAX : stack->loc[index];
   void *** att = stack->attribute;
   void * index_att = att ? (*att)[index] : NULL;
-  if( (indexLoc == UINT16_MAX) || index_att ) {
-    /* This index is not an in_use index or 
-    .. the index attribute is not freed yet.*/
+  if( indexLoc == UINT16_MAX ) {
+    HmeshError("IndexStackDeallocate() : not in use");
+    return HMESH_ERROR;
+  }
+  if( index_att ) {
+    HmeshError("IndexStackDeallocate() : attribute not freed");
     return HMESH_ERROR;
   }
   stack->free_list[stack->nfree] = index;
   stack->loc_free[index] = stack->nfree++; 
   stack->in_use[indexLoc] = stack->in_use[--(stack->n)];
+  stack->loc[stack->in_use[indexLoc]] = indexLoc;
   stack->loc[index] =  UINT16_MAX;
 
   return HMESH_NO_ERROR;
@@ -228,6 +232,7 @@ IndexStackAllocate(_IndexStack * stack, _Index index) {
   stack->in_use[stack->n] = index;
   stack->loc[index] = stack->n++; 
   stack->free_list[indexLoc] = stack->free_list[--(stack->n)];
+  stack->loc_free[stack->free_list[indexLoc]] = indexLoc;
   stack->loc_free[index] =  UINT16_MAX;
 
   return HMESH_NO_ERROR;
@@ -235,10 +240,10 @@ IndexStackAllocate(_IndexStack * stack, _Index index) {
 
 static inline _Flag
 IndexStackDestroy(_IndexStack * stack) {
-  _Index max = stack->max;
+  _Index n = stack->n;
   _Flag status = HMESH_NO_ERROR;
-  while(stack->n && max--) {
-    _Index index = stack->in_use[0];
+  while(n--) {
+    _Index index = stack->in_use[n];
     if( IndexStackDeallocate(stack, index) == HMESH_ERROR ) { 
       /* Attributes are not freed */
       HmeshError("IndexStackDestroy() : "
