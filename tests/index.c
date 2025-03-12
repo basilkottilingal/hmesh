@@ -53,5 +53,22 @@ int main() {
   /* even number indices shows error */
   HmeshErrorFlush(2);
 
+  /* Delete arrays */
+  if(IndexStackDestroy(&stack) == HMESH_ERROR)
+    HmeshError("attribute of index(indices) still not freed");
+  /* expect error */
+  HmeshErrorFlush(2);
+
+  for(_Index index = 0; index < 10; ++index) {
+    if(attributes[index]) {
+      free(attributes[index]);
+      attributes[index] = NULL;
+    }
+  }
+  if(IndexStackDestroy(&stack) == HMESH_ERROR)
+    HmeshError("attribute of index(indices) still not freed");
+  /* expect NO error */
+  HmeshErrorFlush(2);
+
   return 0;
 }
