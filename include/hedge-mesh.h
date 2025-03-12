@@ -54,18 +54,6 @@ extern "C" {
   extern
   _Flag _HmeshArrayDestroy(_HmeshArray *);
  
-  /* _DataType : Precision used in scientific computation.
-  .. 32 bits is Preferred data type precision for GPU vectors.
-  .. Everywhere else (and by default) it's used as 64.
-  */
-
-  #ifdef _PRECISION32
-  typedef float _Real;
-  #else 
-  typedef double _Real;
-  #endif
-  
-  typedef uint16_t _Index;
 
   struct _HmeshNode {
     /* Linked list of nodes. 
