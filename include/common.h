@@ -99,14 +99,18 @@ typedef double _Real;
 
 /* short int, used for indices of node arrays */  
 typedef uint16_t _Index;
+  
+typedef struct {
+  _Index in_use, free_list, loc, loc_free;
+} _IndexInfo ; 
 
 typedef struct {
   /* indices [1,max) are either in use/free . Index UINT16_MAX 
   .. is reserved and used in place of NULL.
   .. This is only for small 'max' (say <= 255). 
   */
-  _Index * in_use, * free_list, * loc,  * loc_free,
-           increment, limit, n, nfree, max;
+  _IndexInfo * info;
+  _Index increment, limit, n, nfree, max;
 
   /* for each 'index' in in_use, you may store attributes
   .. in (*attributes)[index] */
@@ -119,28 +123,26 @@ typedef struct {
 
 static inline _IndexStack 
 IndexStack(_Index limit, _Index increment, void *** att) {
+
   assert(limit > 1);
   increment = increment ? increment : 1;
-  _Index max = increment > limit ? limit : increment,
-    * in_use = (_Index *) malloc (max* sizeof(_Index)), 
-    * free_list = (_Index *) malloc (max* sizeof(_Index)),
-    * loc = (_Index *) malloc (max* sizeof(_Index)),
-    * loc_free = (_Index *) malloc (max* sizeof(_Index));
+  _Index max = increment > limit ? limit : increment;
+  _IndexInfo  * info = 
+      (_IndexInfo *) malloc ( max* sizeof(_IndexInfo)); 
+
   if(att) { 
     assert(*att == NULL);
     *att = (void **) malloc (max * sizeof(void *));
   }
   for(_Index i=0; i<max; ++i) {
-    free_list[i] = i;
-    loc_free[i] = i;
-    loc[i] = UINT16_MAX;
+    info[i].free_list = i;
+    info[i].loc_free  = i;
+    info[i].loc       = UINT16_MAX;
     if(att)
       (*att)[i] = NULL;
   }
   return (_IndexStack) 
-    {.in_use = in_use, .free_list = free_list, 
-     .loc = loc, .loc_free = loc_free, 
-     .increment = increment, .limit = limit, 
+    {.info = info, .increment = increment, .limit = limit, 
      .n = 0, .nfree = max, .max = max, .attribute = att} ;
 }
 
@@ -152,23 +154,18 @@ IndexStackExpand(_IndexStack * stack) {
   /* Expand the array */
   _Index max = stack->max + stack->increment; 
   max = (max > stack->limit) ? stack->limit : max;
-  stack->in_use = (_Index *) 
-    realloc (stack->in_use, max * sizeof(_Index));
-  stack->free_list = (_Index *) 
-    realloc (stack->free_list, max * sizeof(_Index));
-  stack->loc = (_Index *) 
-    realloc (stack->loc, max * sizeof(_Index));
-  stack->loc_free = (_Index *)
-    realloc (stack->loc_free, max * sizeof(_Index));
+  stack->info = (_IndexInfo *) 
+    realloc (stack->info, max * sizeof(_IndexInfo));
     
   void *** att = stack->attribute;
   if(att)
     *att = (void **) realloc(*att, max * sizeof(void *));
 
+  _IndexInfo * info = stack->info;
   for(_Index i = stack->max; i<max; ++i) {
-    stack->free_list[stack->nfree] = i;
-    stack->loc_free[i] = stack->nfree++;
-    stack->loc[i] = UINT16_MAX;
+    info[stack->nfree].free_list = i;
+    info[i].loc_free             = stack->nfree++;
+    info[i].loc                  = UINT16_MAX;
     if(att)
       (*att)[i] = NULL;
   }
@@ -180,15 +177,18 @@ IndexStackExpand(_IndexStack * stack) {
 static inline _Index 
 IndexStackFreeHead(_IndexStack * stack, int isPop) {
   if(!stack->nfree) 
-    if(IndexStackExpand(stack) == HMESH_ERROR)
+    if(IndexStackExpand(stack) == HMESH_ERROR) {
+      HmeshError("IndexStackFreeHead() : Out of index");
       /* Reached limit. Return invalid index*/
       return UINT16_MAX;
-  _Index index = stack->free_list[stack->nfree-1];
+    }
+  _IndexInfo * info = stack->info;
+  _Index index = info[stack->nfree-1].free_list;
   if(isPop) { 
     --(stack->nfree);
-    stack->loc_free[index] = UINT16_MAX;
-    stack->in_use[stack->n] =  index;
-    stack->loc[index] = stack->n++;
+    info[index].loc_free  = UINT16_MAX;
+    info[stack->n].in_use = index;
+    info[index].loc       = stack->n++;
   }
   return index;
 }
@@ -196,8 +196,8 @@ IndexStackFreeHead(_IndexStack * stack, int isPop) {
 static inline _Flag 
 IndexStackDeallocate(_IndexStack * stack, _Index index) {
   /* index location in in_use array */
-  _Index indexLoc = 
-    (index >= stack->max) ? UINT16_MAX : stack->loc[index];
+  _Index indexLoc = (index >= stack->max) ? UINT16_MAX : 
+                        stack->info[index].loc;
   void *** att = stack->attribute;
   void * index_att = att ? (*att)[index] : NULL;
   if( indexLoc == UINT16_MAX ) {
@@ -208,11 +208,12 @@ IndexStackDeallocate(_IndexStack * stack, _Index index) {
     HmeshError("IndexStackDeallocate() : attribute not freed");
     return HMESH_ERROR;
   }
-  stack->free_list[stack->nfree] = index;
-  stack->loc_free[index] = stack->nfree++; 
-  stack->in_use[indexLoc] = stack->in_use[--(stack->n)];
-  stack->loc[stack->in_use[indexLoc]] = indexLoc;
-  stack->loc[index] =  UINT16_MAX;
+  _IndexInfo * info = stack->info;
+  info[stack->nfree].free_list = index;
+  info[index].loc_free         = stack->nfree++;
+  info[indexLoc].in_use        = info[--(stack->n)].in_use;
+  info[info[indexLoc].in_use].loc = indexLoc;
+  info[index].loc              = UINT16_MAX;
 
   return HMESH_NO_ERROR;
 }
@@ -220,20 +221,26 @@ IndexStackDeallocate(_IndexStack * stack, _Index index) {
 static inline _Flag 
 IndexStackAllocate(_IndexStack * stack, _Index index) {
   while( index >= stack->max ) 
-    if( IndexStackExpand(stack) == HMESH_ERROR )
+    if( IndexStackExpand(stack) == HMESH_ERROR ) {
+      HmeshError("IndexStackFreeHead() : Out of index");
       return HMESH_ERROR;
+    }
+  _IndexInfo * info = stack->info;
   /* index location in free_list array */
-  _Index indexLoc = stack->loc_free[index];
+  _Index indexLoc   = info[index].loc_free;
   void *** att = stack->attribute;
   void * index_att = att ? (*att)[index] : NULL;
-  if( indexLoc == UINT16_MAX || index_att )
-    /* This index is already in use */
+  if( indexLoc == UINT16_MAX || index_att ) {
+    HmeshError("IndexStackAllocate() : "
+               "index %d already in use", index);
     return HMESH_ERROR;
-  stack->in_use[stack->n] = index;
-  stack->loc[index] = stack->n++; 
-  stack->free_list[indexLoc] = stack->free_list[--(stack->n)];
-  stack->loc_free[stack->free_list[indexLoc]] = indexLoc;
-  stack->loc_free[index] =  UINT16_MAX;
+  }
+
+  info[stack->n].in_use     = index;
+  info[index].loc           = stack->n++;
+  info[indexLoc].free_list  = info[--(stack->nfree)].free_list;
+  info[info[indexLoc].free_list].loc_free = indexLoc;
+  info[index].loc_free      = UINT16_MAX;
 
   return HMESH_NO_ERROR;
 }
@@ -243,7 +250,7 @@ IndexStackDestroy(_IndexStack * stack) {
   _Index n = stack->n;
   _Flag status = HMESH_NO_ERROR;
   while(n--) {
-    _Index index = stack->in_use[n];
+    _Index index = stack->info[n].in_use;
     if( IndexStackDeallocate(stack, index) == HMESH_ERROR ) { 
       /* Attributes are not freed */
       HmeshError("IndexStackDestroy() : "
@@ -254,10 +261,7 @@ IndexStackDestroy(_IndexStack * stack) {
   if(status == HMESH_ERROR)
     return status;
 
-  free(stack->free_list);
-  free(stack->in_use);
-  free(stack->loc);
-  free(stack->loc_free);
+  free(stack->info);
 
   return HMESH_NO_ERROR;
 }
