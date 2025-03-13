@@ -53,6 +53,14 @@ extern "C" {
     */
     _HmeshArray * prev, * next;
 
+#ifdef _HMESH_MPI
+    /* In case of MPI, 
+    .. pid : processor id,
+    .. gid : global id of node
+    */
+    _HmeshArray * pid, * gid;
+#endif
+
     /* For the block with index 'index' in array 
     .. 'info[4*index]' is the starting node of the used 
     .. nodes linked list and 'head[4*index+1]' is the 
@@ -64,14 +72,6 @@ extern "C" {
     */
     _Index * info;
 
-#ifdef _HMESH_MPI
-    /* In case of MPI, 
-    .. pid : processor id,
-    .. gid : global id of node
-    */
-    _HmeshArray * pid, * gid;
-#endif
-
     /* number of blocks */
     _Index max;
   };
@@ -80,39 +80,26 @@ extern "C" {
   .. Ex: (a) Half-edge mapping H = (V0, V1) . 
   ..     (b) Triangle mapping  T = (H0, H1, H2); 
   */
+  /* identify mapped index by block and index. 
   struct _HmeshMap {
-    /* identify mapped index by block and index. */
     _HmeshArray * iblock, * index;
   };
-
-  struct _HmeshScalar {
-    /* Scalar list of type double (or float in some cases)*/
-    _HmeshArray ** s;
-
-    /* Size of s array */
-    _Flag max;
-
-    /* Number of scalars in use*/
-    _Flag n;
-
-    /* To maintain a free list of scalars.
-    .. fixme : This should be removed later,
-    .. where flex is used to pop/push global and local vars*/
-    _Flag nfree, * free_list;
-
-  };
+  */
 
   /* cells of mesh : vertices/edges/triangle/tetrahedrons 
   */
   typedef struct _HmeshCells {
     /* Node : vertex/edge/face/tetrahedron */
-    struct _HmeshNode * nodes;
+    struct _HmeshNode nodes;
 
-    /* Vertices of edge. Apply only for d>0. */
-    struct _HmeshMap ** v, * twin, * next;
+    /* Vertices of edge. Apply only for d>0. 
+    struct _HmeshMap * v, twin, next;
+    */
 
     /* List of scalars */
-    struct _HmeshScalar * scalars;
+    void ** scalars;
+
+    _IndexStack iscalar;
 
     /* type( = 'd' ) of manifoldcell  */
     _Flag type;

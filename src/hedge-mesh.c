@@ -1,43 +1,14 @@
-/* for array 'a' (or scalar array 's'), 
-.. iblock 'ib' in [0, HMESH_MAX_NBLOCKS) and .. 
-.. index 'index' in [0,HMESH_BLOCK_SIZE) */
-#define HINDEX(a,ib,index) \
-  ( ((_Index) a->address[ib])[index] )
-#define HREAL(s,ib,index) \
-  ( ((_Real) s->address[ib])[index] )
-#define HFLAG(a,ib,index) \
-  ( ((_Flag) a->address[ib])[index] )
-#define HIBLOCK(a,ib,index) HFLAG(a,ib,index)
-#define HPID(a,ib,index) \
-  ( ((int) a->address[ib])[index] )
-#define HMAP_REAL(s,indices,blocks,ib,index) \
-  (HREAL(s, HIBLOCK(blocks,ib,index), HINDEX(indices,ib,index)))
-
 /* Add a block @ iblock-th position.
 .. Return memory address of the block, if successful
 */
-static 
-void * 
-HmeshArrayAdd(_HmeshArray * a, _Flag iblock) {
+static void * 
+HmeshArrayAdd(_HmeshArray * a, _Index iblock) {
 
-  /* handling unexpected behaviour */
-  if ( (!iblock ) || (iblock > HMESH_MAX_NBLOCKS) ) {
-    HmeshError("HmeshArrayAdd() : iblock out of bound");
+  _IndexStack * stack = &a->stack;
+  if( StackIndexAllocate(stack, iblock) ) {
+    HmeshError("HmeshArrayAdd() : iblock %d out of bound "
+               "or already in use", iblock);
     return NULL;
-  }
-  if(iblock < a->max) {
-    /* In case a block already exist @ this location */
-    if(address[iblock]) {
-      HmeshError("HmeshArrayAdd() : iblock in use");
-      return NULL;
-    }
-  }
-  else {
-    a->address = (void **) 
-      realloc (a->address, (1 + iblock) * sizeof(void *));
-    for(int i = a->max; i <= iblock; ++i)
-      a->address[i] = NULL;
-    a->max = 1 + iblock;
   }
 
   /* get a block from pool */
@@ -45,13 +16,22 @@ HmeshArrayAdd(_HmeshArray * a, _Flag iblock) {
   void * m = MemblockAddress(b);
   if(!m) {
     HmeshError("HmeshArrayAdd() : memory pooling failed");
+    StackIndexDeallocate(stack, iblock);
     return NULL;
   }
-
-  /* This information is used for deallocation of this block */
-  a->i[iblock] = b.iblock;
+  
+  /* expand address array if needed */
+  if(a->stack.max > a->max) {
+    a->max = a->stack.max;
+    a->address = (void **) 
+      realloc(a->address, a->max * sizeof(void *));
+    a->iblock = (_Index *) 
+      realloc(a->iblock, a->max * sizeof (_Index));
+  }
   /* Starting address of block is stored for easy access */
   a->address[iblock] = m;
+  /* This information is used for deallocation of this block */
+  a->iblock[iblock] = b.iblock; 
 
   return m;
 }
@@ -59,20 +39,20 @@ HmeshArrayAdd(_HmeshArray * a, _Flag iblock) {
 /* Make sure that attribute 'a' has same number of
 .. blocks as that of the 'reference' array.
 */
-static 
-_Flag
+static _Flag
 HmeshArrayAccomodate(_HmeshArray * reference,
   _HmeshArray * a) 
 {
-  if(!(refeence && a)) {
+  if(!(reference && a)) {
     HmeshError("HmeshArrayAccomodate() : aborted");
     return HMESH_ERROR;
   }
 
-  for(int i=0; i < reference->max; ++i) {
-    _Flag yes = (i < a->max) ? (a->address[i] != NULL) : 1; 
-    if ( yes )
-      if( !HmeshArrayAdd(a, i) ) {
+  _IndexStack * stack = &reference->stack;
+  for(int i=0; i < stack->n; ++i) {
+    _Index iblock = stack->info[i].in_use;
+    if ( ( iblock < a->max) ? (!a->address[iblock]) : 1 )
+      if( !HmeshArrayAdd(a, iblock) ) {
         HmeshError("HmeshArrayAccomodate() : "
                    "HmeshArrayAdd() : failed");
         return HMESH_ERROR;
@@ -86,34 +66,35 @@ HmeshArrayAccomodate(_HmeshArray * reference,
 .. Return HMESH_NO_ERROR if successful*/
 static
 _Flag 
-HmeshArrayRemove(_HmeshArray * a, _Flag iblock){
+HmeshArrayRemove(_HmeshArray * a, _Index iblock){
 
-  _Flag status = 
-    iblock < a->max ? (address[iblock] != NULL) : 0;
+  void * address = ( iblock < a->max) ? 
+      a->address[iblock] : NULL;
 
-  if(!status) {
+  if(!address) {
     HmeshError("HmeshArrayRemove() : "
                "cannot locate memory block");
     return HMESH_ERROR;
   }
 
-  status = MempoolDeallocateTo( (_Memblock) 
+  _Index status = MempoolDeallocateTo( (_Memblock) 
             {.pool = a->pool, .iblock = a->i[iblock]});
-
-  if(status == HMESH_NO_ERROR)  
+  if(!status) {
     a->address[iblock] = NULL;
-  else 
-    HmeshError("HmeshArrayRemove() : "
-               "MempoolDeallocateTo() : failed");
+    status |= IndexStackDeallocate(&a->stack, iblock);
+  }
+
+  if(status) HmeshError("HmeshArrayRemove() : "
+               "Index or Memblock deallocation failed");
 
   return status;
 }
 
 /* Create a new attribute */
-_HmeshArray * 
+static _HmeshArray * 
 HmeshArray(char * name, size_t size) {
 
-  _Mempool * pool = MempoolGeneral(size);
+  _Mempool * pool = Mempool(size);//MempoolGeneral(size);
   if(!pool) {
     HmeshError("HmeshArray() : aborted");
     return NULL;
@@ -122,10 +103,13 @@ HmeshArray(char * name, size_t size) {
   /* A new attribute */
   _HmeshArray * a = 
     (_HmeshArray *)malloc(sizeof(_HmeshArray));
-  a->pool = pool;
-  a->address = (void **)malloc(2*sizeof(void *));
-  a->address[0] = a->address[1] = NULL;
-  a->max = 2;
+  a->pool    = pool;
+  a->address = NULL;
+  a>stack = IndexStack(HMESH_MAX_NBLOCKS, 4, &a->address);
+  a->max  = a->stack.max;
+  if(a->max) 
+    a->iblock = (_Index *) malloc (a->max * sizeof(_Index));
+
   /* NOTE : For scalars 'name' is necessary */
   if(!name) { 
     HmeshError("HmeshArray() : "
@@ -160,8 +144,15 @@ HmeshArrayDestroy(_HmeshAttrribute * a) {
       if(HmeshArrayRemove(a, i) != HMESH_NO_ERROR ) { 
         status = HMESH_ERROR;
         HmeshError("HmeshArrayDestroy() : "
-                   "cannot free block");
+                   "cannot free memblock");
       }
+      if(IndexStackDeallocate(&a->stack, a->iblock[iblock])
+          != HMESH_NO_ERROR) { 
+        status = HMESH_ERROR;
+        HmeshError("HmeshArrayDestroy() : "
+                   "cannot free block index");
+      }
+
       /* In case of any unsuccessful freeing, you may
       .. expect memory related "unexpected behaviour"*/
       a->address[i] = NULL;
@@ -170,8 +161,14 @@ HmeshArrayDestroy(_HmeshAttrribute * a) {
   /* NOTE: since pool is a general pool for all attributes
   .. of same object_size, it will not be freed here. 
   */
-  if(address)
-    free(address); 
+  if(address)     
+    free(address);
+  if( IndexStackDestroy(&a->stack) != HMESH_NO_ERROR ){
+    HmeshError("HmeshArrayDestroy() : "
+               "index stack cannot be cleaned. "
+               "(Memory Leak) ");
+  }
+  MempoolDestroy(a->pool);
   free(a);
 
   return status;
@@ -182,45 +179,50 @@ HmeshArrayDestroy(_HmeshAttrribute * a) {
 _Flag
 _HmeshCellsAddScalar(_HmeshCells * c, char * name) {
 
-  /*
-  if(!c->scalars) {
-    _HmeshScalar * scalars = 
-      (_HmeshScalar *) malloc (sizeof(_HmeshScalar));
-    _HmeshArray ** s = 
-      (_HmeshArray **) malloc (10*sizeof(_HmeshScalar *));
-    if(! (s && scalars))
-  }
-  */
- 
-  _HmeshScalar * scalars = c->scalars;
-
   /* NOTE : scalars need to have a name */
   size_t len = name ? strlen(name) : 0 ;  
-  if( (!len) || (len > HMESH_MAX_VARNAME) || 
-      (c->scalars ? (c->scalars->max==HMESH_MAX_NVARS) : 1) ){
-    HmeshError("HmeshCellsAddScalar() : aborted()");
+  if( (!len) || (len > HMESH_MAX_VARNAME) ) { 
+    HmeshError("HmeshCellsAddScalar() : "
+               "invalid scalar name");
     return HMESH_ERROR;
   }
 
-  for(int i=0; i < c->max; ++i) {
-    _HmeshArray * s = c->s[i];
-    if(!s) continue;
+  void ** scalars = c->scalars;
+  _IndexStack * stack = &c->iscalar;
+  for(int i=0; i < stack->n; ++i) {
+    _Index index = stack->info[i].in_use;
+    _HmeshArray * s = (_HmeshArray *) (scalars[index]);
+    if(!s) {
+      HmeshError("HmeshCellsAddScalar() : "
+                 "expected a scalar");
+      continue;
+    } 
     if( !strcmp( name, s->name) ) {
-      HmeshError("HmeshCellsAddScalar() : scalar with name "
-                 "'%s' exists", name);
+      HmeshError("HmeshCellsAddScalar() : scalar with "
+                 "name '%s' exists", name);
       return HMESH_ERROR;
+    }
   }
-  _HmeshArray * s = (_HmeshScalar *) 
-    HmeshArray(name, sizeof(_DataType), HMESH_SCALAR_POOL);
-  if(!s) return HMESH_ERROR;
-  
-  c->nscalars += 1;
-  c->s = (_HmeshScalar **) 
-    realloc((c->nscalars)*sizeof(_HmeshScalar *));
-  c->s[c->nscalars - 1] = s;
+
+  _Index index = IndexStackFreeHead(stack, 1);
+  if(index == UINT16_MAX) { 
+    HmeshError("HmeshCellsAddScalar() : "
+               "ran out of scalar index");
+    return HMESH_ERROR;
+  }
+
+  /* create a new scalar with name */
+  _HmeshArray * s = 
+    (_HmeshScalar *) HmeshArray(name, sizeof(_Real));
+  if(!s) {
+    HmeshError("HmeshCellsAddScalar() : "
+               "scalar initialization failed");
+    return HMESH_ERROR;
+  }
+  scalars[index] = s;
 
   /* make sure attribute has same number of blocks as nodes */
-  HmeshArrayAccomodate(c->nodes, s);
+  HmeshArrayAccomodate(c->nodes.prev, s);
 
   return HMESH_NO_ERROR;
 }
@@ -232,25 +234,32 @@ _HmeshCellsRemoveScalar(_HmeshCells * c, char * name) {
 
   size_t len = name ? strlen(name) : 0;  
   if( (!len) || (len > HMESH_MAX_VARNAME) || 
-      (c->nscalars == 0) ){
+      (c->iscalars.n == 0) ){
     HmeshError("HmeshCellsRemoveScalar() : aborted()");
     return HMESH_ERROR;
   }
 
-  for(int i=0; i < c->nscalars; ++i) {
-    _HmeshScalar * s = c->s[i];
-    if(!s) continue;
+  void ** scalars = c->scalars;
+  _IndexStack * stack = &c->iscalar;
+  for(int i=0; i < stack->n; ++i) {
+    _Index index = stack->info[i].in_use;
+    _HmeshArray * s = (_HmeshArray *) (scalars[index]);
+    if(!s) {
+      HmeshError("HmeshCellsAddScalar() : "
+                 "expected a scalar");
+      continue;
+    } 
     if( !strcmp( name, s->name) ) {
-      /* found the scalar */
-      if( HmeshArrayDestroy((_HmeshArray *)s) !=
-          HMESH_NO_ERROR ) {
-        HmeshError("HmeshCellsRemoveScalar() : remove failed");
+      if( HmeshArrayDestroy(s)) {
+        HmeshError("HmeshCellsRemoveScalar() : "
+                   "HmeshArrayDestroy(%s) failed", name);
+        return HMESH_ERROR;
+      } 
+      if( IndexStackDeallocate(stack, index) ) {
+        HmeshError("HmeshCellsRemoveScalar() : "
+                   "index cannot be removed");
         return HMESH_ERROR;
       }
-      c->s[i] = c->s[c->nscalars - 1];
-      c->nscalars -= 1;
-      c->s = (_HmeshScalar **) 
-        realloc (c->nscalars * sizeof(_HmeshScalar *));
       return HMESH_NO_ERROR;
     }
   }
@@ -267,9 +276,12 @@ static inline
 _Index HmeshNodeNew(_HmeshNode node) {
 
   /* In case there is no empty nodes available,
-  .. return */ 
-  for(int iblock = 0; iblock < node.prev->n; ++iblock) {
-    
+  .. return */
+  _IndexStack * stack = &node->prev.stack;
+  _Index index = IndexStackFreeHead(stack, 0);
+   
+  for(int i = 0; i < stack->nfree; ++i) {
+    _Index index = stack->info[i].in_use;
   }
   if (!block->empty) 
     return 0;

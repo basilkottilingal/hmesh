@@ -1,3 +1,20 @@
+
+/* for array 'a' (or scalar array 's'), 
+.. iblock 'ib' in [0, HMESH_MAX_NBLOCKS) and .. 
+.. index 'index' in [0,HMESH_BLOCK_SIZE) */
+#define HINDEX(a,ib,index) \
+  ( ((_Index) a->address[ib])[index] )
+#define HREAL(s,ib,index) \
+  ( ((_Real) s->address[ib])[index] )
+#define HFLAG(a,ib,index) \
+  ( ((_Flag) a->address[ib])[index] )
+#define HIBLOCK(a,ib,index) HFLAG(a,ib,index)
+#define HPID(a,ib,index) \
+  ( ((int) a->address[ib])[index] )
+#define HMAP_REAL(s,indices,blocks,ib,index) \
+  (HREAL(s, HIBLOCK(blocks,ib,index), HINDEX(indices,ib,index)))
+
+
 #ifndef _HALFEDGE
 #define _HALFEDGE
 #endif
