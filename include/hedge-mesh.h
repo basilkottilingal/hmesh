@@ -12,7 +12,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
   #define HMESH_MAX_NBLOCKS 16
   #define HMESH_MAX_NVARS   64
   #define HMESH_MAX_VARNAME 31
@@ -33,42 +32,37 @@ extern "C" {
     .. Warning: Name of attribute limited to 31 characters!*/
     char name[32];
 
-    /*  'i' : or iblock is the number corresponding to
-    .. each block in the 'pool'.
-    .. iblock in [1,HMESH_MAX_NBLOCKS] are used and
-    .. iblock '0' is reserved
+    /*  'iblock' is the number corresponding to
+    .. each block in the 'pool'. 'max' is the size of
+    .. iblock array, and also address array
     */
-    _Flag i[HMESH_MAX_NBLOCKS+1];
+    _Index * iblock, max;
 
-    /* 'max' : size of 'address'.
+    /* to keep track of indices for which 
+    .. address[index] are in_use and free_list.
+    .. you need to free the memblock before freeing 
+    .. the index
     */
-    _Flag max; 
+    _IndexStack stack;
 
   } _HmeshArray;
-
-
-  /* Create an new HmeshArray obj */
-  extern _HmeshArray * HmeshArray(char *, size_t);
  
-  /* Destroy a HmeshArray obj*/
-  extern
-  _Flag _HmeshArrayDestroy(_HmeshArray *);
- 
-
   struct _HmeshNode {
     /* Linked list of nodes. 
     .. Structure of Array (SoA) format 
     */
     _HmeshArray * prev, * next;
 
-    /* nodes blocks with atleast one empty node, and
-    .. node blocks which is totally consumed. 
-    .. Encode '0' as the end of array. 
+    /* For the block with index 'index' in array 
+    .. 'info[4*index]' is the starting node of the used 
+    .. nodes linked list and 'head[4*index+1]' is the 
+    .. starting node of free nodes linked list.
+    .. 'info[4*index+2]' is the number of nodes in use,
+    .. 'info[4*index+3]' is the number of nodes free to use.
+    .. 1 + nused + nfree = HMESH_BLOCK_SIZE.
+    .. _Index '0' is reserved.
     */
-    _Index * free_blocks, * full_blocks;
-
-    /* number of blocks */
-    _Flag max, nfree, nfull; 
+    _Index * info;
 
 #ifdef _HMESH_MPI
     /* In case of MPI, 
@@ -77,6 +71,9 @@ extern "C" {
     */
     _HmeshArray * pid, * gid;
 #endif
+
+    /* number of blocks */
+    _Index max;
   };
 
   /* Mapping of indices.. 

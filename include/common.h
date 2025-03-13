@@ -105,9 +105,9 @@ typedef struct {
 } _IndexInfo ; 
 
 typedef struct {
-  /* indices [1,max) are either in use/free . Index UINT16_MAX 
+  /* indices [0,max) are either in use/free . Index UINT16_MAX 
   .. is reserved and used in place of NULL.
-  .. This is only for small 'max' (say <= 255). 
+  .. This is only for small 'max' (say max <= 256). 
   */
   _IndexInfo * info;
   _Index increment, limit, n, nfree, max;
@@ -236,11 +236,11 @@ IndexStackAllocate(_IndexStack * stack, _Index index) {
     return HMESH_ERROR;
   }
 
-  info[stack->n].in_use     = index;
-  info[index].loc           = stack->n++;
-  info[indexLoc].free_list  = info[--(stack->nfree)].free_list;
+  info[stack->n].in_use    = index;
+  info[index].loc          = stack->n++;
+  info[indexLoc].free_list = info[--(stack->nfree)].free_list;
   info[info[indexLoc].free_list].loc_free = indexLoc;
-  info[index].loc_free      = UINT16_MAX;
+  info[index].loc_free     = UINT16_MAX;
 
   return HMESH_NO_ERROR;
 }
@@ -261,7 +261,9 @@ IndexStackDestroy(_IndexStack * stack) {
   if(status == HMESH_ERROR)
     return status;
 
-  free(stack->info);
+  if(stack->info)
+    free(stack->info);
+  stack->info = NULL;
 
   return HMESH_NO_ERROR;
 }
