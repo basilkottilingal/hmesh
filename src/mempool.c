@@ -10,11 +10,11 @@ void * MemblockAddress(_Memblock memblock) {
   int iblock = memblock.iblock;
   /* The case "iblock >= pool->nblocks" should never happen
   */
-  void * block_address = !pool ? NULL :
-    (iblock >= pool->nblocks) ? NULL :  
-    pool->blocks[iblock];
+  void * address = !pool ? NULL :
+    (iblock >= pool->stack.max) ? NULL :  
+    pool->address[iblock];
 
-  return block_address;
+  return address;
 }
 
 /* 
@@ -23,37 +23,44 @@ void * MemblockAddress(_Memblock memblock) {
 .. You can reset using MemblockSizeReset(size_t nobj).
 .. Maximum allowed no: nodes/block = 1<<16 = 1 + UINT16_MAX
 */
-static 
-size_t  HMESH_MEMBLOCK_SIZE   = 1<<15;
-
-#define HMESH_MAX_MEMBLOCK_SIZE 1<<16
+static size_t HMESH_MEMBLOCK_SIZE = 1<<15;
 
 _Flag MemblockSizeReset(size_t new_nobj) {
-  /* fixme: Once some pool is already created,
-  .. this function should return error */
-  if( new_nobj > HMESH_MAX_MEMBLOCK_SIZE ) {
-    HmeshError("MemblockSizeReset() : obj size is too large");
-    return 0;
+  /* fixme: Once some pool is already created, this function 
+  .. should return error, otherwise different blocks will
+  .. have different sizes 
+  */
+
+  if ( (new_nobj < (1<<5)) || (new_nobj > (1<<15)) ) {
+    HmeshError("MemblockSizeReset() : aborted. "
+      "preferred nobj = 2^N with N in [5, 6, .., 15]");
+    return HMESH_ERROR;
   }
 
   /* Checking 2^N alignment */
   size_t n = new_nobj, reminder = 0;
   while(n) {
+    if(reminder) {
+      HmeshError("MemblockSizeReset() : aborted. "
+        "Doesn't follow 2^N alignment");
+      return HMESH_ERROR;
+    }
     reminder = n & 1;
     n = n >> 1;
-    if(n && reminder) {
-      HmeshError("MemblockSizeReset() : "
-                 "Doesn't follow 2^N alignment");
-      return 0;
-    }
   } 
   HMESH_MEMBLOCK_SIZE = new_nobj;
-  return 1; 
+
+  return HMESH_NO_ERROR; 
 }
 
 size_t MemblockSize() {
   return HMESH_MEMBLOCK_SIZE;
 }
+
+/* The number of blocks a pool can accomodate.
+.. fixme : it should be changed. (rather) ,
+.. sum of all poolsize should be capped*/
+static const _Index HMESH_MEMPOOL_SIZE = 1024;
 
 _Mempool * Mempool(size_t object_size) {
       
@@ -72,7 +79,8 @@ _Mempool * Mempool(size_t object_size) {
   if(block_size > 1<<20) {
     /* 1MB is the capped limit. You can't override this limit.
     .. Rounding off the block size to 1MB might destroy the 
-    .. alignment of number of indices per block. So returning.
+    .. alignment of number of indices per block. 
+    .. So returning.
     */
     free(pool);
     HmeshError("Mempool() : Block size greater than 1MB"); 
@@ -80,8 +88,12 @@ _Mempool * Mempool(size_t object_size) {
   }
 
   if(block_size % 8) {
-    /* You can easily achive this by taking nobjects = 1<<15,
-    .. assuming object_size <= 32 Bytes. 
+    /* Redundant: this is automatically achieved as
+    .. nobjects = 2^N is enforced.
+    .. Also preferred : object_size = 2^N, which is 
+    .. not strictly implemented,
+    .. however it can be followed if you use
+    .. structure of array (SoA) format for data-structure
     */
     free(pool);
     HmeshError("Mempool() : Bad block size alignment"); 
@@ -100,10 +112,9 @@ _Mempool * Mempool(size_t object_size) {
   /* Setting pool object's fields */
   pool->object_size = object_size;
   pool->block_size  = block_size;
-  pool->nblocks = 1;
-  pool->blocks = (void **) calloc (1, sizeof(void *));
-  /* The only available block in the pool, as of now */
-  pool->blocks[0] = address; 
+  pool->address = NULL;
+  pool->stack = 
+    IndexStack( HMESH_MEMPOOL_SIZE, 8, &pool->address);
   /* The free blocks linked list */
   _FreeBlock * fb = (_FreeBlock *) address;
   fb->next = NULL;
@@ -122,25 +133,23 @@ _Mempool * Mempool(size_t object_size) {
   return pool;
 }
 
-/* The number of blocks a pool can accomodate */
-#define HMESH_MEMPOOL_SIZE 256
-
 /* returns a memory block from the pool */
 _Memblock MempoolAllocateFrom(_Mempool * pool) {
   /* Allocate a memory bloc  from the pool of blocks */
 
-  if (!pool){
+  if (!pool) {
     HmeshError("MempoolAllocateFrom() : No pool Mentioned");
     return (_Memblock) {.pool = NULL, .iblock = 0};
   }
 
-  if ( !pool->free_blocks && 
-        pool->nblocks == HMESH_MEMPOOL_SIZE ) {
-    HmeshError("MempoolAllocateFrom() : Out of blocks");
+  /* Pop a block index 'iblock' from index stack */
+  _Index iblock = IndexStackFreeHead(&pool->stack, 1);
+  if( iblock == UINT16_MAX ) { 
+    HmeshError("MempoolAllocateFrom() : reached pool limit");
     return (_Memblock) {.pool = NULL, .iblock = 0};
   }
 
-  /* Send a free block {pool + iblock}  if available 
+  /* Send a free Memblock {.pool, .iblock}, if any available 
   */
   if(pool->free_blocks) {
     _FreeBlock * fb = pool->free_blocks;
@@ -148,9 +157,10 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
       HmeshError("MempoolAllocateFrom() : Double allocation"); 
       return (_Memblock) {.pool = NULL, .iblock = 0};
     }
+    pool->address[iblock] = fb;
     fb->safety = 0xC1C2A9F;  
     pool->free_blocks = fb->next;
-    return fb->memblock;
+    return (_Memblock) {.pool = pool, .iblock = iblock};
   }
 
   /* create a new block as there is no free blocks available
@@ -162,13 +172,14 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
     return (_Memblock) {.pool = NULL, .iblock = 0};
   }
   ((_FreeBlock *)address)->safety = 0xC1C2A9F;
+  pool->address[iblock] = address;
 
-  ++(pool->nblocks);
-  pool->blocks = (void **) realloc ( pool->blocks,
-    pool->nblocks * sizeof (void *));
-
-  _Flag iblock = pool->nblocks - 1;
-  pool->blocks[iblock] = address;
+#ifndef _HMESH_VERBOSE_OFF
+  fprintf(stdout, 
+    "\n1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
+    pool->block_size, MemblockSize(), pool->object_size);
+  fflush(stdout);
+#endif
 
   return (_Memblock) {.pool = pool, iblock = iblock};
 }
@@ -182,7 +193,6 @@ _Flag MempoolDeallocateTo(_Memblock memblock) {
 
   if ( !address ) {
     HmeshError("MempoolDeallocateTo() : block not mentioned");
-    fflush(stderr);
     return HMESH_ERROR;
   }
 
@@ -196,6 +206,10 @@ _Flag MempoolDeallocateTo(_Memblock memblock) {
   fb->safety = 0xFBC9183;
   fb->memblock = memblock;
   pool->free_blocks = fb;
+
+  /* Pop index out of used list */
+  pool->address[memblock.iblock] = NULL;
+  IndexStackDeallocate(&pool->stack, memblock.iblock);
   
   /* success */
   return HMESH_NO_ERROR;
@@ -209,18 +223,34 @@ _Flag MempoolFree(_Mempool * pool) {
     return HMESH_ERROR;
   }
 
-  _Flag status = HMESH_NO_ERROR;
-  for(_Flag i=0; i<pool->nblocks; ++i) {
-    _FreeBlock * fr = (_FreeBlock *) pool->blocks[i];
-    if(fr->safety != 0xFBC9183) {
-      /* Warning. Does not interrrupt */
-      HmeshError("MempoolFree() : Warning : "
-        "block might still be in use");
-      status = HMESH_ERROR;
-    }
-    free(pool->blocks[i]);
+  /* Remove all the free blocks */
+  _FreeBlock * fb = pool->free_blocks, * next = NULL;
+  while(fb) {
+    next = fb->next;
+    free(fb);
+    fb = next;
   }
-  free(pool->blocks);
+  
+  /* Forcefully remove blocks in-use */
+  _Flag status = HMESH_NO_ERROR;
+  _Index nuse = pool->stack.n;
+  if(nuse) {
+    HmeshError("MempoolFree() : Warning! "
+      "%d blocks are still be in use", nuse);
+    status |= HMESH_ERROR;
+    _IndexStack * stack = &pool->stack;
+    while(nuse--) {
+      _Index iblock = stack->info[nuse].in_use;
+      void ** address = pool->address + iblock;
+      assert(*address);
+      free(*address);
+      *address = NULL;
+      status |= IndexStackDeallocate(stack, iblock);
+    }
+  }
+
+  status |= IndexStackDestroy(&pool->stack);
+  free(pool->address);
   free(pool);
   
   return status;

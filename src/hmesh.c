@@ -1,30 +1,35 @@
+#include <common.h>
+#include <mempool.h>
+#include <hmesh.h>
+
 /* Add a block @ iblock-th position.
 .. Return memory address of the block, if successful
+static 
 */
-static void * 
+void * 
 HmeshArrayAdd(_HmeshArray * a, _Index iblock) {
 
   _IndexStack * stack = &a->stack;
-  if( StackIndexAllocate(stack, iblock) ) {
+  if( IndexStackAllocate(stack, iblock) ) {
     HmeshError("HmeshArrayAdd() : iblock %d out of bound "
                "or already in use", iblock);
     return NULL;
   }
 
   /* get a block from pool */
-  _Memblock b = _MempoolAllocateFrom(a->pool);
+  _Memblock b = MempoolAllocateFrom(a->pool);
   void * m = MemblockAddress(b);
   if(!m) {
     HmeshError("HmeshArrayAdd() : memory pooling failed");
-    StackIndexDeallocate(stack, iblock);
+    IndexStackDeallocate(stack, iblock);
     return NULL;
   }
   
   /* expand address array if needed */
   if(a->stack.max > a->max) {
     a->max = a->stack.max;
-    a->address = (void **) 
-      realloc(a->address, a->max * sizeof(void *));
+    //a->address = (void **) 
+    //  realloc(a->address, a->max * sizeof(void *));
     a->iblock = (_Index *) 
       realloc(a->iblock, a->max * sizeof (_Index));
   }
@@ -39,7 +44,7 @@ HmeshArrayAdd(_HmeshArray * a, _Index iblock) {
 /* Make sure that attribute 'a' has same number of
 .. blocks as that of the 'reference' array.
 */
-static _Flag
+static inline _Flag
 HmeshArrayAccomodate(_HmeshArray * reference,
   _HmeshArray * a) 
 {
@@ -63,8 +68,9 @@ HmeshArrayAccomodate(_HmeshArray * reference,
 }
 
 /* deallocate an existing block @ iblock-th position 
-.. Return HMESH_NO_ERROR if successful*/
+.. Return HMESH_NO_ERROR if successful
 static
+*/
 _Flag 
 HmeshArrayRemove(_HmeshArray * a, _Index iblock){
 
@@ -72,26 +78,25 @@ HmeshArrayRemove(_HmeshArray * a, _Index iblock){
       a->address[iblock] : NULL;
 
   if(!address) {
-    HmeshError("HmeshArrayRemove() : "
-               "cannot locate memory block");
+    HmeshError("HmeshArrayRemove() : cannot locate memblock");
     return HMESH_ERROR;
   }
 
   _Index status = MempoolDeallocateTo( (_Memblock) 
-            {.pool = a->pool, .iblock = a->i[iblock]});
+            {.pool = a->pool, .iblock = a->iblock[iblock]});
   if(!status) {
     a->address[iblock] = NULL;
     status |= IndexStackDeallocate(&a->stack, iblock);
   }
 
-  if(status) HmeshError("HmeshArrayRemove() : "
-               "Index or Memblock deallocation failed");
+  if(status) 
+    HmeshError("HmeshArrayRemove() : deallocation error");
 
   return status;
 }
 
 /* Create a new attribute */
-static _HmeshArray * 
+_HmeshArray * 
 HmeshArray(char * name, size_t size) {
 
   _Mempool * pool = Mempool(size);//MempoolGeneral(size);
@@ -105,27 +110,25 @@ HmeshArray(char * name, size_t size) {
     (_HmeshArray *)malloc(sizeof(_HmeshArray));
   a->pool    = pool;
   a->address = NULL;
-  a>stack = IndexStack(HMESH_MAX_NBLOCKS, 4, &a->address);
+  a->stack = IndexStack(HMESH_MAX_NBLOCKS, 4, &a->address);
   a->max  = a->stack.max;
   if(a->max) 
     a->iblock = (_Index *) malloc (a->max * sizeof(_Index));
 
   /* NOTE : For scalars 'name' is necessary */
-  if(!name) { 
-    HmeshError("HmeshArray() : "
-               "Warning. attribute with no specified name");
+  if(!name ? 1 : !name[0]) { 
+    HmeshError("HmeshArray() : Warning! No name specified");
     a->name[0] = '\0';
     return a;
   }
 
-  /* Set attribute name */
+  /* Set attribute name. 
+  .. Length of name is restricted to 32 including '\0' 
+  .. fixme : make sure naming follows C naming rules */
   _Flag s = 0;
   char * c = name;
-  /* length of name is restricted to 32 including '\0' */
-  while(*c && s<31){
-    /* fixme : make sure naming follows C naming rules */
+  while(*c && s<31)
     a->name[s++] = *c++;
-  }
   a->name[s] = '\0';
 
   return a;
@@ -135,19 +138,20 @@ HmeshArray(char * name, size_t size) {
 .. return HMESH_NO_ERROR if successful 
 */
 _Flag 
-HmeshArrayDestroy(_HmeshAttrribute * a) {
+HmeshArrayDestroy(_HmeshArray * a) {
+  if(!a)
+    return HMESH_ERROR;
 
   _Flag status = HMESH_NO_ERROR;
   /* Remove all blocks in use */
-  for(int i=0; i<a->max; ++i) 
-    if(a->address[i]) {
-      if(HmeshArrayRemove(a, i) != HMESH_NO_ERROR ) { 
+  for(int iblock = 0; iblock < a->max; ++iblock) 
+    if(a->address[iblock]) {
+      if( HmeshArrayRemove(a, iblock) ) { 
         status = HMESH_ERROR;
         HmeshError("HmeshArrayDestroy() : "
                    "cannot free memblock");
       }
-      if(IndexStackDeallocate(&a->stack, a->iblock[iblock])
-          != HMESH_NO_ERROR) { 
+      if( IndexStackDeallocate(&a->stack, a->iblock[iblock]) ){
         status = HMESH_ERROR;
         HmeshError("HmeshArrayDestroy() : "
                    "cannot free block index");
@@ -155,20 +159,20 @@ HmeshArrayDestroy(_HmeshAttrribute * a) {
 
       /* In case of any unsuccessful freeing, you may
       .. expect memory related "unexpected behaviour"*/
-      a->address[i] = NULL;
+      a->address[iblock] = NULL;
     }
   
   /* NOTE: since pool is a general pool for all attributes
   .. of same object_size, it will not be freed here. 
   */
-  if(address)     
-    free(address);
+  if(a->address)     
+    free(a->address);
   if( IndexStackDestroy(&a->stack) != HMESH_NO_ERROR ){
     HmeshError("HmeshArrayDestroy() : "
                "index stack cannot be cleaned. "
                "(Memory Leak) ");
   }
-  MempoolDestroy(a->pool);
+  MempoolFree(a->pool);
   free(a);
 
   return status;

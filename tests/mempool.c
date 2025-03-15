@@ -3,20 +3,23 @@
 
 int main() {
 
+  HmeshError("Point-A : expect no error, till Point-B");
   /* Create a Memory pool to accomodate, blocks each of size
   .. MemblockSize() x 8 Bytes
   */
   _Mempool * pool  = Mempool(8);
 
+  _Memblock block[3];
   /* Get a block */
-  _Memblock block1 = MempoolAllocateFrom(pool); 
+  block[0] = MempoolAllocateFrom(pool); 
   /* Anothher block */
-  _Memblock block2 = MempoolAllocateFrom(pool);
-  _Memblock block3 = MempoolAllocateFrom(pool);
-  (void)block3;
+  block[1] = MempoolAllocateFrom(pool);
+  block[2] = MempoolAllocateFrom(pool);
+  (void) block[2];
+
 
   /* Get the memory address of the block2 */
-  double * mem = (double *) MemblockAddress( block2 );
+  double * mem = (double *) MemblockAddress( block[1] );
   if(!mem)
     HmeshError("main() : Memblock() failed");
   else
@@ -25,17 +28,17 @@ int main() {
       mem[i] = 321.012;
 
   /* Free a block */ 
-  MempoolDeallocateTo(block1);
+  MempoolDeallocateTo(block[0]);
   /* Get a block */
-  block1 = MempoolAllocateFrom(pool);
+  block[0] = MempoolAllocateFrom(pool);
  
   /* Expect No error*/ 
-  HmeshError("expect no error");
+  HmeshError("Point-B");
   HmeshErrorFlush(2);
 
-  /* Followig will show an error */
-  MempoolDeallocateTo(block1);
-  MempoolDeallocateTo(block1);
+  /* Followig will show an error.  */
+  MempoolDeallocateTo(block[0]);
+  MempoolDeallocateTo(block[0]);
   /* There should be 'double free' error */
   HmeshErrorFlush(2);
 
