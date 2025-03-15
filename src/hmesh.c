@@ -25,11 +25,8 @@ HmeshArrayAdd(_HmeshArray * a, _Index iblock) {
     return NULL;
   }
   
-  /* expand address array if needed */
   if(a->stack.max > a->max) {
     a->max = a->stack.max;
-    //a->address = (void **) 
-    //  realloc(a->address, a->max * sizeof(void *));
     a->iblock = (_Index *) 
       realloc(a->iblock, a->max * sizeof (_Index));
   }

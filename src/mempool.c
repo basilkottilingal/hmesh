@@ -124,10 +124,9 @@ _Mempool * Mempool(size_t object_size) {
   pool->free_blocks = fb;
 
 #ifndef _HMESH_VERBOSE_OFF
-  fprintf(stdout, "\n1 x Pool Created with \n1 x MemBlock "
+  fprintf(stdout, "\n1 x Pool Created with \n+1 x MemBlock "
     "[%ld Bytes = %ld x %ld Bytes]",
     pool->block_size, MemblockSize(), pool->object_size);
-  fflush(stdout);
 #endif
 
   return pool;
@@ -160,6 +159,11 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
     pool->address[iblock] = fb;
     fb->safety = 0xC1C2A9F;  
     pool->free_blocks = fb->next;
+#ifndef _HMESH_VERBOSE_OFF
+    fprintf(stdout, 
+      "\n>1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
+      pool->block_size, MemblockSize(), pool->object_size);
+#endif
     return (_Memblock) {.pool = pool, .iblock = iblock};
   }
 
@@ -176,9 +180,8 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
 
 #ifndef _HMESH_VERBOSE_OFF
   fprintf(stdout, 
-    "\n1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
+    "\n+1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
     pool->block_size, MemblockSize(), pool->object_size);
-  fflush(stdout);
 #endif
 
   return (_Memblock) {.pool = pool, iblock = iblock};
@@ -210,6 +213,11 @@ _Flag MempoolDeallocateTo(_Memblock memblock) {
   /* Pop index out of used list */
   pool->address[memblock.iblock] = NULL;
   IndexStackDeallocate(&pool->stack, memblock.iblock);
+#ifndef _HMESH_VERBOSE_OFF
+  fprintf(stdout, 
+    "\n<1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
+    pool->block_size, MemblockSize(), pool->object_size);
+#endif
   
   /* success */
   return HMESH_NO_ERROR;
@@ -229,6 +237,11 @@ _Flag MempoolFree(_Mempool * pool) {
     next = fb->next;
     free(fb);
     fb = next;
+#ifndef _HMESH_VERBOSE_OFF
+    fprintf(stdout, 
+      "\n-1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
+      pool->block_size, MemblockSize(), pool->object_size);
+#endif
   }
   
   /* Forcefully remove blocks in-use */
@@ -246,6 +259,11 @@ _Flag MempoolFree(_Mempool * pool) {
       free(*address);
       *address = NULL;
       status |= IndexStackDeallocate(stack, iblock);
+#ifndef _HMESH_VERBOSE_OFF
+      fprintf(stdout, 
+        "\n-1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
+        pool->block_size, MemblockSize(), pool->object_size);
+#endif
     }
   }
 
