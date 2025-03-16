@@ -2,19 +2,16 @@
 #include <mempool.h>
 
 void * MemblockAddress(_Memblock memblock) {
-  /* Get the block address from a _Memblock object 
-  */
+  /* Get the block address from a _Memblock object */
 
   _Mempool * pool = (_Mempool *) memblock.pool;
+  _Index iblock = memblock.iblock;
 
-  int iblock = memblock.iblock;
-  /* The case "iblock >= pool->nblocks" should never happen
+  /* The case "iblock >= pool->stack.max" should never happen
   */
-  void * address = !pool ? NULL :
+  return !pool ? NULL :
     (iblock >= pool->stack.max) ? NULL :  
     pool->address[iblock];
-
-  return address;
 }
 
 /* 
@@ -115,12 +112,14 @@ _Mempool * Mempool(size_t object_size) {
   pool->address = NULL;
   pool->stack = 
     IndexStack( HMESH_MEMPOOL_SIZE, 8, &pool->address);
-  /* The free blocks linked list */
+  /* The free blocks linked list. 
+  .. Encode safety number to avoid double freeing */
   _FreeBlock * fb = (_FreeBlock *) address;
   fb->next = NULL;
-  /* Encode this safety number to avoid double freeing */
   fb->safety = 0xFBC9183;
-  fb->memblock = (_Memblock) {.pool = pool,.iblock = 0};
+  fb->memblock = 
+    (_Memblock) {.pool = pool, .iblock = UINT16_MAX};
+
   pool->free_blocks = fb;
 
 #ifndef _HMESH_VERBOSE_OFF
@@ -180,11 +179,13 @@ _Memblock MempoolAllocateFrom(_Mempool * pool) {
 
 #ifndef _HMESH_VERBOSE_OFF
   fprintf(stdout, 
-    "\n+1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
+    "\n+1 x MemBlock [%ld Bytes = %ld x %ld Bytes]"
+    "\n>1 x MemBlock [%ld Bytes = %ld x %ld Bytes]",
+    pool->block_size, MemblockSize(), pool->object_size,
     pool->block_size, MemblockSize(), pool->object_size);
 #endif
 
-  return (_Memblock) {.pool = pool, iblock = iblock};
+  return (_Memblock) {.pool = pool, .iblock = iblock};
 }
 
 /* Deallocate memory block back to the pool
