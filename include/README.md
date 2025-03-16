@@ -4,6 +4,8 @@
     * Better Memory Alignment and Cache Utilization
     * Better for SIMD implementation (Multithreading/GPU)
     * GPU Performance
+    * Need a lexical preprocessor that takes care of
+Linear operations ( for discrete calculus or discrete exterior calculus (DEC) ) that involves scalars, vectors and tensors.
   * Readability.
 
   * Direct visualization using javascript. (Portability)

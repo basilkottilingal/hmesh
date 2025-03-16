@@ -55,7 +55,7 @@ extern "C" {
     .. each block in the 'pool'. 'max' is the size of
     .. iblock array, and also address array
     */
-    _Index * iblock, max;
+    _Index * iblock, max, obj_size;
 
     /* to keep track of indices for which 
     .. address[index] are in_use and free_list.
@@ -82,7 +82,7 @@ extern "C" {
   typedef struct _HmeshCells {
     _IndexStack scalars, * blocks;
     void ** attr;
-    _Index * head;
+    _Index * info, max;
     _Flag d;
   } _HmeshCells;
 

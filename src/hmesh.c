@@ -17,7 +17,10 @@ HmeshArrayAdd(_HmeshArray * a, _Index iblock) {
   }
 
   /* get a block from pool */
-  _Memblock b = MempoolAllocateFrom(a->pool);
+  _Memblock b = a->pool ? MempoolAllocateFrom(a->pool) :
+    MempoolAllocateGeneral(a->obj_size);
+  if(!a->pool)
+    a->pool = (_Mempool *) b.pool;
   void * m = MemblockAddress(b);
   if(!m) {
     HmeshError("HmeshArrayAdd() : memory pooling failed");
@@ -80,7 +83,8 @@ HmeshArrayRemove(_HmeshArray * a, _Index iblock){
   }
 
   _Index status = MempoolDeallocateTo( (_Memblock) 
-            {.pool = a->pool, .iblock = a->iblock[iblock]});
+    {.pool = a->pool, .iblock = a->iblock[iblock]});
+
   if(!status) {
     a->address[iblock] = NULL;
     status |= IndexStackDeallocate(&a->stack, iblock);
@@ -95,17 +99,12 @@ HmeshArrayRemove(_HmeshArray * a, _Index iblock){
 /* Create a new attribute */
 _HmeshArray * 
 HmeshArray(char * name, size_t size) {
+  /* returns  new attribute. No blocks allocated yet.*/
 
-  _Mempool * pool = Mempool(size);//MempoolGeneral(size);
-  if(!pool) {
-    HmeshError("HmeshArray() : aborted");
-    return NULL;
-  }
-
-  /* A new attribute */
   _HmeshArray * a = 
     (_HmeshArray *)malloc(sizeof(_HmeshArray));
-  a->pool    = pool;
+  a->obj_size = size;
+  a->pool = NULL;
   a->address = NULL;
   a->stack = IndexStack(HMESH_MAX_NBLOCKS, 4, &a->address);
   a->max  = a->stack.max;
@@ -169,7 +168,7 @@ HmeshArrayDestroy(_HmeshArray * a) {
                "index stack cannot be cleaned. "
                "(Memory Leak) ");
   }
-  MempoolFree(a->pool);
+  /* MempoolFree(a->pool); */
   free(a);
 
   return status;
@@ -183,20 +182,46 @@ _Flag HmeshCellsExpand(_HmeshCells * cells) {
     _Index iattr = cells->scalars.info[nattr].in_use;
     _HmeshArray * attr = (_HmeshArray *) cells->attr[iattr];
     if ( !attr ) { 
-      HmeshError("HmeshCellsExpand() : attr[%d] not found", iattr);
+      HmeshError("HmeshCellsExpand() : "
+        "attr[%d] not found", iattr);
       return HMESH_ERROR;
     }
-    if ( HmeshArrayAdd(attr, iblock) ) {
+    void * mem = HmeshArrayAdd(attr, iblock); 
+    if ( !mem ) {
       HmeshError("HmeshCellsExpand() : cannot add block to "
-                 "attr '%s'", attr->name);
+        "attr '%s'", attr->name);
       return HMESH_ERROR;
+    }
+    if(!iattr) {
+      _Index * prev = (_Index *) mem;
+      prev[0] = 0;
+    }
+    else if(iattr == 1) {
+      /* Free index list. Index '0' is reserved node*/
+      _Index * next = (_Index *) mem, bsize = MemblockSize();
+      for(_Index index = 1; index < bsize-1; ++index)
+        next[index] = index + 1;
+      next[bsize-1] = 0;
+      /* Head of used list*/
+      next[0] = 0;
     }
   }
   
-  _Index * prev = 
-    (_Index *) (((_HmeshArray *) cells->attr[0])->address[iblock]),
-    * next = 
-    (_Index *) (((_HmeshArray *) cells->attr[1])->address[iblock]);
+  if(cells->max < cells->blocks->max) {
+    cells->max = cells->blocks->max;
+    cells->info = (_Index *) 
+      realloc (cells->info, 4 * cells->max * sizeof(_Index));
+  }
+
+  _Index * info = cells->info + (4*iblock),
+    bsize = (_Index) MemblockSize();
+
+  /* head of in-use and free-list linked list respectively*/
+  info[0] = 0;
+  info[1] = 1;
+  /* number of nodes in-use and free */ 
+  info[2] = 0;
+  info[3] = bsize - 1; 
 
   return HMESH_NO_ERROR;
 }
@@ -211,21 +236,11 @@ _HmeshCells * HmeshCells(_Flag d) {
   _IndexStack * scalars = &cells->scalars;
   *scalars = IndexStack(HMESH_MAX_NVARS,5, &cells->attr);
 
-  _HmeshArray * prev = HmeshArray("prev", sizeof(_Index));
-  if(!prev) {
-    HmeshError("HmeshCells() : creating 'prev' failed");
-    free(cells);
-    return NULL;
-  }
-  _HmeshArray * next = HmeshArray("next", sizeof(_Index));
-  if(!next) {
-    HmeshError("HmeshCells() : creating 'next' failed");
-    HmeshArrayDestroy(prev);
-    free(cells);
-    return NULL;
-  }
+  _HmeshArray * prev = HmeshArray("prev", sizeof(_Index)),
+    * next = HmeshArray("next", sizeof(_Index));
 
-  /* 'prev' and 'next' is used to keep double linked list of nodes */
+  /* 'prev' and 'next' is used to keep double linked 
+  .. list of nodes */
   IndexStackAllocate(scalars, 0);
   cells->attr[0] = prev;
   IndexStackAllocate(scalars, 1);
@@ -233,6 +248,20 @@ _HmeshCells * HmeshCells(_Flag d) {
   
   cells->blocks = &prev->stack;
   cells->d = d;
+  cells->max = 0;
+  cells->info = NULL;
+
+  /*
+  if(d) {
+    IndexStackAllocate(scalars, 2);
+    cells->attr[2] = v0;
+    IndexStackAllocate(scalars, 3);
+    cells->attr[1] = next;
+  }
+  */
+
+  /* Expand all attributes of cells by 1 block */
+  HmeshCellsExpand(cells);
 
   return cells;
 }
