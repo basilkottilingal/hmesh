@@ -80,9 +80,9 @@ extern "C" {
   /* cells of mesh : vertices/edges/triangle/tetrahedrons 
   */
   typedef struct _HmeshCells {
-    _IndexStack stack;
+    _IndexStack scalars, * blocks;
     void ** attr;
-    _Index * info;
+    _Index * head;
     _Flag d;
   } _HmeshCells;
 

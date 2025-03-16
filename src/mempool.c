@@ -274,3 +274,55 @@ _Flag MempoolFree(_Mempool * pool) {
   
   return status;
 }
+
+
+static _Mempool ** HMESH_MEMPOOL_STACK = NULL;
+
+_Memblock MempoolAllocateGeneral(size_t obj_size) {
+  if(!HMESH_MEMPOOL_STACK) 
+    HMESH_MEMPOOL_STACK = 
+      (_Mempool **) malloc( 6* sizeof(_Mempool *));
+
+  size_t n = obj_size, r = 0, ipool = 0;
+  while(n) {
+    if(r) 
+      break;
+    r = n & 1;
+    n = n >> 1;
+    ++ipool;
+  }
+  if( (n && r) || (ipool > 6) ) {
+    HmeshError("MempoolAllocateGeneral() : "
+      "obj_size not in [1,2,4,8,16,32]");
+    return (_Memblock) {.pool = NULL, .iblock = 0}; 
+  }
+  
+  _Mempool ** pool = HMESH_MEMPOOL_STACK + (ipool - 1);
+  if(!(*pool)) 
+    *pool = Mempool(obj_size);
+
+  return MempoolAllocateFrom(*pool);
+}
+
+_Flag MempoolDeallocateGeneral(_Memblock memblock) {
+  return MempoolDeallocateTo (memblock);
+}
+
+_Flag MempoolFreeGeneral(){
+  _Mempool ** pool = HMESH_MEMPOOL_STACK;
+  if(!pool)
+    return HMESH_NO_ERROR; 
+  
+  _Flag ipool = 6, status = HMESH_NO_ERROR;
+  while(ipool--) {
+    if(*pool)
+      status |= MempoolFree(*pool);
+    ++pool;
+  }
+  if(status) 
+    HmeshError("HmeshDestroyGeneral() : "
+      "MempoolDestroy() failed. (Memory Leak)");
+
+  free(HMESH_MEMPOOL_STACK);
+  return status;  
+}

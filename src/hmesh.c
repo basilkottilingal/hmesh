@@ -174,3 +174,65 @@ HmeshArrayDestroy(_HmeshArray * a) {
 
   return status;
 }
+
+static
+_Flag HmeshCellsExpand(_HmeshCells * cells) {
+  _Index iblock = IndexStackFreeHead(cells->blocks, 1);
+  _Index nattr = cells->scalars.n;
+  while(nattr--) {
+    _Index iattr = cells->scalars.info[nattr].in_use;
+    _HmeshArray * attr = (_HmeshArray *) cells->attr[iattr];
+    if ( !attr ) { 
+      HmeshError("HmeshCellsExpand() : attr[%d] not found", iattr);
+      return HMESH_ERROR;
+    }
+    if ( HmeshArrayAdd(attr, iblock) ) {
+      HmeshError("HmeshCellsExpand() : cannot add block to "
+                 "attr '%s'", attr->name);
+      return HMESH_ERROR;
+    }
+  }
+  
+  _Index * prev = 
+    (_Index *) (((_HmeshArray *) cells->attr[0])->address[iblock]),
+    * next = 
+    (_Index *) (((_HmeshArray *) cells->attr[1])->address[iblock]);
+
+  return HMESH_NO_ERROR;
+}
+
+_HmeshCells * HmeshCells(_Flag d) {
+  _HmeshCells * cells = 
+    (_HmeshCells *) malloc (sizeof(_HmeshCells));
+
+  if(!cells) return NULL;
+  
+  cells->attr  = NULL;
+  _IndexStack * scalars = &cells->scalars;
+  *scalars = IndexStack(HMESH_MAX_NVARS,5, &cells->attr);
+
+  _HmeshArray * prev = HmeshArray("prev", sizeof(_Index));
+  if(!prev) {
+    HmeshError("HmeshCells() : creating 'prev' failed");
+    free(cells);
+    return NULL;
+  }
+  _HmeshArray * next = HmeshArray("next", sizeof(_Index));
+  if(!next) {
+    HmeshError("HmeshCells() : creating 'next' failed");
+    HmeshArrayDestroy(prev);
+    free(cells);
+    return NULL;
+  }
+
+  /* 'prev' and 'next' is used to keep double linked list of nodes */
+  IndexStackAllocate(scalars, 0);
+  cells->attr[0] = prev;
+  IndexStackAllocate(scalars, 1);
+  cells->attr[1] = next;
+  
+  cells->blocks = &prev->stack;
+  cells->d = d;
+
+  return cells;
+}

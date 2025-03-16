@@ -141,4 +141,25 @@ extern _Flag MempoolFree(_Mempool * pool);
 extern _Memblock MempoolAllocateFrom(_Mempool * pool);
 extern _Flag MempoolDeallocateTo(_Memblock memblock);
 
+/*
+.. A stack of memory pool.
+.. NOTE : Restricted to obj_size in [1,2,4,8,16,32].
+.. It can be easily achieved  if you follow Structure 
+.. of Array (SoA) for databases.
+.. NOTE : It is not a sophisticated algo as 
+.. there is no coalascence/fragmentation of 
+.. memory blocks. So deallocated blocks (not yet freed)
+.. can be wasteful and malloc can fail for memblocks of
+.. different blocksizes. So it is advised to free memblocks
+.. if they have accumulated.
+.. ALTERNATIVE : A tree pool
+.. can be implemented since block_size follow 2^N.
+*/
+
+extern _Memblock MempoolAllocateGeneral(size_t obj_size);
+
+extern _Flag MempoolDeallocateGeneral(_Memblock);
+
+extern _Flag MempoolFreeGeneral();
+
 #endif
