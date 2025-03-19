@@ -143,6 +143,9 @@ HmeshArrayDestroy(_HmeshArray * a) {
   return status;
 }
 
+/*
+.. Add 1 block to all the attributes of cells
+*/
 static
 _Flag HmeshCellsExpand(_HmeshCells * cells) {
   _Index iblock = IndexStackFreeHead(cells->blocks, 0);
@@ -195,6 +198,9 @@ _Flag HmeshCellsExpand(_HmeshCells * cells) {
   return HMESH_NO_ERROR;
 }
 
+/* 
+.. Create a HmeshCells (list of vertices, edges, etc ..)
+*/
 _HmeshCells * HmeshCells(_Flag d, _Flag D) {
   _HmeshCells * cells = 
     (_HmeshCells *) malloc (sizeof(_HmeshCells));
@@ -254,6 +260,7 @@ _HmeshCells * HmeshCells(_Flag d, _Flag D) {
   return cells;
 }
 
+/* Destroy cells with all it's attributes */
 _Flag HmeshCellsDestroy(_HmeshCells * cells) {
   _IndexStack * stack = &cells->scalars;
   void ** attr = cells->attr;
@@ -275,6 +282,11 @@ _Flag HmeshCellsDestroy(_HmeshCells * cells) {
   return status;
 }
 
+/* 
+.. Add a scalar with name 'name' to the list of
+.. attributes of 'cells'. NOTE: name length should be < 32,
+.. and should follow C naming rules
+*/
 _HmeshArray * 
 HmeshScalarNew(_HmeshCells * cells, char * name) {
   if(!name) {
@@ -336,7 +348,10 @@ HmeshScalarNew(_HmeshCells * cells, char * name) {
     
   return s;
 }
-  
+
+/* 
+.. Remove the scalar 'name' from the attributes of 'cells'
+*/
 _Flag HmeshScalarRemove(_HmeshCells * cells, char * name) {
   if( !(name||cells) ) {
     HmeshError("HmeshScalarRemove() : aborted");
@@ -363,4 +378,69 @@ _Flag HmeshScalarRemove(_HmeshCells * cells, char * name) {
 
   HmeshError("HmeshScalarRemove() : scalar '%s' not found", name);
   return HMESH_ERROR;
+}
+
+/*
+.. Add a node to the 'cells'
+*/
+_Node HmeshNodeNew(_HmeshCells * cells) {
+  _IndexStack * blocks = cells->blocks;
+  _Index iblock = blocks->info[blocks->n-1].in_use, 
+    * prev = (_Index *)((_HmeshArray *) cells->attr[0])->address[iblock],
+    * next = (_Index *)((_HmeshArray *) cells->attr[1])->address[iblock],
+    head = cells->info[4*iblock], fhead = cells->info[4*iblock + 1];
+  
+  /* Make sure free head is not empty */
+  assert(fhead);
+
+  /* If this is the last free node in the block, add block */
+  if(!next[fhead]) 
+    /* fixme : Optimize a bit to reuse freed nodes in previous blocks */
+    HmeshCellsExpand(cells);
+
+  /* Remove fhead from free list, update free head*/
+  cells->info[4*iblock+1] = next[fhead]; 
+
+  /* adding fhead to used list */
+  next[fhead] = next[head];
+  prev[fhead] = head;
+  next[head] = prev[next[head]] = fhead;
+  cells->info[4*iblock] = next[fhead];
+
+  /* Update count*/
+  cells->info[4*iblock+2]++;
+  cells->info[4*iblock+3]--;
+
+  return (_Node) {.index = fhead, .iblock = iblock}; 
+}
+
+/*
+.. Add a node to the 'cells'
+*/
+_Flag HmeshNodeRemove(_HmeshCells * cells, _Node node) {
+  _Index iblock = node.iblock, index = node.index, 
+    * prev = (_Index *)((_HmeshArray *) cells->attr[0])->address[iblock],
+    * next = (_Index *)((_HmeshArray *) cells->attr[1])->address[iblock];
+
+  /* Error : Index is already a free index, or the reserved index '0'
+  .. or out of bound */
+  if( (prev[index] == UINT16_MAX) || (!index) || 
+      (index >= MemblockSize()) )
+    return HMESH_ERROR;
+  
+  /* remove 'index' from used list */
+  next[prev[index]] = next[index];
+  prev[next[index]] = prev[index];
+  cells->info[4*iblock] = prev[index];
+
+  /* add 'index' to free list, update free head*/
+  next[index] = cells->info[4*iblock+1];
+  prev[index] = UINT16_MAX;
+  cells->info[4*iblock+1] = index;
+
+  /* Update count*/
+  cells->info[4*iblock+2]--;
+  cells->info[4*iblock+3]++;
+
+  return HMESH_NO_ERROR;
 }

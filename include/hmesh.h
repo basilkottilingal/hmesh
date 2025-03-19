@@ -156,6 +156,12 @@ extern "C" {
   extern
   _Flag HmeshArrayRemove(_HmeshArray *, _Index);
 
+  extern
+  _Node HmeshNodeNew(_HmeshCells *);
+
+  extern
+  _Flag HmeshNodeRemove(_HmeshCells *, _Node);
+
 #ifdef __cplusplus
 }
 #endif
