@@ -77,26 +77,41 @@ extern "C" {
   };
   */
 
+  typedef struct {
+    _Index index, iblock;
+  }_Node;
+
   /* cells of mesh : vertices/edges/triangle/tetrahedrons 
   */
   typedef struct _HmeshCells {
+    /* Stack of indices in use for scalars, blocks */
     _IndexStack scalars, * blocks;
+
+    /* attributes including 'prev', 'next', scalars etc */
     void ** attr;
+
+    /* 'info' : head, free head, no: of nodes in use, 
+    .. no: of nodes free.
+    .. 'max' : blocks in [0,max) are (maybe) in use */
     _Index * info, max;
-    _Flag d;
+
+    /* dimension.
+    .. iscalars in [min, max) are in_use for scalars  
+    */
+    _Flag d, min;
   } _HmeshCells;
 
   extern
-  _HmeshCells * HmeshCells(_Flag d);
+  _HmeshCells * HmeshCells(_Flag d, _Flag D);
 
   extern
   _Flag HmeshCellsDestroy(_HmeshCells *);
   
   extern
-  _Flag HmeshCellsAddScalar(_HmeshCells *, char *);
+  _HmeshArray * HmeshScalarNew(_HmeshCells *, char *);
   
   extern
-  _Flag HmeshCellsRemoveScalar(_HmeshCells *, char *);
+  _Flag HmeshScalarRemove(_HmeshCells *, char *);
 
   /* _Manifold: Mesh or a discretized manifold */
   typedef struct {
@@ -131,11 +146,13 @@ extern "C" {
 
   extern
   _HmeshArray * HmeshArray(char * name, size_t size);
+
   extern
   _Flag HmeshArrayDestroy(_HmeshArray *);
 
   extern
   void * HmeshArrayAdd(_HmeshArray *, _Index);
+
   extern
   _Flag HmeshArrayRemove(_HmeshArray *, _Index);
 
