@@ -11,6 +11,7 @@ Linear operations ( for discrete calculus or discrete exterior calculus (DEC) ) 
   * Direct visualization using javascript. (Portability)
   * Should be able to run in CUDA, OpenMP+/MPI.
   * Mempooling to accomodate large dataset thus avoiding realloc and repeated malloc.
+    * IMPORTANT : Need to read on mmap()
   * IMP: Need some sort of lexical for cleaner/faster writing.
   * Prefer Modular Programming approach where you use "separate compilation". 
   * reserve keywords "forEach", "meshes". 
@@ -30,7 +31,7 @@ Linear operations ( for discrete calculus or discrete exterior calculus (DEC) ) 
     * m.face.vector.add("c"); // 
     * v = m.face.vector.get(); //allocate "v". will free before the end of the scope
   * requirement of vertices, vectors/scalars, 
-    * Least sparse
+    * Least sparse. BUT : reducing sparseness increases overhead in insertion!!. So how can you optimize
     * Option to compact. Remove sparseness completely, by compacting the mempool
     * should be able to vectorize. 
     * If sparseness is minimal, GPU computatation on vectorized arrays neednot skip the sparse part of the array.
@@ -39,8 +40,9 @@ Linear operations ( for discrete calculus or discrete exterior calculus (DEC) ) 
   * challenge in using many blocks to represent a non-partitioned manifold in a single CPU memory, 
     * while searching for the pointer in memory (vertex/edge/etc..) is the locality of searched memory pointer. If locality is not guaranteed TLB searching will fail and start manually searching for memory in the memory hardware which might be  
   * Error handling. (type \_Flag) 
-    * Return 0 : success.
-    * > 0 : failed. Identify error type.
+    * Return 0 : success. 
+    * > 0 : failed. Identify error type. 
+    * NOTE : For pointer returns , returning NULL means failure, and success otherwise.
     * may include an error.h
   * Coding Style
     * typedef datatypes starts with underscore followed by caps letter, and the rest are small letters. Ex: \_Mempool, \_Flag

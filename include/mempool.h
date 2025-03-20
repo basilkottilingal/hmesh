@@ -35,7 +35,7 @@
 /*
 .. _Memblock stores the info on the pool and the block number.
 .. You can access the memory block address using the function
-.. void * Memblock(_Memblock);
+.. void * MemblockAddress(_Memblock);
 */
 typedef struct{
 
