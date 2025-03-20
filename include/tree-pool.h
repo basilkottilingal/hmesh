@@ -26,6 +26,8 @@
 .. represented*/
 #define HMESH_TREE_POOL_DEPTH 3
 #endif
+const size_t HMESH_TREE_POOL_NODES = 
+  (1 << (HMESH_TREE_POOL_DEPTH+1)) - 1;
 
 /* For the moment, let's fix the BLOCK_SIZE = no: of
 .. nodes per block to 4096. So the the size of chunks
@@ -37,18 +39,6 @@ const size_t HMESH_TREE_BLOCK_SIZE = 1<<12;
 #define HMESH_TREE_POOL_SIZE 1<<23
 
 
-/*
-.. _MemTBlock stores the info on the pool and the block number.
-.. You can access the memory block address using the function
-.. void * MemTBlockAddress(_MemTBlock);
-*/
-typedef struct{
-
-  /* which tree and block.
-  */
-  _Index itree, iblock;
-
-} _MemTBlock;
 
 /* 
 .. Linked list of free blocks
@@ -56,11 +46,11 @@ typedef struct{
 typedef struct _FreeTBlock {
   /* 'next' to form a linked list of empty blocks
   */
-  struct _FreeTBlock * next;
+  struct _FreeTBlock * prev, * next;
 
-  /* Store information of
+  /* Store information of itree, inode
   */
-  _MemTBlock block; 
+  _Index block; 
 
 } _FreeTBlock;
 
@@ -69,7 +59,7 @@ typedef struct {
   void ** root;
 
   /* info on each block. (a) is_used or is_free*/
-  _Flag ** chunk;  
+  _Flag ** info;  
 
   /* number of trees in use */
   _Flag ntrees; 
