@@ -66,16 +66,30 @@ typedef struct {
   size_t size;
 } _HmeshTpool;
 
-typedef struct {
-  /* collection of pools */
-  _HmeshTpool * trees;
+/* 
+.. Allocate a block of 
+.. [HMESH_TREE_POOL_SIZE] X [2^d],
+.. where d = HMESH_TREE_POOL_SIZE - depth
+*/
+extern
+_Index HmeshTpoolAllocate(_Flag depth); 
 
-  /* number of trees in use */
-  _Flag ntrees; 
+/*
+.. Get the memory address from starting index
+*/
+extern
+void * HmeshTpoolAddress(_Index block);
 
-  /* Free blocks of each level */
-  _FreeBlock * free_list[HMESH_TREE_POOL_DEPTH + 1]; 
+/* 
+.. Deallocate
+*/
+extern
+_Flag HmeshTpoolDeallocate(_Index block);
 
-} _HmeshTreepool;
+/*
+.. Free all. @ the end of pgm
+*/
+extern
+void HmeshTpoolDestroy();
 
 #endif
