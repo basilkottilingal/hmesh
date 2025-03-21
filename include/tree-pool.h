@@ -60,7 +60,7 @@ typedef struct {
 
   /* info on each nodes correspodning to memory blocks.
   .. Encodes depth, is a free/used node etc*/
-  _Flag * nodes;  
+  _Flag * flags;  
 
   /* size of root. For munmap() */
   size_t size;
