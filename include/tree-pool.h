@@ -56,10 +56,19 @@ typedef struct _FreeTBlock {
 
 typedef struct {
   /* address of each root node */
-  void ** root;
+  void * root;
 
-  /* info on each block. (a) is_used or is_free*/
-  _Flag ** info;  
+  /* info on each nodes correspodning to memory blocks.
+  .. Encodes depth, is a free/used node etc*/
+  _Flag * nodes;  
+
+  /* size of root. For munmap() */
+  size_t size;
+} _HmeshTpool;
+
+typedef struct {
+  /* collection of pools */
+  _HmeshTpool * trees;
 
   /* number of trees in use */
   _Flag ntrees; 
@@ -68,6 +77,5 @@ typedef struct {
   _FreeBlock * free_list[HMESH_TREE_POOL_DEPTH + 1]; 
 
 } _HmeshTreepool;
-
 
 #endif
