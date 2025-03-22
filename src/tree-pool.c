@@ -66,7 +66,7 @@ HmeshTpoolAddress(_Index block) {
     return NULL;
    
   return HmeshTpoolAddressIs(HMESH_TREE_POOLS.trees[itree].root,
-    inode, HMESH_TREE_POOLS.trees[itree].flags[inode] & 8);
+    inode, HMESH_TREE_POOLS.trees[itree].flags[inode] & 7);
 }
 
 static inline _Index HmeshTpoolParent(_Index inode) {

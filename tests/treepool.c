@@ -4,7 +4,7 @@
 #include <time.h>
 
 void TpoolStatus(){
-  int microSec = 100;
+  int microSec = 50;
   if(microSec) {  
     microSec = microSec > 1000 ? 1000 : microSec;
     clock_t start_time = clock();
@@ -38,6 +38,14 @@ void TpoolStatus(){
   } 
 }
 
+void WriteToBlock(_Index block, _Flag depth){
+  /* write random info to block */
+  char * mem = (char *) HmeshTpoolAddress(block);
+  size_t size = 1 << (12 + HMESH_TREE_POOL_DEPTH - depth);
+  while(size--)
+    *mem++ = (rand() % 256) - 128;
+}
+
 #define NSTACK 15
 int main(int argc, char ** argv) {
 
@@ -58,6 +66,8 @@ int main(int argc, char ** argv) {
       _Flag level = rand() % 4;
       _Index block = HmeshTpoolAllocate(level);  
       STACK[istack++] = block;
+      /* rewrite the memory block with junk */
+      WriteToBlock(block, level);
       
       inode = inode < (STACK[istack-1]) ? STACK[istack-1] : inode;
     }
