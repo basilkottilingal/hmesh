@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
   #include <common.h>
-  #include <mempool.h>
+  #include <tree-pool.h>
 
   #define HMESH_MAX_NBLOCKS 16
   #define HMESH_MAX_NVARS   64
@@ -40,8 +40,6 @@ extern "C" {
   .. like scalars etc.
   */
   typedef struct {
-    /* memory 'pool' from which blocks are allocated */
-    _Mempool * pool;
     
     /*'address' of blocks. for easy access */
     void ** address;

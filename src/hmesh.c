@@ -1,5 +1,5 @@
 #include <common.h>
-#include <mempool.h>
+#include <tree-pool.h>
 #include <hmesh.h>
 #include <ctype.h>
 
@@ -17,12 +17,11 @@ HmeshArrayAdd(_HmeshArray * a, _Index iblock) {
     return NULL;
   }
 
-  /* get a block from pool */
-  _Memblock b = a->pool ? MempoolAllocateFrom(a->pool) :
-    MempoolAllocateGeneral(a->obj_size);
-  if(!a->pool)
-    a->pool = (_Mempool *) b.pool;
-  void * m = MemblockAddress(b);
+  /* get a block from tree pool */
+  _Index block = HmeshTpoolAllocateGeneral(a->obj_size);
+
+  void * m = HmeshTpoolAddress(block);
+
   if(!m) {
     HmeshError("HmeshArrayAdd() : memory pooling failed");
     IndexStackDeallocate(stack, iblock);
@@ -37,7 +36,7 @@ HmeshArrayAdd(_HmeshArray * a, _Index iblock) {
   /* Starting address of block is stored for easy access */
   a->address[iblock] = m;
   /* This information is used for deallocation of this block */
-  a->iblock[iblock] = b.iblock; 
+  a->iblock[iblock] = block; 
 
   return m;
 }
@@ -57,8 +56,7 @@ HmeshArrayRemove(_HmeshArray * a, _Index iblock){
     return HMESH_ERROR;
   }
 
-  _Index status = MempoolDeallocateTo( (_Memblock) 
-    {.pool = a->pool, .iblock = a->iblock[iblock]});
+  _Index status = HmeshTpoolDeallocate(a->iblock[iblock]);
 
   if(!status) {
     a->address[iblock] = NULL;
@@ -79,7 +77,6 @@ HmeshArray(char * name, size_t size) {
   _HmeshArray * a = 
     (_HmeshArray *)malloc(sizeof(_HmeshArray));
   a->obj_size = size;
-  a->pool = NULL;
   a->address = NULL;
   a->stack = IndexStack(HMESH_MAX_NBLOCKS, 4, &a->address);
   a->max  = a->stack.max;
@@ -170,7 +167,8 @@ _Flag HmeshCellsExpand(_HmeshCells * cells) {
     }
     else if(iattr == 1) {
       /* Free index list. Index '0' is reserved node*/
-      _Index * next = (_Index *) mem, bsize = MemblockSize();
+      _Index * next = (_Index *) mem, 
+        bsize = HmeshTpoolBlockSize();
       for(_Index index = 1; index < bsize-1; ++index)
         next[index] = index + 1;
       next[bsize-1] = 0;
@@ -186,7 +184,7 @@ _Flag HmeshCellsExpand(_HmeshCells * cells) {
   }
 
   _Index * info = cells->info + (4*iblock),
-    bsize = (_Index) MemblockSize();
+    bsize = HmeshTpoolBlockSize();
 
   /* head of in-use and free-list linked list respectively*/
   info[0] = 0;
@@ -425,7 +423,7 @@ _Flag HmeshNodeRemove(_HmeshCells * cells, _Node node) {
   /* Error : Index is already a free index, or the reserved index '0'
   .. or out of bound */
   if( (prev[index] == UINT16_MAX) || (!index) || 
-      (index >= MemblockSize()) )
+      (index >= HmeshTpoolBlockSize()) )
     return HMESH_ERROR;
   
   /* remove 'index' from used list */

@@ -1,5 +1,5 @@
 #include <common.h>
-#include <mempool.h>
+//#include <mempool.h>
 #include <hmesh.h>
 
 int main() {
@@ -18,8 +18,8 @@ int main() {
     }
 
     double * val = (double *) att->address[iblock];
-    _Index imax = (_Index) MemblockSize();
-    for(_Index i=0; i<imax; ++i, ++val)
+    //_Index imax = (_Index) MemblockSize();
+    for(_Index i=0; i<HmeshTpoolBlockSize(); ++i, ++val)
       *val = 0.011;
   }
 
@@ -45,7 +45,8 @@ int main() {
   HmeshErrorFlush(2);
 
 
-  char aname[200] = "this_is_a_very_long_attribute_name_which_can_be_potentially_trunked_without_warning_and_can_cause_problem";
+  char aname[200] = "this_is_a_very_long_attribute_name_"
+    "which_can_be_potentially_trunked_without_warning_and_can_cause_problem";
   att = HmeshArray(aname, 1);
   if(strcmp(aname, att->name))
     HmeshError("atttribute name trunked to '%s'", 

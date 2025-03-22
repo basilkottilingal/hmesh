@@ -45,6 +45,11 @@ const size_t HMESH_TREE_POOL_NODES =
 .. of the chunk size is a PAGE_SIZE = 4096 Bytes.*/
 const size_t HMESH_TREE_BLOCK_SIZE = 1<<12;
 
+size_t HmeshTpoolBlockSize() {
+  return HMESH_TREE_BLOCK_SIZE;
+}
+
+
 /* We try to allocate 8MB of chunk */
 #define HMESH_TREE_POOL_SIZE 1<<23
 
@@ -202,9 +207,10 @@ _Flag HmeshTpoolDeallocate(_Index block){
     } 
   } while(depth--);
 
-  return HMESH_ERROR;
+  return HMESH_NO_ERROR;
 }
 
+static
 void * HmeshTpoolAdd() {
   if(HMESH_TREE_POOLS.ntrees == 8) {
     HmeshError("HmeshTpoolAdd() : _Index insufficient for "
@@ -335,6 +341,31 @@ _Index HmeshTpoolAllocate(_Flag depth) {
   HmeshError("HmeshTpoolAllocate() : no availability");
   return UINT16_MAX;
  
+}
+
+_Index HmeshTpoolAllocateGeneral(size_t obj_size){
+  size_t n = obj_size, r = 0;
+  _Flag level = 0;
+  while(n) {
+    if(r) 
+      break;
+    r = n & 1;
+    n = n >> 1;
+    ++level;
+  }
+  if( (n && r) || (!obj_size)) {
+    HmeshError("HmeshTpoolAllocateGeneral() : "
+      "obj_size should be [1,2,..,2^HPOOL_DEPTH]");
+    return UINT16_MAX;
+  }
+  --level;
+  if( level > HMESH_TREE_POOL_DEPTH ) {
+    HmeshError("HmeshTpoolAllocateGeneral() : "
+      "out of bound");
+    return UINT16_MAX;
+  }
+  return 
+    HmeshTpoolAllocate(HMESH_TREE_POOL_DEPTH - level);
 }
 
 void HmeshTpoolDestroy(){

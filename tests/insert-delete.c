@@ -1,5 +1,5 @@
 #include <common.h>
-#include <mempool.h>
+#include <tree-pool.h>
 #include <hmesh.h>
 
 int main() {
@@ -8,7 +8,7 @@ int main() {
 
   fflush(stdout);
   /* Insert a 'node' (vertex) to vertices */
-  for(_Index i=0; i<MemblockSize(); ++i) {
+  for(_Index i=0; i<HmeshTpoolBlockSize(); ++i) {
     _Node v = HmeshNodeNew(vertices);
     fprintf(stdout, "+[%d:%d]", v.iblock, v.index);
     if(i%8 == 7) {
@@ -20,7 +20,8 @@ int main() {
   }
 
   HmeshCellsDestroy(vertices);
-  MempoolFreeGeneral();
+ 
+  HmeshTpoolDestroy();
 
   HmeshErrorFlush(2);
  

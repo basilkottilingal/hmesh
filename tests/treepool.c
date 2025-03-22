@@ -4,7 +4,7 @@
 #include <time.h>
 
 void TpoolStatus(){
-  int microSec = 50;
+  int microSec = 10;
   if(microSec) {  
     microSec = microSec > 1000 ? 1000 : microSec;
     clock_t start_time = clock();
@@ -51,14 +51,13 @@ int main(int argc, char ** argv) {
 
   srand(time(0));
 
-  /* create a pool */
+  /* create a pool 
   HmeshTpoolAdd();
+  */
 
   _Index STACK[NSTACK], istack = 0, inode = 0, limit = 1000;
 
   while( (istack < NSTACK) && (inode < 160) && (limit--) ){
-    /* print the pool */
-    TpoolStatus();
 
     int isPush = rand() % 2;
     if(isPush && istack<NSTACK) {
@@ -73,7 +72,11 @@ int main(int argc, char ** argv) {
     }
     else if(istack){
       HmeshTpoolDeallocate(STACK[--istack]);  
-    } 
+    }
+ 
+    /* print the pool */
+    if(istack)
+      TpoolStatus();
     
   }
 

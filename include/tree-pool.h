@@ -55,6 +55,9 @@ typedef struct {
 extern
 _Index HmeshTpoolAllocate(_Flag depth); 
 
+extern
+_Index HmeshTpoolAllocateGeneral(size_t obj_size); 
+
 /*
 .. Get the memory address from starting index
 */
@@ -80,6 +83,11 @@ extern
 _HmeshTpool * HmeshTpoolTree(_Flag itree);
 
 extern
+size_t HmeshTpoolBlockSize();
+
+/*
+extern
 void * HmeshTpoolAdd();
+*/
 
 #endif
