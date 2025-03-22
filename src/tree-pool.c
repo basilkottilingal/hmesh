@@ -31,6 +31,11 @@ typedef struct _HmeshTreepool {
 static
 _HmeshTreepool HMESH_TREE_POOLS = {0};
 
+_HmeshTpool * HmeshTpoolTree(_Flag itree) {
+  return itree < HMESH_TREE_POOLS.ntrees ?
+    &HMESH_TREE_POOLS.trees[itree] : NULL;
+}
+
 const size_t HMESH_TREE_POOL_NODES = 
   (1 << (HMESH_TREE_POOL_DEPTH+1)) - 1;
 
@@ -114,13 +119,12 @@ HmeshTpoolDivide(_FreeTBlock * _fb,
 
   _HmeshTpool * tree = &HMESH_TREE_POOLS.trees[itree];
   _Flag * flags = tree->flags;
-
   while (level++ < depth){
     /* Keep on dividing the chunk till the size 
     .. is of desirable size */
     _Index left = HmeshTpoolChild(inode,0),
       right = HmeshTpoolChild(inode,1);
-    flags[left]  = level;       /* In use */
+    /*flags[left]  = level;        In use */
     flags[right] = level | 128; /* In free list */
     _FreeTBlock * fb = (_FreeTBlock *) 
         HmeshTpoolAddressIs(tree->root, right, level);
@@ -135,6 +139,8 @@ HmeshTpoolDivide(_FreeTBlock * _fb,
     inode = left; 
   }
           
+  /* In use */
+  flags[inode] = depth;
   return inode | (itree << 13);
 }
 
@@ -153,11 +159,12 @@ _Flag HmeshTpoolDeallocate(_Index block){
   
   _HmeshTpool * tree = &HMESH_TREE_POOLS.trees[itree];
 
+
   _Flag * flags = tree->flags,
     /* last 3 bits are used to encode depth of the node,
     .. Flag 128 is used to see if node is free,
     .. Flag 64 is used in case the node is not a leaf */
-    depth = flags[inode] & 8;
+    depth = flags[inode] & 7;
 
   if( flags[inode] & (128|64) ) {
     /* This node is already free */
@@ -188,7 +195,7 @@ _Flag HmeshTpoolDeallocate(_Index block){
       /* Mark inode as free and add it to the free list*/
       flags[inode] |= 128; 
       _FreeTBlock * fb = (_FreeTBlock *) 
-        HmeshTpoolAddressIs( tree->root, sibling, depth);
+        HmeshTpoolAddressIs( tree->root, inode, depth);
       *fb = (_FreeTBlock) { .block = inode | (itree << 13) };
       /* push to free list head */
       HmeshTpoolPush(fb, depth);

@@ -73,4 +73,13 @@ _Flag HmeshTpoolDeallocate(_Index block);
 extern
 void HmeshTpoolDestroy();
 
+/*
+..
+*/
+extern
+_HmeshTpool * HmeshTpoolTree(_Flag itree);
+
+extern
+void * HmeshTpoolAdd();
+
 #endif
