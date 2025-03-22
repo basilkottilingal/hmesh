@@ -1,11 +1,11 @@
-SOURCE	= common.c mempool.c hmesh.c
+SOURCE	= common.c mempool.c tree-pool.c hmesh.c
 PARENT := $(CURDIR)/..
-INCDIR  = $(PARENT)/include
-OBJDIR  = $(PARENT)/obj
+INCDIR	= $(PARENT)/include
+OBJDIR	= $(PARENT)/obj
 
-CC99		= gcc -std=c99
+CC99		= gcc -std=gnu99
 CFLAGS += -O2 -Wall -Wextra
-CFLAGS += -I $(INCDIR)
+CFLAGS += -I $(INCDIR) 
 
 $(OBJDIR)/%.o: %.c
 	mkdir -p $(OBJDIR)
@@ -13,7 +13,11 @@ $(OBJDIR)/%.o: %.c
 
 OBJECTS = $(patsubst %.c, $(OBJDIR)/%.o, $(SOURCE))
 
-libhmesh.a: $(OBJECTS)
+libhmesh.a: $(OBJECTS) Makefile
 	ar -cr $@ $^
 
 all: libhmesh.a
+
+clean:
+	rm -r $(OBJDIR)
+	rm libhmesh.a 

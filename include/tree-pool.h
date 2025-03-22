@@ -14,31 +14,12 @@
 #ifndef HMESH_TREE_POOL
 #define HMESH_TREE_POOL
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <string.h>
-#include <stdint.h>
-
 #ifndef HMESH_TREE_POOL_DEPTH
 /* We restrict the max depth to 3.
 .. So all the common datatypes can be
 .. represented*/
 #define HMESH_TREE_POOL_DEPTH 3
 #endif
-const size_t HMESH_TREE_POOL_NODES = 
-  (1 << (HMESH_TREE_POOL_DEPTH+1)) - 1;
-
-/* For the moment, let's fix the BLOCK_SIZE = no: of
-.. nodes per block to 4096. So the the size of chunks
-.. fall in 4096 * {1,2,4,8}, guaranteeing the minimum
-.. of the chunk size is a PAGE_SIZE = 4096 Bytes.*/
-const size_t HMESH_TREE_BLOCK_SIZE = 1<<12;
-
-/* We try to allocate 8MB of chunk */
-#define HMESH_TREE_POOL_SIZE 1<<23
-
-
 
 /* 
 .. Linked list of free blocks
