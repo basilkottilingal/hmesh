@@ -31,7 +31,7 @@ extern "C" {
   #include <common.h>
   #include <tree-pool.h>
 
-  #define HMESH_MAX_NBLOCKS 16
+  #define HMESH_MAX_NBLOCKS UINT16_MAX
   #define HMESH_MAX_NVARS   64
   #define HMESH_MAX_VARNAME 31
   
