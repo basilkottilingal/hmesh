@@ -11,12 +11,14 @@ void TpoolStatus(){
     clock_t wait_time = (0.001*microSec)*CLOCKS_PER_SEC ; //sleep time 
     while (clock() - start_time < wait_time) {};
 
-    printf("\033[2J");       // Clear the screen
-    printf("\033[1;1H");     //Cursor on the left top left
+    /* Clear the screen */
+    printf("\033[2J");       
+    /* Cursor on the left top left */
+    printf("\033[1;1H");     
   }
 
   for(int is=0; is<8*10;++is)
-    fprintf(stdout,"-"); 
+    fprintf(stdout,"."); 
   fprintf(stdout, "\n"); 
   _Flag * flags = (HmeshTpoolTree(0))->flags;
   for(int level=0; level<4; ++level) {

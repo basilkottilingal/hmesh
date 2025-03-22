@@ -174,13 +174,12 @@ _Flag HmeshTpoolDeallocate(_Index block){
   }
 
   do {
-    _Index sibling = inode ^ 1; 
+    _Index sibling = inode + ((inode & 1) ? 1 : -1); 
     /* Coalesce with 'buddy'/'sibling' if possible */
     if ( (128 & flags[sibling]) && depth ) {
 
       /* Merge inode and sibling */
       flags[sibling] = flags[inode] = (depth | 64);
-
       _FreeTBlock * fb = (_FreeTBlock *) 
         HmeshTpoolAddressIs( tree->root, sibling, depth);
       assert((fb->block & 8191) == sibling);
