@@ -1,5 +1,5 @@
 #include <common.h>
-#include <mempool.h>
+#include <tree-pool.h>
 #include <hmesh.h>
 
 int main() {
@@ -36,9 +36,9 @@ int main() {
 
   HmeshCellsDestroy(vertices);
 
-  MempoolFreeGeneral();
+  HmeshTpoolDestroy();
+
   HmeshErrorFlush(2);
- 
 
   return 0;
 }

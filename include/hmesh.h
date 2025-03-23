@@ -34,15 +34,14 @@ extern "C" {
   #define HMESH_MAX_NBLOCKS UINT16_MAX
   #define HMESH_MAX_NVARS   64
   #define HMESH_MAX_VARNAME 31
+
+  #define HMESH_ATTR(cells,iattr,iblock) ((cells->mem[iattr])[iblock])
   
   /* '_HmeshArray' : a list of memory blocks.
   .. It can be used to store nodes, or attributes of nodes
   .. like scalars etc.
   */
   typedef struct {
-    
-    /*'address' of blocks. for easy access */
-    void ** address;
 
     /*'name' : name of the attribute ,
     .. in case this is an attribute to a node. 
@@ -88,10 +87,15 @@ extern "C" {
     /* attributes including 'prev', 'next', scalars etc */
     void ** attr;
 
+    /* address of blocks of each attribute */
+    void *** mem;
+
     /* 'info' : head, free head, no: of nodes in use, 
     .. no: of nodes free.
-    .. 'max' : blocks in [0,max) are (maybe) in use */
-    _Index * info, max;
+    .. 'max' : blocks in [0,max) are (maybe) in use 
+    .. 'maxs' : scalars in [0,maxs) are (maybe) in use 
+    */
+    _Index * info, max, maxs;
 
     /* dimension.
     .. iscalars in [min, max) are in_use for scalars  
@@ -142,17 +146,20 @@ extern "C" {
   extern
   _Flag * HmeshDestroy(_Hmesh *);
 
+  /* Every time you manipulate with HmeshArray, you send 
+  .. the pointer of 2D array of block address. 
+  */
   extern
-  _HmeshArray * HmeshArray(char * name, size_t size);
+  _HmeshArray * HmeshArray(char * name, size_t size, void ***);
 
   extern
-  _Flag HmeshArrayDestroy(_HmeshArray *);
+  _Flag HmeshArrayDestroy(_HmeshArray *, void ***);
 
   extern
-  void * HmeshArrayAdd(_HmeshArray *, _Index);
+  void * HmeshArrayAdd(_HmeshArray *, _Index, void ***);
 
   extern
-  _Flag HmeshArrayRemove(_HmeshArray *, _Index);
+  _Flag HmeshArrayRemove(_HmeshArray *, _Index, void ***);
 
   extern
   _Node HmeshNodeNew(_HmeshCells *);
