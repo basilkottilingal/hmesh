@@ -35,7 +35,10 @@ extern "C" {
   #define HMESH_MAX_NVARS   64
   #define HMESH_MAX_VARNAME 31
 
-  #define HMESH_ATTR(cells,iattr,iblock) ((cells->mem[iattr])[iblock])
+  /* Access attribute or scalars of cells */
+  #define HMESH_ATTR(_c_,_iattr_,_iblk_)   ( (_c_->mem[_iattr_])[_iblk_] )
+  #define HMESH_REAL(_c_,_s_,_iblk_)       ( (_Real *)(HMESH_ATTR(_c_,_s_,_iblk_)) )
+  #define HMESH_SCALAR(_c_,_s_)            ( HMESH_REAL(_c_,_s_,_node_.iblock)[_node_.index] )
   
   /* '_HmeshArray' : a list of memory blocks.
   .. It can be used to store nodes, or attributes of nodes
@@ -155,6 +158,7 @@ extern "C" {
   extern
   _Flag HmeshArrayDestroy(_HmeshArray *, void ***);
 
+  /* Make these 2 function local */
   extern
   void * HmeshArrayAdd(_HmeshArray *, _Index, void ***);
 

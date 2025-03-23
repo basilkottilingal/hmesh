@@ -48,7 +48,12 @@ int main() {
   fflush(stdout);
   /* Insert a 'node' (vertex) to vertices */
   for(size_t i=0; i<64*HmeshTpoolBlockSize(); ++i) {
-    _Node v = HmeshNodeNew(vertices);
+    _Node _node_ = HmeshNodeNew(vertices);
+    _Index x = 2, y = 3, z = 4;
+    HMESH_SCALAR(vertices,x) = 1.0;
+    HMESH_SCALAR(vertices,y) = 1.0;
+    HMESH_SCALAR(vertices,z) = 1.0;
+  
     if( !(i%512) )
       TpoolStatus();
   }

@@ -398,6 +398,7 @@ _Flag HmeshScalarRemove(_HmeshCells * cells, char * name) {
 .. Add a node to the 'cells'
 */
 _Node HmeshNodeNew(_HmeshCells * cells) {
+
   _IndexStack * blocks = cells->blocks;
   _Index iblock = blocks->info[blocks->n-1].in_use, 
     * prev = (_Index *) HMESH_ATTR(cells, 0, iblock),
@@ -405,7 +406,7 @@ _Node HmeshNodeNew(_HmeshCells * cells) {
     head = cells->info[4*iblock], fhead = cells->info[4*iblock + 1];
   
   /* Make sure free head is not empty */
-  if(!head) 
+  if(!fhead)  
     return (_Node) {.index = 0, .iblock = 0}; 
 
   /* If this is the last free node in the block, add block */
