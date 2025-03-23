@@ -14,6 +14,9 @@
 #ifndef HMESH_TREE_POOL
 #define HMESH_TREE_POOL
 
+/* Page size. Most modern compilers use 2^12 as page size */
+#define HMESH_PAGE_SIZE (1<<12)
+
 #ifndef HMESH_TREE_POOL_DEPTH
 /* We restrict the max depth to 3.
 .. So all the common datatypes can be
@@ -55,8 +58,17 @@ typedef struct {
 extern
 _Index HmeshTpoolAllocate(_Flag depth); 
 
+/* Allocate using a obj_size.
+.. It allocates obj_size * PAGE_SIZE
+*/
 extern
 _Index HmeshTpoolAllocateGeneral(size_t obj_size); 
+
+/* Allocate A page
+*/
+extern
+_Index HmeshTpoolAllocatePage();
+
 
 /*
 .. Get the memory address from starting index

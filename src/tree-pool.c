@@ -1,9 +1,16 @@
 #include <common.h>
 #include <tree-pool.h>
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+/* MAP_ANONYMOUS not found in few compilers.
+.. following is copied from glibc/malloc.c.
+.. This file is expected to be compiled 
+.. successfully w in 
+.. linux/MacOS. (NOT VERIFIED)
+*/
+#if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
+#define MAP_ANONYMOUS MAP_ANON
 #endif
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +50,7 @@ const size_t HMESH_TREE_POOL_NODES =
 .. nodes per block to 4096. So the the size of chunks
 .. fall in 4096 * \{1,2,4,8\}, guaranteeing the minimum
 .. of the chunk size is a PAGE_SIZE = 4096 Bytes.*/
-const size_t HMESH_TREE_BLOCK_SIZE = 1<<12;
+const size_t HMESH_TREE_BLOCK_SIZE = HMESH_PAGE_SIZE;
 
 size_t HmeshTpoolBlockSize() {
   return HMESH_TREE_BLOCK_SIZE;
@@ -366,6 +373,10 @@ _Index HmeshTpoolAllocateGeneral(size_t obj_size){
   }
   return 
     HmeshTpoolAllocate(HMESH_TREE_POOL_DEPTH - level);
+}
+
+_Index HmeshTpoolAllocatePage(){
+  return HmeshTpoolAllocate(HMESH_TREE_POOL_DEPTH);
 }
 
 void HmeshTpoolDestroy(){
