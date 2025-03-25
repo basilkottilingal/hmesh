@@ -2,10 +2,8 @@
 #include <tree-pool.h>
 
 /* MAP_ANONYMOUS not found in few compilers.
-.. following is copied from glibc/malloc.c.
 .. This file is expected to be compiled 
-.. successfully w in 
-.. linux/MacOS. (NOT VERIFIED)
+.. successfully in linux/MacOS. (NOT VERIFIED)
 */
 #if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
 #define MAP_ANONYMOUS MAP_ANON
@@ -217,6 +215,10 @@ _Flag HmeshTpoolDeallocate(_Index block){
   return HMESH_NO_ERROR;
 }
 
+/* Creating a memory block using mmap().
+.. This function will be called when you
+.. ask to allocate the first time,
+.. or you run out of the current block */
 static
 void * HmeshTpoolAdd() {
   if(HMESH_TREE_POOLS.ntrees == 8) {
@@ -317,7 +319,9 @@ void * HmeshTpoolAdd() {
   HmeshError("HmeshTpoolAdd() : failed to create a tree_pool");
   return NULL; 
 }
-
+/* 
+.. fixme : make this an internal routine. 
+*/
 _Index HmeshTpoolAllocate(_Flag depth) {
   if(depth > HMESH_TREE_POOL_DEPTH) {
     HmeshError("HmeshTpoolAllocate() : depth out of bound");
@@ -350,6 +354,11 @@ _Index HmeshTpoolAllocate(_Flag depth) {
  
 }
 
+/* This is the API to allocate a memory block of size
+.. [obj_size X PAGE_SIZE].
+.. NOTE : as of now obj_size in 1,2,4,8 can be
+.. handled. 
+*/
 _Index HmeshTpoolAllocateGeneral(size_t obj_size){
   size_t n = obj_size, r = 0;
   _Flag level = 0;
@@ -375,10 +384,17 @@ _Index HmeshTpoolAllocateGeneral(size_t obj_size){
     HmeshTpoolAllocate(HMESH_TREE_POOL_DEPTH - level);
 }
 
+/* 
+.. Allocate a page of size 4096 bytes
+*/
 _Index HmeshTpoolAllocatePage(){
   return HmeshTpoolAllocate(HMESH_TREE_POOL_DEPTH);
 }
 
+/*
+.. Expected to be called at teh end of
+.. pgm, after this you don't expect a tree allocate
+*/
 void HmeshTpoolDestroy(){
   _Flag itree = HMESH_TREE_POOLS.ntrees;
   _HmeshTpool * tree = HMESH_TREE_POOLS.trees;

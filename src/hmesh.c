@@ -212,7 +212,7 @@ _HmeshCells * HmeshCells(_Flag d, _Flag D) {
 
   /* Default attributes */
   _Flag * nattr = &cells->min; 
-  *nattr = 2 + (d ? (d + 1) : D); 
+  *nattr = 2 + (d ? (d + 3) : D); 
   for(int iattr = 0; iattr < *nattr; ++iattr) 
     IndexStackAllocate(scalars, iattr);
   cells->mem = (void ***)
@@ -227,9 +227,9 @@ _HmeshCells * HmeshCells(_Flag d, _Flag D) {
   /* 'prev' and 'next' is used to keep double linked 
   .. list of nodes */
   _HmeshArray * prev = 
-    HmeshArray("prev", sizeof(_Index), &mem[0]);
+    HmeshArray("prev_nodes", sizeof(_Index), &mem[0]);
   attr[0] = prev;
-  attr[1] = HmeshArray("next", sizeof(_Index), &mem[1]);
+  attr[1] = HmeshArray("next_nodes", sizeof(_Index), &mem[1]);
   
   cells->blocks = prev ? &prev->stack : NULL;
   cells->d = d;
@@ -240,10 +240,13 @@ _HmeshCells * HmeshCells(_Flag d, _Flag D) {
     char v[] = "v0";
     /* sub cells. triangles/edges/vertices */
     v[0] = (d == 3) ? 't' : (d == 2) ? 'e' : 'v';  
-    for(int iattr = 2; iattr < *nattr; ++iattr) {
+    for(int iattr = 2; iattr < 2 + (d+1); ++iattr) {
       attr[iattr] = HmeshArray(v, sizeof(_Node), &mem[iattr]);
       v[1]++;
     }
+    /* in half-edge meshes, we keep 'next' & 'twin' */
+    attr[d + 3] = HmeshArray("next", sizeof(_Node), &mem[d + 3]);
+    attr[d + 4] = HmeshArray("twin", sizeof(_Node), &mem[d + 4]);
   }
   else {
     char x[] = "x.x";
@@ -459,4 +462,57 @@ _Flag HmeshNodeRemove(_HmeshCells * cells, _Node node) {
   cells->info[4*iblock+3]++;
 
   return HMESH_NO_ERROR;
+}
+
+_Flag HmeshDestroy(_Hmesh * h) {
+  if(!h)
+    return HMESH_ERROR;
+
+  _HmeshCells ** c[4] = { &h->p, &h->e, &h->t, &h->v };
+
+  _Flag err = HMESH_NO_ERROR;
+
+  for(_Flag _d = 0; _d < 4; ++_d)
+    if(c[_d])
+      err |= HmeshCellsDestroy(*c[_d]);
+  
+  free(h);
+
+  return err;
+}
+
+_Hmesh * Hmesh(_Flag d, _Flag D) {
+  if( (d > D) || (D > 3) || (!D) ) {
+    HmeshError("Hmesh() :  Incompatible dim. d%d, D%D", d, D);
+    return NULL;
+  }
+
+  /* volume meshes are not yet implemented */
+  if(d == 3) {
+    HmeshError("Hmesh() :  Volume meshes not available");
+    return NULL;
+  }
+
+  _Hmesh * h = (_Hmesh *) malloc(sizeof(_Hmesh));
+
+  /* setting dimension of mesh */
+  h->d = d;
+  h->D = D;
+
+  _HmeshCells ** c[4] = { &h->p, &h->e, &h->t, &h->v };
+
+  for(_Flag _d = 0; _d < 4; ++_d) 
+    *c[_d] = NULL;
+
+  for(_Flag _d = 0; _d < 4; ++_d) {
+    _HmeshCells * cells = HmeshCells(_d, D);
+    if(!cells) {
+      HmeshError("Hmesh() : HmeshCells(%d, %d) failed", _d, D);
+      HmeshDestroy(h);
+      return NULL;
+    }
+    *c[_d] = cells;
+  }
+ 
+  return h; 
 }

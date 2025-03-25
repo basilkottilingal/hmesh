@@ -35,10 +35,35 @@ extern "C" {
   #define HMESH_MAX_NVARS   64
   #define HMESH_MAX_VARNAME 31
 
-  /* Access attribute or scalars of cells */
-  #define HMESH_ATTR(_c_,_iattr_,_iblk_)   ( (_c_->mem[_iattr_])[_iblk_] )
-  #define HMESH_REAL(_c_,_s_,_iblk_)       ( (_Real *)(HMESH_ATTR(_c_,_s_,_iblk_)) )
-  #define HMESH_SCALAR(_c_,_s_)            ( HMESH_REAL(_c_,_s_,_node_.iblock)[_node_.index] )
+  /* Access attribute or scalars of cells .
+  .. The macros are global. Use macros carefully,
+  .. when using outside hmesh.c. 
+  .. Numbers like iattr, node.iblock, iscalar, ivertex, iedge, node.index 
+  .. should be in valid range*/
+
+  /* get 'iblk'-th block of 'iattr'-th attribute */
+  #define HMESH_ATTR(_c_, _iattr_, _iblk_)   \
+    ( (_c_->mem[_iattr_])[_iblk_] )
+
+  /* get 'iblk'-th block of a scalar */
+  #define HMESH_REAL(_c_, _s_, _iblk_)       \
+    ( (_Real *)(HMESH_ATTR(_c_, _s_, _iblk_)) )
+
+  /* Get scalar value of a node*/
+  #define HMESH_SCALAR(_c_, _s_, _hnode_)            \
+    ( HMESH_REAL(_c_, _s_, _hnode_.iblock)[_hnode_.index] )
+
+  /* get subnodes like vertex of an edge, edge of a triangle, etc */
+  #define HMESH_SUBNODE(_c_,_node_, _isub_)      \
+    ( ((_Node) HMESH_ATTR(_c_, 2 + _isub_, _node_.iblock))[_node_.index] )
+
+  /* get i-th vertex */
+  #define HMESH_IVERTEX(_edges_,_edge_,_iv_) \
+    HMESH_SUBNODE(_edges_, _edge_, _iv_)
+
+  /* get i-th edge */
+  #define HMESH_IEDGE(_triangles_,_triangle_,_ie_) \
+    HMESH_SUBNODE(_triangles_, _triangle_,_ie_)
   
   /* '_HmeshArray' : a list of memory blocks.
   .. It can be used to store nodes, or attributes of nodes
@@ -134,20 +159,24 @@ extern "C" {
     */
     _Flag D;
   
-    /* set of manifold cells like faces, edges and points 
+    /* set of manifold cells like 
+    .. points, edges, triangles, volumes 
     .. NOTE: They can be empty, 
     .. Ex: a curve, which is a 1-D manifold in 3D 
     .. Eulerian space will have empty face list ('triangles').
     */
-    _HmeshCells * points, * edges, * triangles, * tetrahedron; 
+    _HmeshCells * p, * e, * t, * v; 
 
   }_Hmesh;
 
+  /* API to create a mesh.
+  .. Warning! it creates a mesh
+  .. with no points, edges, ..*/
   extern
   _Hmesh * Hmesh(_Flag d, _Flag D);
   
   extern
-  _Flag * HmeshDestroy(_Hmesh *);
+  _Flag HmeshDestroy(_Hmesh *);
 
   /* Every time you manipulate with HmeshArray, you send 
   .. the pointer of 2D array of block address. 
@@ -165,6 +194,7 @@ extern "C" {
   extern
   _Flag HmeshArrayRemove(_HmeshArray *, _Index, void ***);
 
+  /* add a node or remove a node to the set of cells */
   extern
   _Node HmeshNodeNew(_HmeshCells *);
 
