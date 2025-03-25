@@ -4,14 +4,14 @@
 
 int main() {
 
-  /* set of cells in 3D */
-  _Hmesh * h = Hmesh(1, 3);
+  /* set of edges in 3D */
+  _Flag d = 1, D = 3;
+  _Hmesh * h = Hmesh(d, D);
 
   _HmeshCells ** c[4] = { &h->p, &h->e, &h->t, &h->v };
 
-
-  for(_Flag d=0; d<2; ++d) {
-    _HmeshCells * cells = *c[d];
+  for(_Flag _d=0; _d<=d; ++_d) {
+    _HmeshCells * cells = *c[_d];
     fprintf(stdout, "\nList of attr");  
     for(int i=0; i<cells->min; ++i) {
       _HmeshArray * attr = (_HmeshArray *) cells->attr[i];

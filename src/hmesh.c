@@ -464,6 +464,7 @@ _Flag HmeshNodeRemove(_HmeshCells * cells, _Node node) {
   return HMESH_NO_ERROR;
 }
 
+/* API to create, and free a mesh */
 _Flag HmeshDestroy(_Hmesh * h) {
   if(!h)
     return HMESH_ERROR;
@@ -472,8 +473,9 @@ _Flag HmeshDestroy(_Hmesh * h) {
 
   _Flag err = HMESH_NO_ERROR;
 
+  /* destroy list of cells */
   for(_Flag _d = 0; _d < 4; ++_d)
-    if(c[_d])
+    if(*c[_d])
       err |= HmeshCellsDestroy(*c[_d]);
   
   free(h);
@@ -504,7 +506,8 @@ _Hmesh * Hmesh(_Flag d, _Flag D) {
   for(_Flag _d = 0; _d < 4; ++_d) 
     *c[_d] = NULL;
 
-  for(_Flag _d = 0; _d < 4; ++_d) {
+  /* create cells of points, edges, etc .. */
+  for(_Flag _d = 0; _d <= d; ++_d) {
     _HmeshCells * cells = HmeshCells(_d, D);
     if(!cells) {
       HmeshError("Hmesh() : HmeshCells(%d, %d) failed", _d, D);

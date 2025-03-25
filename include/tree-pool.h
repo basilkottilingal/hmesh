@@ -11,6 +11,12 @@
 .. in alloc/deallocate with divide/coalesce.
 */
 
+/*
+TODO : Thread safety
+  (a) mutex lock would be ideal, as atomic insertion/deletion
+might be too complex for a double linked list of free pool nodes.
+*/
+
 #ifndef HMESH_TREE_POOL
 #define HMESH_TREE_POOL
 
