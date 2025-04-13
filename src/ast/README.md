@@ -1,4 +1,4 @@
-# Defined C Grammar for high level mesh manipulation
+# Defining Additional C Grammar for high level mesh manipulation
 
 For the reason of faster code writing and fewer error,
 it might be a good idea to define few syntaxes related
@@ -14,9 +14,10 @@ flex and bison are required to create a new translator (translating
 'hmesh' grammar to C). flex and bison are NOT required for compiling
 the code. Compiling source code require only gcc compiler (C99 std).
 
+```
 $ sudo apt update
-
 $ sudo apt install flex bison
+```
 
 ## Expected 
 
@@ -30,13 +31,29 @@ compiling.
 If only couple of simple syntaxes are additionally added to the existing
 C grammars, you may be able to convert by direct lexical substitutions.
 Otherwise, it is quite complicated because there can be compounded
-grammars, local vs global variable scope ambiguity, etc. In this
-case you have to define lexer-parsers that creates 
-abstract syntax tree (AST). AST generation is an intermediate step
-during code compilation and C coders are not required to know it.
+grammars, local vs global variable scope ambiguity, etc. In this case you 
+have to define lexer-parsers that creates 
+[abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). 
+AST generation is an intermediate step  
+during code compilation and whoever compile a C code are not required to know it.
 However, in our case, AST generation has to be done explicitly
 to either convert to native C code, or compile directly to an 
 object/executable file.
+
+Intermediate steps involved in converting ".c" source code to binary executable are
+  * Preprocessing 
+  * Compilation
+```
+    [Source Code] → Lexer → Parser → AST → IR (GIMPLE/LLVM IR)
+                        ↓         ↓
+                   Semantic    Optimizer
+                    Check      ↓
+                             Codegen
+                               ↓
+                          [Assembly]
+```
+  * Assembly 
+  * Linking
   
   Steps in compialtion : token parser (yacc in UNIX, bison in LINUX) + lexer (lex, flex), optimisation, assembly code
   yyparse() : 
