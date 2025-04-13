@@ -11,10 +11,11 @@ to mesh mainly for
 ## Requiremennt: flex, bison
 
 flex and bison are required to create a new translator (translating 
-hmesh grammar to C). flex and bison are NOT required for compiling
-the code. Only required compiling requirement is gcc compiler (C99 std).
+'hmesh' grammar to C). flex and bison are NOT required for compiling
+the code. Compiling source code require only gcc compiler (C99 std).
 
 $ sudo apt update
+
 $ sudo apt install flex bison
 
 ## Expected 
@@ -25,6 +26,17 @@ in case bison create a C code, it would be readable.
 compiling. 
 
 ## Read, for better understanding
+  
+If only couple of simple syntaxes are additionally added to the existing
+C grammars, you may be able to convert by direct lexical substitutions.
+Otherwise, it is quite complicated because there can be compounded
+grammars, local vs global variable scope ambiguity, etc. In this
+case you have to define lexer-parsers that creates 
+abstract syntax tree (AST). AST generation is an intermediate step
+during code compilation and C coders are not required to know it.
+However, in our case, AST generation has to be done explicitly
+to either convert to native C code, or compile directly to an 
+object/executable file.
   
   Steps in compialtion : token parser (yacc in UNIX, bison in LINUX) + lexer (lex, flex), optimisation, assembly code
   yyparse() : 
