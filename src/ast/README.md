@@ -43,8 +43,8 @@ to either convert to native C code, or compile directly to an
 object/executable file.
 
 Intermediate steps involved in converting ".c" source code to binary executable are
-  * Preprocessing: Substitues and expands macros, include header files. 
-  * Compilation
+  1.  Preprocessing: Substitues and expands macros, include header files. 
+  2.  Compilation
 ```
     [Source Code] → Lexer → Parser → AST/IR (GIMPLE/LLVM IR)
                         ↓               ↓
@@ -54,29 +54,39 @@ Intermediate steps involved in converting ".c" source code to binary executable 
                                         ↓
                                [Assembly Code, ".s"]
 ```
-  * Assembly: Assembler converts assembly code to object file
-  * Linking: Linker links object files and libraries to produce binary executable
+  3.  Assembly: Assembler converts assembly code to object file
+  4.  Linking: Linker links object files and libraries to produce binary executable
 
-## 'lexer' and 'parser'
+## lexer and parser
 
 A lexer or lexical analyzer reads source code and each lexical tokens are identified.
 The lexer for hmesh is defined [lexer.l](./lexer.l)
 
 A parser, meanwhile, takes streams of tokens from the lexer and identifies the grammar
-and create an AST. [parser.y](./parser.y) has (or will have, once this is done) 
+and create an AST. It is quite a difficult job to write a parser code/module as
+it involves analysing complex grammar trees. bison can be used to simplify this
+job. With the help of a bison grammar file like [parser.y](./parser.y),
+bison create parser code. [parser.y](./parser.y) 
+has (or will have, once this is done) 
 all the C99 grammar and additional grammar for hmesh.
+Grammar files for standard C compilers like 
+[C99](https://www.quut.com/c/ANSI-C-grammar-y-1999.html)
+[C11](https://www.quut.com/c/ANSI-C-grammar-y-2011.html)
+can be used to build customized C grammars.
 
 In presence of additional grammars, gcc/lvmm lexers and parsers will be
 confused and throws error. So user defined lexer and parsers has to do
-the job. You can use flex and bison as lexer and parser respectively. 
+the job. You can use flex and bison for generating lexer and parser codes
+respectively. 
 
 1.  First
-  run bison on parser.y that generates (by default), 
-    * parser.tab.c (the parser source code) and 
-    * parser.tab.h (the header with each token definition)
+  run bison on parser.y 
   ```bash
   bison -d parser.y
   ```
+  which generates, 
+    * parser.tab.c (the parser source code) and 
+    * parser.tab.h (the header with each token definition)
 2.  Afterwards, run flex on lexer.l
   ```bash
   flex lexer.l
@@ -88,6 +98,4 @@ the job. You can use flex and bison as lexer and parser respectively.
   ```bash
   gcc lex.yy.c parser.tab.c -o parser
   ```
-
-
 
