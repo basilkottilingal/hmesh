@@ -14,9 +14,10 @@ flex and bison are required to create a new translator (translating
 'hmesh' grammar to C). flex and bison are NOT required for compiling
 the code. Compiling source code require only C99 compiler (gcc recommended).
 
-```
+```bash
 sudo apt update
 ```
+```bash
 sudo apt install flex bison
 ```
 
@@ -63,24 +64,30 @@ The lexer for hmesh is defined [lexer.l](./lexer.l)
 
 A parser, meanwhile, takes streams of tokens from the lexer and identifies the grammar
 and create an AST. [parser.y](./parser.y) has (or will have, once this is done) 
-all the C99 grammar and additional grammar for hmesh
+all the C99 grammar and additional grammar for hmesh.
 
-You can use flex and bison as lexer and parser respectively. First
-run bison on parser.y that generates (by default), 
-  * parser.tab.c (the parser source code) and 
-  * parser.tab.h (the header with each token definition)
-```
-bison -d parser.y
-```
-Afterwards, run flex on lexer.l
-```
-flex lexer.l
-```
-which generates 
-  * lex.yy.c (the lexer source code)
-```
-gcc lex.yy.c parser.tab.c -o parser
-```
+In presence of additional grammars, gcc/lvmm lexers and parsers will be
+confused and throws error. So user defined lexer and parsers has to do
+the job. You can use flex and bison as lexer and parser respectively. 
+
+1.  First
+  run bison on parser.y that generates (by default), 
+    * parser.tab.c (the parser source code) and 
+    * parser.tab.h (the header with each token definition)
+  ```bash
+  bison -d parser.y
+  ```
+2.  Afterwards, run flex on lexer.l
+  ```bash
+  flex lexer.l
+  ```
+  which generates 
+    * lex.yy.c (the lexer source code)
+3.  Compile the generated lexer and parser source code along with additional source code,
+  if any.
+  ```bash
+  gcc lex.yy.c parser.tab.c -o parser
+  ```
 
 
 
