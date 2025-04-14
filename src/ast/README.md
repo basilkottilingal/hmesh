@@ -12,11 +12,12 @@ to mesh mainly for
 
 flex and bison are required to create a new translator (translating 
 'hmesh' grammar to C). flex and bison are NOT required for compiling
-the code. Compiling source code require only gcc compiler (C99 std).
+the code. Compiling source code require only C99 compiler (gcc recommended).
 
 ```
-$ sudo apt update
-$ sudo apt install flex bison
+sudo apt update
+```
+sudo apt install flex bison
 ```
 
 ## Expected 
@@ -26,7 +27,7 @@ in case bison create a C code, it would be readable.
   * flex/bison should take care of errors related to new synatx before
 compiling. 
 
-## Read, for better understanding
+# Read, for better understanding of AST
   
 If only couple of simple syntaxes are additionally added to the existing
 C grammars, you may be able to convert by direct lexical substitutions.
@@ -41,24 +42,45 @@ to either convert to native C code, or compile directly to an
 object/executable file.
 
 Intermediate steps involved in converting ".c" source code to binary executable are
-  * Preprocessing 
+  * Preprocessing: Substitues and expands macros, include header files. 
   * Compilation
 ```
-    [Source Code] → Lexer → Parser → AST → IR (GIMPLE/LLVM IR)
-                        ↓         ↓
-                   Semantic    Optimizer
-                    Check      ↓
-                             Codegen
-                               ↓
-                          [Assembly]
+    [Source Code] → Lexer → Parser → AST/IR (GIMPLE/LLVM IR)
+                        ↓               ↓
+                   Semantic          Optimizer
+                    Check               ↓
+                                      Codegen
+                                        ↓
+                               [Assembly Code, ".s"]
 ```
-  * Assembly 
-  * Linking
-  
-  Steps in compialtion : token parser (yacc in UNIX, bison in LINUX) + lexer (lex, flex), optimisation, assembly code
-  yyparse() : 
-  Ast Node :
-  bison -d parser.y
-  flex lexer.l
-  gcc -o parser parser.tab.c lex.yy.c -lm
+  * Assembly: Assembler converts assembly code to object file
+  * Linking: Linker links object files and libraries to produce binary executable
+
+## 'lexer' and 'parser'
+
+A lexer or lexical analyzer reads source code and each lexical tokens are identified.
+The lexer for hmesh is defined [lexer.l](./lexer.l)
+
+A parser, meanwhile, takes streams of tokens from the lexer and identifies the grammar
+and create an AST. [parser.y](./parser.y) has (or will have, once this is done) 
+all the C99 grammar and additional grammar for hmesh
+
+You can use flex and bison as lexer and parser respectively. First
+run bison on parser.y that generates (by default), 
+  * parser.tab.c (the parser source code) and 
+  * parser.tab.h (the header with each token definition)
+```
+bison -d parser.y
+```
+Afterwards, run flex on lexer.l
+```
+flex lexer.l
+```
+which generates 
+  * lex.yy.c (the lexer source code)
+```
+gcc lex.yy.c parser.tab.c -o parser
+```
+
+
 
