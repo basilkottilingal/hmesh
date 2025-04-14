@@ -84,14 +84,14 @@ respectively.
 ```bash
 bison -d parser.y
 ```
-    which generates, 
+which generates, 
     * parser.tab.c (the parser source code) and 
     * parser.tab.h (the header with each token definition)
   2.  Afterwards, run flex on lexer.l
 ```bash
 flex lexer.l
 ```
-    which generates 
+which generates 
     * lex.yy.c (the lexer source code),
     which acts as the token feeder to the parser.
   3.  Compile the generated lexer and parser source code along with additional source code,
@@ -112,7 +112,8 @@ which can be done using malloc/realloc or more efficiently using a memory pool
 allocator.
 
 You have to take care of these things while designing a parser that constructs an AST
-|--------|-------|
+| `aspect`  | things to be considered |
+| --- | --- |
 | `Grammar`       | Grammar	Clean, unambiguous grammar, precedence, associativity |
 | `Node Design`	  | Clear node types, flexible child structure                    |
 | `Tree`          | Construction	Simple, reusable node constructors              |
