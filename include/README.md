@@ -7,8 +7,8 @@
     * Need a lexical preprocessor that takes care of
 Linear operations ( for discrete calculus or discrete exterior calculus (DEC) ) that involves scalars, vectors and tensors.
   * Readability.
-
-  * Direct visualization using javascript. (Portability)
+  * Direct visualization using javascript. (Portability).
+  * Standardize mesh input/output.
   * Should be able to run in CUDA, OpenMP+/MPI.
   * Mempooling to accomodate large dataset thus avoiding realloc and repeated malloc.
     * IMPORTANT : Need to read on mmap()

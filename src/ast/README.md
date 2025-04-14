@@ -69,33 +69,56 @@ job. With the help of a bison grammar file like [parser.y](./parser.y),
 bison create parser code. [parser.y](./parser.y) 
 has (or will have, once this is done) 
 all the C99 grammar and additional grammar for hmesh.
-Grammar files for standard C compilers like 
-[C99](https://www.quut.com/c/ANSI-C-grammar-y-1999.html)
-[C11](https://www.quut.com/c/ANSI-C-grammar-y-2011.html)
-can be used to build customized C grammars.
+You can create your customized Grammar files 
+by building over the standard C grammars like
+[C99](https://www.quut.com/c/ANSI-C-grammar-y-1999.html),
+[C11](https://www.quut.com/c/ANSI-C-grammar-y-2011.html).
 
-In presence of additional grammars, gcc/lvmm lexers and parsers will be
+In presence of additional grammars, gcc/llvm lexers and parsers will be
 confused and throws error. So user defined lexer and parsers has to do
 the job. You can use flex and bison for generating lexer and parser codes
 respectively. 
 
-1.  First
-  run bison on parser.y 
-  ```bash
-  bison -d parser.y
-  ```
-  which generates, 
+  1.  First
+    run bison on parser.y 
+    ```bash
+    bison -d parser.y
+    ```
+    which generates, 
     * parser.tab.c (the parser source code) and 
     * parser.tab.h (the header with each token definition)
-2.  Afterwards, run flex on lexer.l
-  ```bash
-  flex lexer.l
-  ```
-  which generates 
-    * lex.yy.c (the lexer source code)
-3.  Compile the generated lexer and parser source code along with additional source code,
-  if any.
-  ```bash
-  gcc lex.yy.c parser.tab.c -o parser
-  ```
+  2.  Afterwards, run flex on lexer.l
+    ```bash
+    flex lexer.l
+    ```
+    which generates 
+    * lex.yy.c (the lexer source code),
+    which acts as the token feeder to the parser.
+  3.  Compile the generated lexer and parser source code along with additional source code,
+    if any.
+    ```bash
+    gcc lex.yy.c parser.tab.c -o parser
+    ```
+
+## Abstract Syntax Tree
+
+AST is the tree data structure to represent a source code, whose leaf nodes are tokens:
+keywords, identifiers, constants, operators, special symbols, and strings.
+Each grammar rules like statement, expression, etc. corresponds to an internal
+node of the AST tree. 
+
+AST data structure requires a memory allocator every time an AST node is inserted,
+which can be done using malloc/realloc or more efficiently using a memory pool
+allocator.
+
+?? How to check grammar.
+
+?? How to use gcc backend for every other job except lexer/parser.
+
+?? How to take care of preproc
+
+?? How to generate IR.
+
+?? How to show error message for syntax errors related to user-defined grammar.
+
 
