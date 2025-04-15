@@ -1,11 +1,13 @@
 # Defining Additional C Grammar for high level mesh manipulation
 
-For the reason of faster code writing and fewer error,
+For the reason of faster code writing and avoiding error while
+writing repetitive low level iterators and functions,
 it might be a good idea to define few syntaxes related
 to mesh mainly for
   * vertex, edge, face iterators,
   * accessing scalars, and other attributes (\_HmeshArray) faster
-  * converting high level mathematical expression to low level code, and adapt to CUDA/OMP/MPI/AVX etc depending on running config, hardware capabilites, etc.
+  * converting high level mathematical expression to low level code, 
+and adapt to CUDA/OMP/MPI/AVX etc depending on running config, hardware capabilites, etc.
 
 
 ## Requiremennt: flex, bison
@@ -79,47 +81,32 @@ confused and throws error. So user defined lexer and parsers has to do
 the job. You can use flex and bison for generating lexer and parser codes
 respectively. 
 
-  1.  First
-    run bison on parser.y 
+1.  First, run bison on parser.y 
 ```bash
 bison -d parser.y
 ```
 which generates, 
-    * parser.tab.c (the parser source code) and 
-    * parser.tab.h (the header with each token definition)
-  2.  Afterwards, run flex on lexer.l
+  * parser.tab.c (the parser source code) and 
+  * parser.tab.h (the header with each token definition)
+2.  Afterwards, run flex on lexer.l
 ```bash
 flex lexer.l
 ```
 which generates 
-    * lex.yy.c (the lexer source code),
-    which acts as the token feeder to the parser.
-  3.  Compile the generated lexer and parser source code along with additional source code,
-    if any.
+  * lex.yy.c (the lexer source code), which acts as the token feeder to the parser.
+3.  Compile the generated lexer and parser source code along with additional source code, if any.
 ```bash
 gcc lex.yy.c parser.tab.c -o parser
 ```
 
-## Abstract Syntax Tree
+## In-house translator
 
-AST is the tree data structure to represent a source code, whose leaf nodes are tokens:
-keywords, identifiers, constants, operators, special symbols, and strings.
-Each grammar rules like statement, expression, etc. corresponds to an internal
-node of the AST tree. 
-
-AST data structure requires a memory allocator every time an AST node is inserted,
-which can be done using malloc/realloc or more efficiently using a memory pool
-allocator.
-
-You have to take care of these things while designing a parser that constructs an AST
-| `aspect`  | things to be considered |
-| --- | --- |
-| `Grammar`       | Grammar	Clean, unambiguous grammar, precedence, associativity |
-| `Node Design`	  | Clear node types, flexible child structure                    |
-| `Tree`          | Construction	Simple, reusable node constructors              |
-| `Memory Safety` |	Managed memory or smart cleanup strategy                      |
-| `Traversals`	  | Traversal API, export format, error locations                 |
-| `Debuggability`	| Print, graph, or serialize AST                                |
+1.  Preprocessor
+2.  In-house lexer,parser
+  * AST implementation
+  * Check grammar
+  * Rewrite to a single native C code
+3.  Compile using gcc
 
 ?? How to check grammar.
 
