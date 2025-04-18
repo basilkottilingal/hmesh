@@ -10,7 +10,7 @@ to mesh mainly for
 and adapt to CUDA/OMP/MPI/AVX etc depending on running config, hardware capabilites, etc.
 
 
-## Requiremennt: flex, bison
+## Requirement: flex, bison
 
 flex and bison are required to create a new translator (translating 
 'hmesh' grammar to C). flex and bison are NOT required for compiling
@@ -25,10 +25,8 @@ sudo apt install flex bison
 
 ## Expected 
 
-  * In parser, write rules/synataxes with proper indendation, so that
-in case bison create a C code, it would be readable.
-  * flex/bison should take care of errors related to new synatx before
-compiling. 
+  * If AST is written to a C file, write it with proper indendation so that it's readable.
+  * parser should take care of errors related to extended syntax.
 
 # Read, for better understanding of AST
   
