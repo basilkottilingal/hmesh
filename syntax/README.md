@@ -10,7 +10,7 @@ to mesh mainly for
 and adapt to CUDA/OMP/MPI/AVX etc depending on running config, hardware capabilites, etc.
 
 
-## Requirement: flex, bison
+## Requirement: [flex](https://www.ens-lyon.fr/PSMN/Documentation/modules/flex.html), [bison](https://www.gnu.org/software/bison/manual/bison.html)
 
 flex and bison are required to create a new translator (translating 
 'hmesh' grammar to C). flex and bison are NOT required for compiling
