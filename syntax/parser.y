@@ -45,13 +45,15 @@ where "_" has been used to flag the points of ambiguity.
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "parser.tab.h"
 extern FILE *yyin;  // Declare yyin from Flex
 
 int yylex();
 void yyerror(const char *s);
 int yyparse ();
 %}
+
+%output  "parser.c"
+%defines "parser.h"
 
 %token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
 %token	PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP

@@ -8,6 +8,8 @@ It works along with a tokenizer or lexical analyser code which
 breaks down the source code into tokens. The lexical analyser
 can be written in C, or flex can be used to do this easily.
 
+Read the complete bison documentation [online](https://www.gnu.org/software/bison/manual/bison.html) for more information.
+
 ## general bison layout
 ```bison
 %{
@@ -38,6 +40,46 @@ expr
 ```
 
 ## Ast Node
+
+## Bison Directives
+
+Bison **directives** are special commands embedded in a `.y` grammar file that control how Bison generates the parser. They are typically written at the top or within the grammar section, and they start with a percent sign (`%`).
+
+A fast look-up table of bison directives
+
+### **1. Grammar Structure**
+
+| Directive         | Purpose |
+|------------------|---------|
+| `%start SYMBOL`  | Sets the start symbol of the grammar (default is first rule) |
+| `%union { ... }` | Defines the union for semantic value types (`yylval`) |
+| `%token`         | Declares terminal symbols (tokens) |
+| `%type`          | Declares non-terminal symbols with semantic types |
+| `%left`, `%right`, `%nonassoc` | Sets operator precedence and associativity |
+
+---
+
+### **2. Output Control**
+
+| Directive          | Purpose |
+|-------------------|---------|
+| `%defines`         | Generates a header file (`parser.h`) |
+| `%output "file"`   | Names the output `.c` file |
+| `%file-prefix`     | Sets prefix for output files |
+| `%define api.value.type` | Specifies semantic value type (for typed parsers) |
+| `%define api.pure` | Makes the parser reentrant (pure) |
+
+---
+
+### **3. Parsing Behavior**
+
+| Directive               | Purpose |
+|------------------------|---------|
+| `%parse-param { ... }` | Adds custom parameters to `yyparse()` |
+| `%lex-param { ... }`   | Adds custom parameters to `yylex()` |
+| `%expect N`            | Suppresses warnings for N shift/reduce conflicts |
+| `%error-verbose`       | Enables verbose error messages (deprecated in favor of `%define parse.error verbose`) |
+
 
 ## Adding parameters to functions like yyparse(), yylex(), yyerror()
 Add a parameter to ```yylex()``` and ```yyparse()``` respectively
@@ -97,7 +139,7 @@ yylex_init(&scanner);
 yyparse(&ast, scanner);
 ```
 
-## Look-up table
+## flex/bison global variables: Look-up table
 Here’s a handy **cheat sheet** for Bison and Flex global variables.
 
 | Variable     | Defined in | Type         | Purpose                                   |
