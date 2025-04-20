@@ -1,21 +1,23 @@
 # Objectives. Outline.
 
-  * The use of Structure of array (SoA) instead of Array of Structures (AoS) is preferred mainly for the reason of vectorization of array which guarantees.
-    * Better Memory Alignment and Cache Utilization
+  * The use of **Structure of array (SoA)** instead of Array of Structures (AoS) is preferred mainly for the reason of vectorization of array which guarantees.
+    * Better **Memory Alignment** and Cache Utilization
     * Better for SIMD implementation (Multithreading/GPU)
     * GPU Performance
-    * Need a lexical preprocessor that takes care of
-Linear operations ( for discrete calculus or discrete exterior calculus (DEC) ) that involves scalars, vectors and tensors.
   * Readability.
   * Direct visualization using javascript. (Portability).
   * Standardize mesh input/output.
   * Should be able to run in CUDA, OpenMP+/MPI.
   * Mempooling to accomodate large dataset thus avoiding realloc and repeated malloc.
     * IMPORTANT : Need to read on mmap()
-  * IMP: Need some sort of lexical for cleaner/faster writing.
+    * as of now, tree-pool.h is using mmap() which is not std C99, but available in >= POSIX.1-2001.
+ It might be good idea to make it portable. (if not available, use malloc.)
   * Prefer Modular Programming approach where you use "separate compilation". 
-  * reserve keywords "forEach", "meshes". 
-  * Iterator example
+  * Need a lexical preprocessor or in-house compiler that takes care of
+    * Linear operations ( for discrete calculus or discrete exterior calculus (DEC) ) that involves scalars, vectors and tensors. 
+    * additional syntax for easier mesh manipulation. (easier in writing)
+    * 
+  * **IMP: addition C syntax/grammar**: Need some sort of lexical for cleaner/faster writing. reserve keywords "forEach", "meshes".  Iterator example :
     * forEach(m in meshes) //each mesh in meshes
     * forEach(p in m.vertices)  //each vertex of m
     * forEach(h in m.halfedges) //each halfedge of m
@@ -27,6 +29,13 @@ Linear operations ( for discrete calculus or discrete exterior calculus (DEC) ) 
     * forEach(v in m.edge.vectors) // each edge vectors 
     * forEach(s in m.face.scalars) // each face scalars
     * forEach(v in m.face.vectors) // each face vectors 
+  * In-house compiler is required for adding syntax.
+    * preprocessing can be done by gcc itself.
+    * flex/bison may be employed for creating parser.
+    * **It might be a practical idea: write back to C and compile rather than writing a full compiler**. (unrelated: \_\_free\_\_ \_\_attribute\_\_ in gcc)
+  * In house parser had to take care of mesh variables.
+    * scalar/vector/mesh\_id maybe identified by unsigned int,
+    * globlal/local stack size. Initial analysis (pre running / during compilation)  of memory requirement for mesh.
   * Global Variable;
     * m.face.vector.add("c"); // 
     * v = m.face.vector.get(); //allocate "v". will free before the end of the scope

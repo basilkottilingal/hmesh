@@ -24,7 +24,7 @@ WS  [ \t\v\n\f]
 %{
 
 #include <stdio.h>
-#include "parser.tab.h"
+#include "parser.h"
 
 /* prints grammar violation message */
 extern 

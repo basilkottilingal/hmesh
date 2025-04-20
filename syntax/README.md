@@ -81,11 +81,11 @@ respectively.
 
 1.  First, run bison on parser.y 
 ```bash
-bison -d parser.y
+bison -d -o parser.c parser.y
 ```
 which generates, 
-  * parser.tab.c (the parser source code) and 
-  * parser.tab.h (the header with each token definition)
+  * parser.c (the parser source code) and 
+  * parser.h (the header with each token definition)
 2.  Afterwards, run flex on lexer.l
 ```bash
 flex lexer.l
@@ -94,7 +94,7 @@ which generates
   * lex.yy.c (the lexer source code), which acts as the token feeder to the parser.
 3.  Compile the generated lexer and parser source code along with additional source code, if any.
 ```bash
-gcc lex.yy.c parser.tab.c -o parser
+gcc lex.yy.c parser.c -o parser
 ```
 
 ## In-house translator
