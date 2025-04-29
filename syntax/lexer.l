@@ -1,9 +1,5 @@
-%e  1019
-%p  2807
-%n  371
-%k  284
-%a  1213
-%o  1117
+%option noyywrap
+%option yylineno
 
 O   [0-7]
 D   [0-9]
@@ -40,6 +36,33 @@ static void comment(void);
 static int check_type(void);
 
 %}
+
+/* 
+In the following tokens rule section that falls b/w "%%" and "%%", 
+possible tokens in C are defined. Some tokens are defined as combination of
+regex tokens (defined at the beginning of this file).
+
+The lexical analyser has to take care of some non-C tokens like
+  - gcc specific keywords like attribute, etc. 
+    They are just ignored for the moment.
+  - gcc specific syntax like:
+      # 42 "file.h"
+    which specify line number & file name of source code in the in-lined o/p from preprocessor.
+    It is used by debugger
+  - NOTE: No other non-C grammar is allowed other than the 2 exceptions listed above
+
+Tokens in C can be,
+  - comment
+  - Keyword
+  - Identifier: func name, var name, etc.
+  - Integer Constant. Hex/Octal/Binary.
+  - Float Const
+  - String 
+  - Special Characters
+  - Operators
+  - White space
+
+*/
 
 %%
 
@@ -131,6 +154,7 @@ static int check_type(void);
 "=="					{ return EQ_OP; }
 "!="					{ return NE_OP; }
 
+
 ";"					  { return ';'; }
 ("{"|"<%")	 	{ return '{'; }
 ("}"|"%>")	  { return '}'; }
@@ -157,18 +181,42 @@ static int check_type(void);
 "?"					  { return '?'; }
 
 {WS}+					{ /* whitespace separates tokens */ }
-.					    { /* discard bad characters */ }
+
+        /** -- Some non-C grammars -- **/
+
+^[ \t]*#[ \t]+[0-9]+[ \t]+\"([^"\\\n]|{ES})*\".*  { 
+  /* fix this */ 
+}
+
+"__attribute__"{WS}*\(                            { 
+  char c = 1, nscope = 1;
+  while (nscope && c) {
+    c = input();
+    if (c == ')') 
+      nscope--;
+    else if (c == '(')
+      nscope++;
+  }
+}
+
+        /** -- End of non-C grammars -- **/
+
+
+.					                                        { 
+  /* discard bad characters. 
+  .. It should be placed at the end of the tokens list. It discards/ignore
+  .. any tokens that doesn't match any of the previous tokens
+  */ 
+}
 
 %%
 
-/* called at end of input */
-int yywrap(void)        
-{
-  /* terminate now */
-  return 1;           
-}
+/* 
+yywrap() nor required, since we have declared "%option noyywarp".
+int yywrap(void) { return 1; }
+*/
 
-/* This function 'consumes'  comments */
+/* This function 'consumes' (skips) comments */
 static void comment(void)
 {
   int c;

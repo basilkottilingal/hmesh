@@ -39,6 +39,11 @@ and
 
 where "_" has been used to flag the points of ambiguity.
 */
+
+%output  "parser.c"
+%defines "parser.h"
+
+
 %{
 #include <string.h>
 #include <assert.h>
@@ -47,13 +52,10 @@ where "_" has been used to flag the points of ambiguity.
 
 extern FILE *yyin;  // Declare yyin from Flex
 
-int yylex();
+int  yylex();
 void yyerror(const char *s);
-int yyparse ();
+int  yyparse();
 %}
-
-%output  "parser.c"
-%defines "parser.h"
 
 %token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
 %token	PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
@@ -72,7 +74,7 @@ int yyparse ();
 
 %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
-%start translation_unit
+%start  translation_unit
 %%
 
 primary_expression
@@ -586,25 +588,28 @@ declaration_list
 
 void yyerror(const char *s)
 {
+  /* Modify: add file name + line number */
 	fflush(stdout);
 	fprintf(stderr, "*** %s\n", s);
 }
 
 int main(int argc, char ** argv) {
-  //printf("Enter an arithmetic expression:\n");
-    
+   
+  /* Expects second arguement as the input file (i.e the source code)
+  .. to be parsed */ 
   if (argc < 2) {
     fprintf(stderr, "Usage: %s input_file\n", argv[0]);
     return 1;
   }
 
-  // Open input file
+  /* Open input file */
   yyin = fopen(argv[1], "r");
   if (!yyin) {
     perror("Error opening input file");
     return 1;
   }
     
+  /* Parse all tokens */
   yyparse();
     
   return 0;

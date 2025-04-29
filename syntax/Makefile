@@ -2,24 +2,22 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
 
-# Generate parser using bison
+# Generate parser source
 parser.c parser.h: parser.y
-	bison $<
+	bison $<                          # generating parser source code using bison
 
-# Generate lexical analyszer using flex
+# Generate lexical analyser source
 lexer.c: lexer.l
-	flex -o $@ $<
-	
-#flex -o $@ $< -lfl // -lfl for flex library .
+	flex -o $@ $<                     # creating flexer source code using 'flex'. output is "lexer.c" 
 
 # parser
 parser: parser.c parser.h lexer.c 
-	gcc lexer.c parser.c -o $@
+	gcc lexer.c parser.c -o $@        # creating parser (executable) "parser"
 
 # parse a .c file 
 %.parse: %.c parser
-	gcc lexer.c parser.c -o parser
-	./parser $<
+	gcc -E $< -o $*.i                 # preproc. NOTE: no effect. (preprocessor not yet implemented)
+	./parser $<                       # parse the .c input
 
 # Clean up generated files
 clean:
