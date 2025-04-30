@@ -1,6 +1,9 @@
 %option noyywrap
 %option yylineno
+%option bison-bridge
+%option nounput
 
+/* some regular expression (regex) that you come across in C */
 O   [0-7]
 D   [0-9]
 NZ  [1-9]
@@ -19,50 +22,60 @@ WS  [ \t\v\n\f]
 
 %{
 
-#include <stdio.h>
-#include "parser.h"
+  #include <stdio.h>
+  #include "parser.h"
 
-/* prints grammar violation message */
-extern 
-void yyerror(const char *);  
+  /* prints grammar violation message. defined in parser.y*/
+  extern void yyerror(const char *);  
 
-/* returns type from symbol table */
-extern 
-int sym_type(const char *);  
+  /* returns type from symbol table */
+  extern int sym_type(const char *);  
 
-#define sym_type(identifier) IDENTIFIER /* with no symbol table, fake it */
+  /* with no symbol table, fake it */
+  #define sym_type(identifier) IDENTIFIER 
 
-static void comment(void);
-static int check_type(void);
+  /* Ignore multi-line comments */
+  static void comment(void);
 
+  /* check_type of the identifier */
+  static int check_type(void);
+
+  /* Ignore __attribute__ () */
+  static void ignore_attribute(void);
+
+  /* 
+  .. set location of parser whenever tokens like 
+  ..   # 5 "header.h"
+  .. are encountered
+  */
+  static void reset_file_line(char *);
 %}
 
 /* 
-In the following tokens rule section that falls b/w "%%" and "%%", 
-possible tokens in C are defined. Some tokens are defined as combination of
-regex tokens (defined at the beginning of this file).
-
-The lexical analyser has to take care of some non-C tokens like
-  - gcc specific keywords like attribute, etc. 
-    They are just ignored for the moment.
-  - gcc specific syntax like:
-      # 42 "file.h"
-    which specify line number & file name of source code in the in-lined o/p from preprocessor.
-    It is used by debugger
-  - NOTE: No other non-C grammar is allowed other than the 2 exceptions listed above
-
-Tokens in C can be,
-  - comment
-  - Keyword
-  - Identifier: func name, var name, etc.
-  - Integer Constant. Hex/Octal/Binary.
-  - Float Const
-  - String 
-  - Special Characters
-  - Operators
-  - White space
-
-*/
+.. In the following tokens rule section that falls b/w "%%" and "%%", 
+.. possible tokens in C are defined. Some tokens are defined as combination of
+.. regex tokens (defined at the beginning of this file).
+.. 
+.. Tokens in C can be,
+..   - comment
+..   - Keyword
+..   - Identifier: func name, var name, etc.
+..   - Integer Constant. Hex/Octal/Binary.
+..   - Float Const
+..   - String 
+..   - Special Characters
+..   - Operators
+..   - White space
+.. 
+.. The lexical analyser has to take care of some non-C tokens like
+..   - Compiler specific keywords like attribute, etc. 
+..     They are just ignored for the moment.
+..   - gcc specific syntax like:
+..       # 42 "file.h"
+..     which specify line number & file name of source code in the in-lined o/p from preprocessor.
+..     It is used by debugger
+..   - NOTE: No other non-C grammar is allowed other than the 2 exceptions listed above
+.. */
 
 %%
 
@@ -182,24 +195,26 @@ Tokens in C can be,
 
 {WS}+					{ /* whitespace separates tokens */ }
 
-        /** -- Some non-C grammars -- **/
+        
+  /** 
+  .......................................
+  ........ Some non-C grammars ..........
+  .......................................
+  **/
 
 ^[ \t]*#[ \t]+[0-9]+[ \t]+\"([^"\\\n]|{ES})*\".*  { 
-  /* fix this */ 
+  reset_file_line(yytext);
 }
 
-"__attribute__"{WS}*\(                            { 
-  char c = 1, nscope = 1;
-  while (nscope && c) {
-    c = input();
-    if (c == ')') 
-      nscope--;
-    else if (c == '(')
-      nscope++;
-  }
+"__attribute__"{WS}*\(                            {
+  ignore_attribute ();
 }
 
-        /** -- End of non-C grammars -- **/
+  /** 
+  .......................................
+  ....... End of non-C grammars ........
+  .......................................
+  **/
 
 
 .					                                        { 
@@ -212,16 +227,55 @@ Tokens in C can be,
 %%
 
 /* 
-yywrap() nor required, since we have declared "%option noyywarp".
-int yywrap(void) { return 1; }
+.. yywrap() nor required, since we have declared "%option noyywarp".
+.. int yywrap(void) { return 1; }
 */
 
-/* This function 'consumes' (skips) comments */
+/* 
+.. This function ignores attributes: "__attribute__ ()"
+.. which are meant for gcc/clang compilers.
+*/
+static void ignore_attribute(void)
+{
+  int lineno = yylineno;
+  char c = 1, nscope = 1;
+  while (nscope && c) {
+    c = input();
+    if (c == ')') 
+      nscope--;
+    else if (c == '(')
+      nscope++;
+  }
+
+  if(nscope) { 
+    yylineno = lineno;
+    yyerror("__attribute__ not closed");
+  }
+}
+
+/*
+.. This function is used to reset filename, line number 
+*/
+static void reset_file_line(char * str) {
+  char * s = strchr (str, '#') + 1;
+  yylineno = atoi(s) - 1;
+  /* 
+  .. Fixme: file name not yet set. Need a
+  .. parse/lex parameter or a global parameter
+  .. which store file name 
+  */  
+}
+
+/* 
+.. This function 'consumes' (skips) comments 
+*/
 static void comment(void)
 {
-  int c;
-  /* input() is the default function to read one
-  .. character from yyin */
+  int c, lineno = yylineno;
+  /* 
+  .. input() is the default function to read one
+  .. character from yyin 
+  */
   while ((c = input()) != 0)
     if (c == '*')
       {
@@ -232,6 +286,7 @@ static void comment(void)
         if (c == 0)
           break;
       }
+  yylineno = lineno;
   yyerror("unterminated comment");
 }
 

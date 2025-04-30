@@ -1,48 +1,52 @@
 /*
-ANSI C Yacc grammar
-(This Yacc file is accompanied by a matching Lex file.)
+.. ANSI C Yacc grammar
+.. (This Yacc file is accompanied by a matching Lex file.)
+.. 
+.. In 1985, Jeff Lee published his Yacc grammar based on a draft version
+.. of the ANSI C standard, along with a supporting Lex specification. Tom
+.. Stockfisch reposted those files to net.sources in 1987; as mentioned
+.. in the answer to question 17.25 of the comp.lang.c FAQ, they used to
+.. be available from ftp.uu.net as usenet/net.sources/ansi.c.grammar.Z.
+.. 
+.. The version you see here has been updated based on the 2011 ISO C
+.. standard. (The previous version's Lex and Yacc files for ANSI C9X
+.. still exist as archived copies.)
+.. 
+.. This grammar assumes that translation phases 1..5 have already been
+.. completed, including preprocessing and _Pragma processing. The Lex
+.. rule for string literals will perform concatenation (translation phase
+.. 6). Transliteration of universal character names (\uHHHH or
+.. \UHHHHHHHH) must have been done by either the preprocessor or a
+.. replacement for the input() macro used by Lex (or the YY_INPUT
+.. function used by Flex) to read characters. Although comments should
+.. have been changed to space characters during translation phase 3,
+.. there are Lex rules for them anyway.
+.. 
+.. I want to keep this version as close to the current C Standard grammar
+.. as possible; please let me know if you discover discrepancies.  (There
+.. is an FAQ for this grammar that you might want to read first.)
+.. 
+.. jutta@pobox.com, 2012
+.. 
+.. Last edit: 2012-12-18 DAGwyn@aol.com
+.. Note: There are two shift/reduce conflicts, correctly resolved by default:
+.. 
+..   IF '(' expression ')' statement _ ELSE statement
+.. 
+.. and
+.. 
+..   ATOMIC _ '(' type_name ')'
+.. 
+.. where "_" has been used to flag the points of ambiguity.
+.. */
 
-In 1985, Jeff Lee published his Yacc grammar based on a draft version
-of the ANSI C standard, along with a supporting Lex specification. Tom
-Stockfisch reposted those files to net.sources in 1987; as mentioned
-in the answer to question 17.25 of the comp.lang.c FAQ, they used to
-be available from ftp.uu.net as usenet/net.sources/ansi.c.grammar.Z.
-
-The version you see here has been updated based on the 2011 ISO C
-standard. (The previous version's Lex and Yacc files for ANSI C9X
-still exist as archived copies.)
-
-This grammar assumes that translation phases 1..5 have already been
-completed, including preprocessing and _Pragma processing. The Lex
-rule for string literals will perform concatenation (translation phase
-6). Transliteration of universal character names (\uHHHH or
-\UHHHHHHHH) must have been done by either the preprocessor or a
-replacement for the input() macro used by Lex (or the YY_INPUT
-function used by Flex) to read characters. Although comments should
-have been changed to space characters during translation phase 3,
-there are Lex rules for them anyway.
-
-I want to keep this version as close to the current C Standard grammar
-as possible; please let me know if you discover discrepancies.  (There
-is an FAQ for this grammar that you might want to read first.)
-
-jutta@pobox.com, 2012
-
-Last edit: 2012-12-18 DAGwyn@aol.com
-Note: There are two shift/reduce conflicts, correctly resolved by default:
-
-  IF '(' expression ')' statement _ ELSE statement
-
-and
-
-  ATOMIC _ '(' type_name ')'
-
-where "_" has been used to flag the points of ambiguity.
+/* 
+.. Set the output as 'parser.c' 
 */
-
 %output  "parser.c"
 %defines "parser.h"
 
+%define api.pure full
 
 %{
 #include <string.h>
@@ -50,11 +54,30 @@ where "_" has been used to flag the points of ambiguity.
 #include <stdlib.h>
 #include <stdio.h>
 
-extern FILE *yyin;  // Declare yyin from Flex
+/* 
+.. Following extern variables are defined in lexer.c and
+.. they are respectively the default names used by flex 
+.. for input stream and lineno.
+*/
+extern FILE *yyin;  
+extern int yylineno;
 
-int  yylex();
+/* 
+.. Forward declaration of yylex(), which is the main lexer 
+.. function defined by flex 
+*/
+int yylex();
+
+/* 
+.. Forward declaration of yyparse(), which is the main parser 
+.. function defined by bison 
+*/
+int yyparse();
+
+/* 
+.. Error function 
+*/
 void yyerror(const char *s);
-int  yyparse();
 %}
 
 %token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
@@ -74,7 +97,7 @@ int  yyparse();
 
 %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
-%start  translation_unit
+%start  start_translation
 %%
 
 primary_expression
@@ -563,6 +586,10 @@ jump_statement
 	| RETURN expression ';'
 	;
 
+start_translation
+  : translation_unit
+  ;
+
 translation_unit
 	: external_declaration
 	| translation_unit external_declaration
@@ -586,11 +613,12 @@ declaration_list
 %%
 #include <stdio.h>
 
-void yyerror(const char *s)
+void yyerror(const char * msg)
 {
-  /* Modify: add file name + line number */
+  /* Modify: add file name too*/
 	fflush(stdout);
-	fprintf(stderr, "*** %s\n", s);
+	fprintf(stderr, "*** syntax error @ line %d : %s \n", 
+    yylineno, msg);
 }
 
 int main(int argc, char ** argv) {
