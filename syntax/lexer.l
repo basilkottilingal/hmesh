@@ -25,6 +25,8 @@ WS  [ \t\v\n\f]
   #include <stdio.h>
   #include "parser.h"
 
+  #include <ast.h>
+
   /* prints grammar violation message. defined in parser.y*/
   extern void yyerror(const char *);  
 

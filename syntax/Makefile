@@ -1,23 +1,25 @@
 # Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra
+CC      = gcc
+CFLAGS  = -Wall -Wextra
+CFLAGS += -I./ast
+#CFLAGS += -L./ast -last
 
 # Generate parser source
 parser.c parser.h: parser.y
-	bison $<                          # generating parser source code using bison
+	bison $<            # generating parser source code using bison
 
 # Generate lexical analyser source
 lexer.c: lexer.l
-	flex -o $@ $<                     # creating flexer source code using 'flex'. output is "lexer.c" 
+	flex -o $@ $<       # creating flexer source code using 'flex'. output is "lexer.c" 
 
 # parser
-parser: parser.c parser.h lexer.c 
-	gcc lexer.c parser.c -o $@        # creating parser (executable) "parser"
+parser: parser.c parser.h lexer.c ast/libast.a
+	$(CC) $(CFLAGS) lexer.c parser.c ./ast/libast.a -o $@       # creating parser (executable) "parser"
 
 # parse a .c file 
 %.parse: %.c parser
-	#gcc -E $< -o $*.i                 # preproc. NOTE: no effect. (preprocessor not yet implemented)
-	./parser $<                       # parse the .c input
+	#gcc -E $< -o $*.i  # preproc. NOTE: no effect. (preprocessor not yet implemented)
+	./parser $<         # parse the .c input
 
 # Clean up generated files
 clean:
