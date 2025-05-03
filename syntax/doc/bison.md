@@ -154,3 +154,5 @@ Here’s a handy **cheat sheet** for Bison and Flex global variables.
 | `YYSTYPE`    | Bison       | `union/struct`| Semantic value type                       |
 | `YYLTYPE`    | Bison       | `struct`     | Source location tracking (if used)        |
 
+
+You can have a glance at a more complete symbol table in [bison official doc](https://www.gnu.org/software/bison/manual/bison.html#Table-of-Symbols). 

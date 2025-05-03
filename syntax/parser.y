@@ -47,37 +47,42 @@
 %defines "parser.h"
 
 %define api.pure full
+%param {_Ast * ast}
+%define api.value.type {_AstNode *}
 
 %{
-#include <string.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-/* 
-.. Following extern variables are defined in lexer.c and
-.. they are respectively the default names used by flex 
-.. for input stream and lineno.
-*/
-extern FILE *yyin;  
-extern int yylineno;
-
-/* 
-.. Forward declaration of yylex(), which is the main lexer 
-.. function defined by flex 
-*/
-int yylex();
-
-/* 
-.. Forward declaration of yyparse(), which is the main parser 
-.. function defined by bison 
-*/
-int yyparse();
-
-/* 
-.. Error function 
-*/
-void yyerror(const char *s);
+  
+  #include <string.h>
+  #include <assert.h>
+  #include <stdlib.h>
+  #include <stdio.h>
+  
+  #include <ast.h>
+  
+  /* 
+  .. Following extern variables are defined in lexer.c and
+  .. they are respectively the default names used by flex 
+  .. for input stream and lineno.
+  */
+  extern FILE *yyin;  
+  extern int yylineno;
+  
+  /* 
+  .. Forward declaration of yylex(), which is the main lexer 
+  .. function defined by flex 
+  int yylex( _Ast * ast );
+  */
+  
+  /* 
+  .. Forward declaration of yyparse(), which is the main parser 
+  .. function defined by bison 
+  */
+  int yyparse( _Ast * ast );
+  
+  /* 
+  .. Error function 
+  */
+  void yyerror( _Ast * ast,  const char *s);
 %}
 
 %token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
@@ -586,8 +591,9 @@ jump_statement
 	| RETURN expression ';'
 	;
 
+  /* This is the root node, from which translation starts */
 start_translation
-  : translation_unit
+  : translation_unit  { }
   ;
 
 translation_unit
@@ -613,8 +619,9 @@ declaration_list
 %%
 #include <stdio.h>
 
-void yyerror(const char * msg)
+void yyerror( _Ast * ast, const char * msg)
 {
+  (void) ast;
   /* Modify: add file name too*/
 	fflush(stdout);
 	fprintf(stderr, "*** syntax error @ line %d : %s \n", 
@@ -636,9 +643,12 @@ int main(int argc, char ** argv) {
     perror("Error opening input file");
     return 1;
   }
+
+  /* Set up the global states */
+  _Ast * ast = AstInit(argv[1]);
     
   /* Parse all tokens */
-  yyparse();
+  yyparse(ast);
     
   return 0;
 }

@@ -8,12 +8,12 @@
 .. Create an AST Node
 */
  
-_Ast * 
-AstNode(_Ast * parent, int symbol, int lineno, unsigned char type) {
+_AstNode * 
+AstNode(_AstNode * parent, int symbol, int lineno, unsigned char type) {
   /* fixme : Use mempool */
-  _Ast * node = (_Ast *) malloc (sizeof(_Ast));
+  _AstNode * node = (_AstNode *) malloc (sizeof(_AstNode));
  
-  *node = (_Ast) { 
+  *node = (_AstNode) { 
     .symbol  = symbol,
     .lineno  = lineno,
     .type    = type,
@@ -30,7 +30,7 @@ AstNode(_Ast * parent, int symbol, int lineno, unsigned char type) {
 ..   # lineno "file.h"
 .. detected
 */
-void AstResetSource(_AstGlobal * ast, const char * source) {
+void AstResetSource(_Ast * ast, const char * source) {
 
   if (strlen(source) >= _HMESH_PARSER_FILENAME_MAX_) {
     fprintf(stderr, "AstResetSource() : very large filename : %s\n"
@@ -45,11 +45,12 @@ void AstResetSource(_AstGlobal * ast, const char * source) {
 }
 
 /* 
-.. Keep track of ast environment
+.. Initialize, start creating a tree with a root node
+.. and maintain other global states.
 */
-_AstGlobal * AstInit(const char * source) {
+_Ast * AstInit(const char * source) {
 
-  _AstGlobal * ast = (_AstGlobal *) malloc (sizeof(_AstGlobal));
+  _Ast * ast = (_Ast *) malloc (sizeof(_Ast));
   AstResetSource(ast, source);
   ast->root = AstNode (NULL, -1, 0, AstNodeIsInternal);
 

@@ -23,12 +23,36 @@ WS  [ \t\v\n\f]
 %{
 
   #include <stdio.h>
-  #include "parser.h"
 
   #include <ast.h>
 
+  #include "parser.h"
+
+  /* 
+  .. The semantic type, YYSTYPE,  (which is set as type 'int' by default),
+  .. is defined as '_AstNode *' which represent a pointer of AST node.
+  .. You have to set the same in parser.y using
+  ..    %define api.value.type {_AstNode *}
+  .. The semantic value, yylval_param, of type YYSTYPE, is a local variable 
+  .. within yyparse() whose address (i.e &yylval_param) is passed to yylex(). 
+  .. So you set *yylval_param for tokens inside yylex(), like below:
+  ..    *yylval = AstNode( , , );
+  .. AstNode() is the user-defined function that creates an ast node (./ast/ast.h) 
+  ..
+  .. NOTE: There is a distinction between 
+  ..  (a) yylval_param : local variable for semantic value in pure parser
+  ..  (b) yylval : global variable for semantic value in impure parser.
+  ..
+  .. # define YY_DECL
+  .. Flex doesn't know the exact function signature unless you define it.
+  .. Bison expects to call yylex(...) with those parameters. 
+  .. This tells Flex to implement that exact prototype.
+  */
+  # define YYSTYPE _AstNode *
+  # define YY_DECL int yylex (YYSTYPE * yylval_param, _Ast * ast)
+
   /* prints grammar violation message. defined in parser.y*/
-  extern void yyerror(const char *);  
+  extern void yyerror(_Ast *, const char *);  
 
   /* returns type from symbol table */
   extern int sym_type(const char *);  
@@ -251,7 +275,7 @@ static void ignore_attribute(void)
 
   if(nscope) { 
     yylineno = lineno;
-    yyerror("__attribute__ not closed");
+    yyerror(NULL, "__attribute__ not closed");
   }
 }
 
@@ -289,7 +313,7 @@ static void comment(void)
           break;
       }
   yylineno = lineno;
-  yyerror("unterminated comment");
+  yyerror(NULL, "unterminated comment");
 }
 
 /* which type of identifier ? */
