@@ -21,7 +21,7 @@ parser: parser.c parser.h lexer.c ast/libast.a
 
 # parse a .c file 
 %.parse: %.c parser
-	#gcc -E $< -o $*.i	# preproc. NOTE: no effect. (preprocessor not yet implemented)
+	#gcc -std=c99 -E $< -o $*.i	  # preproc. NOTE: no effect. (preprocessor not yet implemented)
 	./parser $<				 # parse the .c input
 
 # Clean up generated files

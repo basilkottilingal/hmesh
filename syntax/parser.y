@@ -617,38 +617,38 @@ declaration_list
 	;
 
 %%
-#include <stdio.h>
-
-void yyerror( _Ast * ast, const char * msg)
-{
-  (void) ast;
-  /* Modify: add file name too*/
-	fflush(stdout);
-	fprintf(stderr, "*** syntax error @ line %d : %s \n", 
-    yylineno, msg);
-}
-
-int main(int argc, char ** argv) {
-   
-  /* Expects second arguement as the input file (i.e the source code)
-  .. to be parsed */ 
-  if (argc < 2) {
-    fprintf(stderr, "Usage: %s input_file\n", argv[0]);
-    return 1;
+  
+  #include <stdio.h>
+  
+  void yyerror( _Ast * ast, const char * msg)
+  {
+    /* Modify: add file name too*/
+  	fflush(stdout);
+  	fprintf(stderr, "*** syntax error in file %s @ line %d : %s \n", 
+      ast->source, yylineno, msg);
   }
-
-  /* Open input file */
-  yyin = fopen(argv[1], "r");
-  if (!yyin) {
-    perror("Error opening input file");
-    return 1;
+  
+  int main(int argc, char ** argv) {
+     
+    /* Expects second arguement as the input file (i.e the source code)
+    .. to be parsed */ 
+    if (argc < 2) {
+      fprintf(stderr, "Usage: %s input_file\n", argv[0]);
+      return 1;
+    }
+  
+    /* Open input file */
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+      perror("Error opening input file");
+      return 1;
+    }
+  
+    /* Set up the global states */
+    _Ast * ast = AstInit(argv[1]);
+      
+    /* Parse all tokens */
+    yyparse(ast);
+      
+    return 0;
   }
-
-  /* Set up the global states */
-  _Ast * ast = AstInit(argv[1]);
-    
-  /* Parse all tokens */
-  yyparse(ast);
-    
-  return 0;
-}

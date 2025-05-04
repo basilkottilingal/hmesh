@@ -31,10 +31,18 @@ AstNode(_AstNode * parent, int symbol, int lineno, unsigned char type) {
 .. detected
 */
 void AstResetSource(_Ast * ast, const char * source) {
+    
+  char * s = strchr (str, '#') + 1;
+    
+  *lineno = atoi(s) - 1;
+    
+  s = strchr (str, '"') + 1;
 
   if (strlen(source) >= _HMESH_PARSER_FILENAME_MAX_) {
-    fprintf(stderr, "AstResetSource() : very large filename : %s\n"
-      "Rerun the program with -D_HMESH_PARSER_FILENAME_MAX_=4096",
+    fprintf(stderr, "Hmesh parser error.\n"
+      "AstResetSource() : very large filename : %s\n"
+      "Rerun the program with larger filename buffer.\n"
+      "Ex: -D_HMESH_PARSER_FILENAME_MAX_=4096",
       source);
     fflush(stderr);
     exit(EXIT_FAILURE);

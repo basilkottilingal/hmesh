@@ -87,5 +87,6 @@ typedef struct _Ast {
 
 
 extern _Ast * AstInit(const char *);
+extern void AstResetSource(_Ast * , const char * );
 
 #endif   /* End of _HMESH_AST */
