@@ -46,6 +46,11 @@
 %output  "parser.c"
 %defines "parser.h"
 
+/* 
+.. Fully pure reentrant parser, 
+.. Semantic value type as _AstNode *,
+.. add parameter 
+*/
 %define api.pure full
 %param {_Ast * ast}
 %define api.value.type {_AstNode *}
@@ -644,11 +649,19 @@ declaration_list
       return 1;
     }
   
-    /* Set up the global states */
+    /* 
+    .. Initializing.
+    .. Set up the tree (with root node) 
+    */
     _Ast * ast = AstInit(argv[1]);
       
-    /* Parse all tokens */
-    yyparse(ast);
-      
+    /* Parse all tokens and build AST in the process*/
+    int status = yyparse(ast);
+
+    /*
+    .. fixme: use status, to see if parser has exited properly
+    */
+    (void)status;
+
     return 0;
   }

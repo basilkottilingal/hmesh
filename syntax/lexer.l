@@ -35,11 +35,19 @@
   .. Kudos to Bryant Wong <bryant@xorshift.org> for spotting the error.
   .. */
 
+  /*
+  .. noyywrap: means flex doesn't expect a yywrap() function
+  .. yylineno: yylex keeps track of lineno. 
+  ..    Updates, i.e yylineno++, whenever input() reads a '\n'
+  .. bison-bridge:
+  .. nounput: unput() not available
+  */
 
 %option noyywrap
 %option yylineno
 %option bison-bridge
 %option nounput
+
 
 /* some regular expression (regex) that you come across in C */
 O   [0-7]
@@ -63,8 +71,12 @@ WS  [ \t\v\n\f]
   #include <stdio.h>
 
   #include <ast.h>
-
   #include "parser.h"
+  
+  /* 
+  .. There is no implcit column number tracker 
+  .. like yylineno in flex
+  */
 
   /* 
   .. The semantic type, YYSTYPE,  (which is 'int' by default),
@@ -115,6 +127,7 @@ WS  [ \t\v\n\f]
   static void reset_file_line(_Ast *, const char *);
 
 %}
+
 
   /* 
   .. In the following tokens rule section that falls b/w "%%" and "%%", 
@@ -259,7 +272,9 @@ WS  [ \t\v\n\f]
 "|"            { return '|'; }
 "?"            { return '?'; }
 
-{WS}+          { /* whitespace separates tokens */ }
+{WS}+          { 
+  /* whitespace separates tokens */
+}
 
         
   /** 
@@ -273,6 +288,10 @@ WS  [ \t\v\n\f]
 }
 
 "__attribute__"{WS}*\(                            {
+  /* 
+  .. Fixme :  attributes should be rather,
+  .. forwarded to the compiler 
+  */
   ignore_attribute (ast);
 }
 
@@ -284,8 +303,9 @@ WS  [ \t\v\n\f]
 
 
 .                                                  { 
-  yyerror(ast, "unknown syntax");
-  /* discard bad characters. 
+  /*
+  .. Applies for each characters. 
+  .. Discard bad characters. 
   .. It should be placed at the end of the tokens list. It discards/ignore
   .. any tokens that doesn't match any of the previous tokens
   */ 
