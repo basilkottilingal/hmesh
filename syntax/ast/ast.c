@@ -30,14 +30,7 @@ AstNode(_AstNode * parent, int symbol, int lineno, unsigned char type) {
 ..   # lineno "file.h"
 .. detected
 */
-void AstResetSource(_Ast * ast, const char * source) {
-    
-  char * s = strchr (str, '#') + 1;
-    
-  *lineno = atoi(s) - 1;
-    
-  s = strchr (str, '"') + 1;
-
+void AstResetSource(_AstLoc * loc, const char * source) {
   if (strlen(source) >= _HMESH_PARSER_FILENAME_MAX_) {
     fprintf(stderr, "Hmesh parser error.\n"
       "AstResetSource() : very large filename : %s\n"
@@ -48,7 +41,7 @@ void AstResetSource(_Ast * ast, const char * source) {
     exit(EXIT_FAILURE);
   }
 
-  strcpy(ast->source, source);
+  strcpy(loc->source, source);
   
 }
 
@@ -59,7 +52,7 @@ void AstResetSource(_Ast * ast, const char * source) {
 _Ast * AstInit(const char * source) {
 
   _Ast * ast = (_Ast *) malloc (sizeof(_Ast));
-  AstResetSource(ast, source);
+  AstResetSource(&ast->loc, source);
   ast->root = AstNode (NULL, -1, 0, AstNodeIsInternal);
 
   return ast;

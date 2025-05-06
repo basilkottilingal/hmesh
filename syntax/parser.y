@@ -70,7 +70,6 @@
   .. for input stream and lineno.
   */
   extern FILE *yyin;  
-  extern int yylineno;
   
   /* 
   .. Forward declaration of yylex(), which is the main lexer 
@@ -627,10 +626,13 @@ declaration_list
   
   void yyerror( _Ast * ast, const char * msg)
   {
-    /* Modify: add file name too*/
+    /*
+    .. prints error message, with source code location
+    ..    filename:lineno:column
+    */ 
   	fflush(stdout);
-  	fprintf(stderr, "*** syntax error in file %s @ line %d : %s \n", 
-      ast->source, yylineno, msg);
+  	fprintf(stderr, "*** syntax error in file %s:%d:%d \n*** %s \n", 
+      ast->loc.file, ast->loc.line, ast->loc.column, msg);
   }
   
   int main(int argc, char ** argv) {
@@ -655,7 +657,9 @@ declaration_list
     */
     _Ast * ast = AstInit(argv[1]);
       
-    /* Parse all tokens and build AST in the process*/
+    /* 
+    .. Parse all tokens and build AST in the process
+    */
     int status = yyparse(ast);
 
     /*
@@ -663,5 +667,8 @@ declaration_list
     */
     (void)status;
 
+    /*
+    .. AST syntax check, analysis, etc
+    */
     return 0;
   }

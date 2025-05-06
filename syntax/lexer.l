@@ -37,6 +37,7 @@
 
   /*
   .. noyywrap: means flex doesn't expect a yywrap() function
+%option yylineno
   .. yylineno: yylex keeps track of lineno. 
   ..    Updates, i.e yylineno++, whenever input() reads a '\n'
   .. bison-bridge:
@@ -44,10 +45,8 @@
   */
 
 %option noyywrap
-%option yylineno
 %option bison-bridge
 %option nounput
-
 
 /* some regular expression (regex) that you come across in C */
 O   [0-7]
@@ -72,11 +71,6 @@ WS  [ \t\v\n\f]
 
   #include <ast.h>
   #include "parser.h"
-  
-  /* 
-  .. There is no implcit column number tracker 
-  .. like yylineno in flex
-  */
 
   /* 
   .. The semantic type, YYSTYPE,  (which is 'int' by default),
@@ -98,8 +92,14 @@ WS  [ \t\v\n\f]
   .. Bison expects to call yylex(...) with those parameters. 
   .. This tells Flex to implement that exact prototype.
   */
+
   # define YYSTYPE _AstNode *
   # define YY_DECL int yylex (YYSTYPE * yylval_param, _Ast * ast)
+
+  /*  
+  .. Warning! : Don't use input(), rather use this input_override().
+  */
+  extern int input_override ( _Ast * ast );
 
   /* prints grammar violation message. defined in parser.y*/
   extern void yyerror(_Ast *, const char *);  
@@ -124,7 +124,36 @@ WS  [ \t\v\n\f]
   ..   # 5 "header.h"
   .. are encountered
   */
-  static void reset_file_line(_Ast *, const char *);
+  static void reset_location(_AstLoc *, const char *);
+
+  /*
+  .. These macros will be called inside token rule section,
+  .. whenever appropriate tokens are identified by yylex().
+  .. fixme: lexer still uses global vars like yytext, yyleng.
+  .. Make yylex() reentrant.
+  .. fixme: warning: I don't know any tokens that contains 
+  .. escape keys other than string literals.  
+  */
+
+  /* General tokens */
+  #define _TOKEN_(__sym__)       \
+    ast->loc.column += yylen;    \
+    return __sym__;
+
+  /* Literal strings might contain \n, \t escape keys etc*/
+  #define _TOKEN_LITERAL_()      \
+    AstLocRead(yytext);          \
+    return LITERAL_STRING;
+  
+  /* Single character single with exception of ANSI C digraphs*/
+  #define _TOKEN_CHAR_ (__c__)   \
+    ast->loc.column += yyleng;   \
+    return (int) __c__;
+
+  /* Identifiers */
+  #define _TOKEN_IDENTIFIER_()   \
+    ast->loc.column += yyleng;   \
+    return check_type();
 
 %}
 
@@ -142,7 +171,7 @@ WS  [ \t\v\n\f]
   ..   - Float Const
   ..   - String 
   ..   - Special Characters
-  ..   - Operators
+  ..   - Operators. (Also read on ANSI C digraphs, like '<%', '%>', '<:', ':>', etc) 
   ..   - White space
   .. 
   .. The lexical analyser has to take care of some non-C tokens like
@@ -159,55 +188,55 @@ WS  [ \t\v\n\f]
 %%
 
 "/*"             { comment(ast); }
-"//".*           { /* consume //-comment */ }
+"//".*           { /* Neglect */ }
 
-"auto"           { return(AUTO); }
-"break"          { return(BREAK); }
-"case"           { return(CASE); }
-"char"           { return(CHAR); }
-"const"          { return(CONST); }
-"continue"       { return(CONTINUE); }
-"default"        { return(DEFAULT); }
-"do"             { return(DO); }
-"double"         { return(DOUBLE); }
-"else"           { return(ELSE); }
-"enum"           { return(ENUM); }
-"extern"         { return(EXTERN); }
-"float"          { return(FLOAT); }
-"for"            { return(FOR); }
-"goto"           { return(GOTO); }
-"if"             { return(IF); }
-"inline"         { return(INLINE); }
-"int"            { return(INT); }
-"long"           { return(LONG); }
-"register"       { return(REGISTER); }
-"restrict"       { return(RESTRICT); }
-"return"         { return(RETURN); }
-"short"          { return(SHORT); }
-"signed"         { return(SIGNED); }
-"sizeof"         { return(SIZEOF); }
-"static"         { return(STATIC); }
-"struct"         { return(STRUCT); }
-"switch"         { return(SWITCH); }
-"typedef"        { return(TYPEDEF); }
-"union"          { return(UNION); }
-"unsigned"       { return(UNSIGNED); }
-"void"           { return(VOID); }
-"volatile"       { return(VOLATILE); }
-"while"          { return(WHILE); }
-"_Alignas"                              { return ALIGNAS; }
-"_Alignof"                              { return ALIGNOF; }
-"_Atomic"                               { return ATOMIC; }
-"_Bool"                                 { return BOOL; }
-"_Complex"                              { return COMPLEX; }
-"_Generic"                              { return GENERIC; }
-"_Imaginary"                            { return IMAGINARY; }
-"_Noreturn"                             { return NORETURN; }
-"_Static_assert"                        { return STATIC_ASSERT; }
-"_Thread_local"                         { return THREAD_LOCAL; }
-"__func__"                              { return FUNC_NAME; }
+"auto"           { _TOKEN_(AUTO); }
+"break"          { _TOKEN_(BREAK); }
+"case"           { _TOKEN_(CASE); }
+"char"           { _TOKEN_(CHAR); }
+"const"          { _TOKEN_(CONST); }
+"continue"       { _TOKEN_(CONTINUE); }
+"default"        { _TOKEN_(DEFAULT); }
+"do"             { _TOKEN_(DO); }
+"double"         { _TOKEN_(DOUBLE); }
+"else"           { _TOKEN_(ELSE); }
+"enum"           { _TOKEN_(ENUM); }
+"extern"         { _TOKEN_(EXTERN); }
+"float"          { _TOKEN_(FLOAT); }
+"for"            { _TOKEN_(FOR); }
+"goto"           { _TOKEN_(GOTO); }
+"if"             { _TOKEN_(IF); }
+"inline"         { _TOKEN_(INLINE); }
+"int"            { _TOKEN_(INT); }
+"long"           { _TOKEN_(LONG); }
+"register"       { _TOKEN_(REGISTER); }
+"restrict"       { _TOKEN_(RESTRICT); }
+"return"         { _TOKEN_(RETURN); }
+"short"          { _TOKEN_(SHORT); }
+"signed"         { _TOKEN_(SIGNED); }
+"sizeof"         { _TOKEN_(SIZEOF); }
+"static"         { _TOKEN_(STATIC); }
+"struct"         { _TOKEN_(STRUCT); }
+"switch"         { _TOKEN_(SWITCH); }
+"typedef"        { _TOKEN_(TYPEDEF); }
+"union"          { _TOKEN_(UNION); }
+"unsigned"       { _TOKEN_(UNSIGNED); }
+"void"           { _TOKEN_(VOID); }
+"volatile"       { _TOKEN_(VOLATILE); }
+"while"          { _TOKEN_(WHILE); }
+"_Alignas"                              { _TOKEN_(ALIGNAS); }
+"_Alignof"                              { _TOKEN_(ALIGNOF); }
+"_Atomic"                               { _TOKEN_(ATOMIC); }
+"_Bool"                                 { _TOKEN_(BOOL); }
+"_Complex"                              { _TOKEN_(COMPLEX); }
+"_Generic"                              { _TOKEN_(GENERIC); }
+"_Imaginary"                            { _TOKEN_(IMAGINARY); }
+"_Noreturn"                             { _TOKEN_(NORETURN); }
+"_Static_assert"                        { _TOKEN_(STATIC_ASSERT); }
+"_Thread_local"                         { _TOKEN_(THREAD_LOCAL); }
+"__func__"                              { _TOKEN_(FUNC_NAME); }
 
-{L}{A}*                                  { return check_type(); }
+{L}{A}*                                  { _TOKEN_IDENTIFIER(); }
 
 {HP}{H}+{IS}?                            { return I_CONSTANT; }
 {NZ}{D}*{IS}?                            { return I_CONSTANT; }
@@ -221,60 +250,61 @@ WS  [ \t\v\n\f]
 {HP}{H}*"."{H}+{P}{FS}?                  { return F_CONSTANT; }
 {HP}{H}+"."{P}{FS}?                      { return F_CONSTANT; }
 
-({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+        { return STRING_LITERAL; }
+({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+        { _TOKEN_LITERAL_(); }
 
-"..."          { return ELLIPSIS; }
-">>="          { return RIGHT_ASSIGN; }
-"<<="          { return LEFT_ASSIGN; }
-"+="           { return ADD_ASSIGN; }
-"-="           { return SUB_ASSIGN; }
-"*="           { return MUL_ASSIGN; }
-"/="           { return DIV_ASSIGN; }
-"%="           { return MOD_ASSIGN; }
-"&="           { return AND_ASSIGN; }
-"^="           { return XOR_ASSIGN; }
-"|="           { return OR_ASSIGN; }
-">>"           { return RIGHT_OP; }
-"<<"           { return LEFT_OP; }
-"++"           { return INC_OP; }
-"--"           { return DEC_OP; }
-"->"           { return PTR_OP; }
-"&&"           { return AND_OP; }
-"||"           { return OR_OP; }
-"<="           { return LE_OP; }
-">="           { return GE_OP; }
-"=="           { return EQ_OP; }
-"!="           { return NE_OP; }
+"..."          { _TOKEN_(ELLIPSIS); }
+">>="          { _TOKEN_(RIGHT_ASSIGN); }
+"<<="          { _TOKEN_(LEFT_ASSIGN); }
+"+="           { _TOKEN_(ADD_ASSIGN); }
+"-="           { _TOKEN_(SUB_ASSIGN); }
+"*="           { _TOKEN_(MUL_ASSIGN); }
+"/="           { _TOKEN_(DIV_ASSIGN); }
+"%="           { _TOKEN_(MOD_ASSIGN); }
+"&="           { _TOKEN_(AND_ASSIGN); }
+"^="           { _TOKEN_(XOR_ASSIGN); }
+"|="           { _TOKEN_(OR_ASSIGN); }
+">>"           { _TOKEN_(RIGHT_OP); }
+"<<"           { _TOKEN_(LEFT_OP); }
+"++"           { _TOKEN_(INC_OP); }
+"--"           { _TOKEN_(DEC_OP); }
+"->"           { _TOKEN_(PTR_OP); }
+"&&"           { _TOKEN_(AND_OP); }
+"||"           { _TOKEN_(OR_OP); }
+"<="           { _TOKEN_(LE_OP); }
+">="           { _TOKEN_(GE_OP); }
+"=="           { _TOKEN_(EQ_OP); }
+"!="           { _TOKEN_(NE_OP); }
+
+";"            { _TOKEN_CHAR_(';'); }
+("{"|"<%")     { _TOKEN_CHAR_('{'); }
+("}"|"%>")     { _TOKEN_CHAR_('}'); }
+","            { _TOKEN_CHAR_(','); }
+":"            { _TOKEN_CHAR_(':'); }
+"="            { _TOKEN_CHAR_('='); }
+"("            { _TOKEN_CHAR_('('); }
+")"            { _TOKEN_CHAR_(')'); }
+("["|"<:")     { _TOKEN_CHAR_('['); }
+("]"|":>")     { _TOKEN_CHAR_(']'); }
+"."            { _TOKEN_CHAR_('.'); }
+"&"            { _TOKEN_CHAR_('&'); }
+"!"            { _TOKEN_CHAR_('!'); }
+"~"            { _TOKEN_CHAR_('~'); }
+"-"            { _TOKEN_CHAR_('-'); }
+"+"            { _TOKEN_CHAR_('+'); }
+"*"            { _TOKEN_CHAR_('*'); }
+"/"            { _TOKEN_CHAR_('/'); }
+"%"            { _TOKEN_CHAR_('%'); }
+"<"            { _TOKEN_CHAR_('<'); }
+">"            { _TOKEN_CHAR_('>'); }
+"^"            { _TOKEN_CHAR_('^'); }
+"|"            { _TOKEN_CHAR_('|'); }
+"?"            { _TOKEN_CHAR_('?'); }
+
+\n           { ++(ast->loc.line);  ast->loc.column = 1;    }
+\t           { ast->loc.column += 8 - (ast->loc.column)%8; }
+{[ \v\f]}+   { ast->loc.column += yyleng;                  }
 
 
-";"            { return ';'; }
-("{"|"<%")     { return '{'; }
-("}"|"%>")     { return '}'; }
-","            { return ','; }
-":"            { return ':'; }
-"="            { return '='; }
-"("            { return '('; }
-")"            { return ')'; }
-("["|"<:")     { return '['; }
-("]"|":>")     { return ']'; }
-"."            { return '.'; }
-"&"            { return '&'; }
-"!"            { return '!'; }
-"~"            { return '~'; }
-"-"            { return '-'; }
-"+"            { return '+'; }
-"*"            { return '*'; }
-"/"            { return '/'; }
-"%"            { return '%'; }
-"<"            { return '<'; }
-">"            { return '>'; }
-"^"            { return '^'; }
-"|"            { return '|'; }
-"?"            { return '?'; }
-
-{WS}+          { 
-  /* whitespace separates tokens */
-}
 
         
   /** 
@@ -284,7 +314,7 @@ WS  [ \t\v\n\f]
   **/
 
 ^[ \t]*#[ \t]+[0-9]+[ \t]+\"([^"\\\n]|{ES})*\".*  { 
-  reset_file_line (ast, yytext);
+  reset_location (&ast->loc, yytext);
 }
 
 "__attribute__"{WS}*\(                            {
@@ -304,7 +334,6 @@ WS  [ \t\v\n\f]
 
 .                                                  { 
   /*
-  .. Applies for each characters. 
   .. Discard bad characters. 
   .. It should be placed at the end of the tokens list. It discards/ignore
   .. any tokens that doesn't match any of the previous tokens
@@ -321,14 +350,16 @@ WS  [ \t\v\n\f]
   /* 
   .. This function ignores attributes: "__attribute__ ()"
   .. which are meant for gcc/clang compilers.
+  .. fixme : They should rather be forwarded as it is to the compiler.
   */
 
   static void ignore_attribute(_Ast * ast)
   {
-    int lineno = yylineno;
+    int line   = ast->loc.line;
+    int column = ast->loc.column;
     char c = 1, nscope = 1;
     while (nscope && c) {
-      c = input();
+      c = input_override (ast);
       if (c == ')') 
         nscope--;
       else if (c == '(')
@@ -336,7 +367,8 @@ WS  [ \t\v\n\f]
     }
   
     if(nscope) { 
-      yylineno = lineno;
+      ast->loc.line   = line;
+      ast->loc.column = column;
       yyerror (ast, "__attribute__ not closed");
     }
   }
@@ -345,10 +377,11 @@ WS  [ \t\v\n\f]
   /*
   .. This function is used to reset filename, line number 
   */
-  static void reset_file_line(_Ast * ast, const char * str) {
+  static void reset_location(_AstLoc * loc, const char * str) {
     
-    char * s = strchr (str, '#') + 1;
-    yylineno = atoi(s) - 1;
+    char * s    = strchr (str, '#') + 1;
+    loc->line   = atoi(s) - 1;
+    loc->column = 1; 
 
     char source[_HMESH_PARSER_FILENAME_MAX_ + 1];
     s = strchr (str, '"') + 1;
@@ -357,7 +390,7 @@ WS  [ \t\v\n\f]
     char * end = strchr(source, '"');
     if(end) 
       *end = '\0';
-    AstResetSource(ast, source);
+    AstResetSource(loc, source);
   }
   
   /* 
@@ -365,22 +398,22 @@ WS  [ \t\v\n\f]
   */
   static void comment(_Ast * ast)
   {
-    int c, lineno = yylineno;
-    /* 
-    .. input() is the default function to read one
-    .. character from yyin 
-    */
-    while ((c = input()) != 0)
+    int c;
+    int line   = ast->loc.line;
+    int column = ast->loc.column;
+    while ((c = input_override(ast)) != 0)
       if (c == '*')
         {
-          while ((c = input()) == '*')
+          while ((c = input_override(ast)) == '*')
             ;
           if (c == '/')
             return;
           if (c == 0)
             break;
         }
-    yylineno = lineno;
+    /* Point the error to the location where comments started */
+    ast->loc.line   = line;
+    ast->loc.column = column;
     yyerror(ast, "unterminated comment");
   }
   
@@ -395,4 +428,10 @@ WS  [ \t\v\n\f]
       default:                          /* includes undefined */
         return IDENTIFIER;
     }
+  }
+
+  int input_override(_Ast * ast) {
+    int c = input();
+    AstLocInput(c);
+    return c;
   }
