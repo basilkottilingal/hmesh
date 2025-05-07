@@ -35,9 +35,10 @@
   .. Kudos to Bryant Wong <bryant@xorshift.org> for spotting the error.
   .. */
 
-  /* flex options below
+  /* we use the following flex options
   .. 1) noyywrap: means flex doesn't expect a yywrap() function
-  .. 2) bison-bridge: 
+  .. 2) bison-bridge: This instructs flex that the macro yylval may be used. 
+  ..    The data type for yylval, YYSTYPE, is defined as { _Ast * }
   .. 3) nounput: unput() won't be defined by flex.
   */
 
@@ -127,12 +128,12 @@ WS  [ \t\v\n\f]
   .. fixme: lexer still uses global vars like yytext, yyleng.
   .. Make yylex() reentrant.
   .. fixme: warning: I don't know any tokens that contains 
-  .. escape keys other than string literals.  
+  .. escape keys other than string literals. 
   */
 
   /* General tokens */
   #define _TOKEN_(__sym__)                   \
-    ast->loc.column += yyleng;                \
+    ast->loc.column += yyleng;               \
     return __sym__;
 
   /* Token that can possibly contain escape characters*/
@@ -296,9 +297,9 @@ WS  [ \t\v\n\f]
 "|"            { _TOKEN_CHAR_('|'); }
 "?"            { _TOKEN_CHAR_('?'); }
 
-\n           { ++(ast->loc.line);  ast->loc.column = 1;    }
-\t           { ast->loc.column += 8 - (ast->loc.column)%8; }
-([ \v\f])+   { ast->loc.column += yyleng;                  }
+\n             { ++(ast->loc.line);  ast->loc.column = 1;    }
+\t             { ast->loc.column += 8 - (ast->loc.column)%8; }
+([ \v\f])+     { ast->loc.column += yyleng;                  }
 
         
   /** 

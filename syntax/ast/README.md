@@ -1,4 +1,4 @@
-# Abstract Syntax Tree
+#Abstract Syntax Tree
 
 AST is the tree data structure to represent a source code, whose leaf nodes are tokens:
 keywords, identifiers, constants, operators, special symbols, and strings.
@@ -18,3 +18,9 @@ You have to take care of these things while designing a parser that constructs a
 | `Memory Safety` |	Managed memory or smart cleanup strategy                      |
 | `Traversals`	  | Traversal API, export format, error locations                 |
 | `Debuggability`	| Print, graph, or serialize AST                                |
+
+## Memory Pool of Ast Node
+  
+## Hash Table based identifier Stack
+
+##    
