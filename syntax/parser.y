@@ -631,7 +631,7 @@ declaration_list
     ..    filename:lineno:column
     */ 
   	fflush(stdout);
-  	fprintf(stderr, "*** syntax error in file %s:%d:%d \n*** %s \n", 
+  	fprintf(stderr, "*** syntax error in file %s:%d:%d\n*** %s\n", 
       ast->loc.file, ast->loc.line, ast->loc.column, msg);
   }
   

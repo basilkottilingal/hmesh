@@ -9,13 +9,12 @@
 */
  
 _AstNode * 
-AstNode(_AstNode * parent, int symbol, int lineno, unsigned char type) {
+AstNode(_AstNode * parent, int symbol, unsigned char type) {
   /* fixme : Use mempool */
   _AstNode * node = (_AstNode *) malloc (sizeof(_AstNode));
  
   *node = (_AstNode) { 
     .symbol  = symbol,
-    .lineno  = lineno,
     .type    = type,
     .child   = NULL, 
     .parent  = parent,
@@ -41,7 +40,7 @@ void AstResetSource(_AstLoc * loc, const char * source) {
     exit(EXIT_FAILURE);
   }
 
-  strcpy(loc->source, source);
+  strcpy(loc->file, source);
   
 }
 
@@ -52,8 +51,9 @@ void AstResetSource(_AstLoc * loc, const char * source) {
 _Ast * AstInit(const char * source) {
 
   _Ast * ast = (_Ast *) malloc (sizeof(_Ast));
+  ast->loc.line = ast->loc.column = 1;
   AstResetSource(&ast->loc, source);
-  ast->root = AstNode (NULL, -1, 0, AstNodeIsInternal);
+  ast->root = AstNode (NULL, -1, AstNodeIsInternal);
 
   return ast;
 }

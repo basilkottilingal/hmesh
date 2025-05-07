@@ -35,18 +35,13 @@
   .. Kudos to Bryant Wong <bryant@xorshift.org> for spotting the error.
   .. */
 
-  /*
-  .. noyywrap: means flex doesn't expect a yywrap() function
-%option yylineno
-  .. yylineno: yylex keeps track of lineno. 
-  ..    Updates, i.e yylineno++, whenever input() reads a '\n'
-  .. bison-bridge:
-  .. nounput: unput() not available
+  /* flex options below
+  .. 1) noyywrap: means flex doesn't expect a yywrap() function
+  .. 2) bison-bridge: 
+  .. 3) nounput: unput() won't be defined by flex.
   */
 
-%option noyywrap
-%option bison-bridge
-%option nounput
+%option noyywrap bison-bridge nounput
 
 /* some regular expression (regex) that you come across in C */
 O   [0-7]
@@ -136,23 +131,24 @@ WS  [ \t\v\n\f]
   */
 
   /* General tokens */
-  #define _TOKEN_(__sym__)       \
-    ast->loc.column += yylen;    \
+  #define _TOKEN_(__sym__)                   \
+    ast->loc.column += yyleng;                \
     return __sym__;
 
-  /* Literal strings might contain \n, \t escape keys etc*/
-  #define _TOKEN_LITERAL_()      \
-    AstLocRead(yytext);          \
-    return LITERAL_STRING;
+  /* Token that can possibly contain escape characters*/
+  #define _TOKEN_ESC_KEYS_(__sym__)          \
+    AstLocRead(yytext);                      \
+    return __sym__;
   
-  /* Single character single with exception of ANSI C digraphs*/
-  #define _TOKEN_CHAR_ (__c__)   \
-    ast->loc.column += yyleng;   \
+  /* Single character token. 
+  .. yyleng is 1 with exception of ANSI C digraphs*/
+  #define _TOKEN_CHAR_(__c__)                \
+    ast->loc.column += yyleng;               \
     return (int) __c__;
 
   /* Identifiers */
-  #define _TOKEN_IDENTIFIER_()   \
-    ast->loc.column += yyleng;   \
+  #define _TOKEN_IDENTIFIER_()               \
+    ast->loc.column += yyleng;               \
     return check_type();
 
 %}
@@ -236,21 +232,21 @@ WS  [ \t\v\n\f]
 "_Thread_local"                         { _TOKEN_(THREAD_LOCAL); }
 "__func__"                              { _TOKEN_(FUNC_NAME); }
 
-{L}{A}*                                  { _TOKEN_IDENTIFIER(); }
+{L}{A}*                             { _TOKEN_IDENTIFIER_(); }
 
-{HP}{H}+{IS}?                            { return I_CONSTANT; }
-{NZ}{D}*{IS}?                            { return I_CONSTANT; }
-"0"{O}*{IS}?                             { return I_CONSTANT; }
-{CP}?"'"([^'\\\n]|{ES})+"'"              { return I_CONSTANT; }
+{HP}{H}+{IS}?                       { _TOKEN_(I_CONSTANT); }
+{NZ}{D}*{IS}?                       { _TOKEN_(I_CONSTANT); }
+"0"{O}*{IS}?                        { _TOKEN_(I_CONSTANT); }
+{CP}?"'"([^'\\\n]|{ES})+"'"         { _TOKEN_ESC_KEYS_(I_CONSTANT); }
 
-{D}+{E}{FS}?                             { return F_CONSTANT; }
-{D}*"."{D}+{E}?{FS}?                     { return F_CONSTANT; }
-{D}+"."{E}?{FS}?                         { return F_CONSTANT; }
-{HP}{H}+{P}{FS}?                         { return F_CONSTANT; }
-{HP}{H}*"."{H}+{P}{FS}?                  { return F_CONSTANT; }
-{HP}{H}+"."{P}{FS}?                      { return F_CONSTANT; }
+{D}+{E}{FS}?                        { _TOKEN_(F_CONSTANT); }
+{D}*"."{D}+{E}?{FS}?                { _TOKEN_(F_CONSTANT); }
+{D}+"."{E}?{FS}?                    { _TOKEN_(F_CONSTANT); }
+{HP}{H}+{P}{FS}?                    { _TOKEN_(F_CONSTANT); }
+{HP}{H}*"."{H}+{P}{FS}?             { _TOKEN_(F_CONSTANT); }
+{HP}{H}+"."{P}{FS}?                 { _TOKEN_(F_CONSTANT); }
 
-({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+        { _TOKEN_LITERAL_(); }
+({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+   { _TOKEN_ESC_KEYS_(STRING_LITERAL); }
 
 "..."          { _TOKEN_(ELLIPSIS); }
 ">>="          { _TOKEN_(RIGHT_ASSIGN); }
@@ -302,9 +298,7 @@ WS  [ \t\v\n\f]
 
 \n           { ++(ast->loc.line);  ast->loc.column = 1;    }
 \t           { ast->loc.column += 8 - (ast->loc.column)%8; }
-{[ \v\f]}+   { ast->loc.column += yyleng;                  }
-
-
+([ \v\f])+   { ast->loc.column += yyleng;                  }
 
         
   /** 
@@ -332,7 +326,8 @@ WS  [ \t\v\n\f]
   **/
 
 
-.                                                  { 
+.                                                  {
+  ++(ast->loc.column); 
   /*
   .. Discard bad characters. 
   .. It should be placed at the end of the tokens list. It discards/ignore

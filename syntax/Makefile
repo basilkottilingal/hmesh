@@ -26,6 +26,6 @@ parser: parser.c parser.h lexer.c ast/libast.a
 
 # Clean up generated files
 clean:
-	rm -f $(OUTPUT) $(BISON_C) $(BISON_H) $(FLEX_C) output.c
+	rm -f parser parser.h parser.c lexer.c
 
 

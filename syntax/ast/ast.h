@@ -1,7 +1,14 @@
 # ifndef _HMESH_AST_
 # define _HMESH_AST_
-  
-  
+
+  /* 
+  .. NOTE: length of the name of source file /include header file
+  .. are limited to 1024 characters (including the path and trailing '\0') 
+  .. if not overridden like -D_HMESH_PARSER_FILENAME_=4096
+  */
+  # ifndef _HMESH_PARSER_FILENAME_MAX
+  # define _HMESH_PARSER_FILENAME_MAX_ 1024
+  # endif
     
   /*
   .. @ _AstLoc : Parser tracker 
@@ -18,7 +25,7 @@
     
   typedef struct _AstLoc {
     int line, column;
-    FILE * file;
+    char file[_HMESH_PARSER_FILENAME_MAX_];
   } _AstLoc;
 
   /* 
@@ -50,7 +57,7 @@
     do {                           \
       char * c = __text__;         \
       while (*c) {                 \
-        AstLocInput ( c );         \
+        AstLocInput ( *c );        \
         ++c;                       \
       }                            \
     } while ( 0 );
@@ -83,12 +90,7 @@
     AstNodeIsInternal = 2
   };
   
-  /*
-  .. Get a new Ast Node. 
-  .. fixme: Use memory pool.
-  */
   
-  extern _AstNode * AstNode(_AstNode *,int , int , unsigned char);
   /*
   .. -------------------------------------
   .. --------- AST -----------------------
@@ -96,39 +98,26 @@
   */
   
   
-  /* 
-  .. NOTE: length of the name of source file /include header file
-  .. are limited to 1024 characters (including the path and trailing '\0') 
-  .. if not overridden like -D_HMESH_PARSER_FILENAME_=4096
-  */
-  # ifndef _HMESH_PARSER_FILENAME_MAX
-  # define _HMESH_PARSER_FILENAME_MAX_ 1024
-  # endif
   
-  /*
-  .. when you use "pure" parser i,e if you have set api.pure as full, 
-  .. you don't use any global variables. As an Alternative,
-  .. we use arguements that you pass to yyparse() &/ yylex().
-  .. An _Ast obj store the root node, and also other global states associated with the tree.
-  .. It is passed as an arguement in the reentrant functions like yyparse() and yylex().
+  /* @ _Ast : stores metadata related to AST (root node), .. 
+  ..   parser global variables. 
+  ..   [ when you use "pure" parser i,e if you have set api.pure as full, 
+  ..     you don't use any global variables. As an Alternative,
+  ..     we use arguements that you pass to yyparse() &/ yylex().
+  ..   ]
+  ..   
+  ..   @ root  : root node of ast
+  ..   @ loc   : current parser location. source file + line + column
+  ..   @ stack : stack of identifiers.
   */
   typedef struct _Ast {
-    /* 
-    .. stores file name info. 
-    */
-    char source[_HMESH_PARSER_FILENAME_MAX_];
-  
-    /* The root node : usually, it is the  */ 
     _AstNode * root;
-  
-    /* Stack: for identifiers 
-    _Stack 
-    */
-  
+    _AstLoc loc;
   } _Ast;
   
   
+  extern _AstNode * AstNode(_AstNode *, int , unsigned char);
   extern _Ast * AstInit(const char *);
-  extern void AstResetSource(_Ast * , const char * );
+  extern void AstResetSource(_AstLoc * , const char * );
   
 #endif   /* End of _HMESH_AST */
