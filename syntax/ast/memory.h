@@ -15,21 +15,21 @@
   .. _H_AST_PTR_ which we hope is more than adequate for our parser. 
   */
 
-  #define _H_AST_PAGE_SIZE_ 4096
+  #define _H_AST_BLOCK_SIZE_ 1<<20
+  #define _H_AST_PAGE_SIZE_  1<<12
+  #define _H_AST_20_BITS_    2097151  /* 2^21 - 1 */
   typedef uint32_t _H_AST_PTR_ ;
-  #define _H_AST_PTR_B_(_i_)        ( _i_ >> 20 )
-  #define _H_AST_PTR_P_(_i_)        ( (_i_ >> 12) & 511 )
-  #define _H_AST_PTR_N_(_i_)        ( _i_ & 8191 )
-  #define _H_AST_PTR__(_b_,_p_,_n_) ( (_b_<<20) | (_p_<<12) | (_n_) )
 
   /*
   .. @ _FreePage : data type to store a linked list of unused pages
+  ..    @ ipage  : page number 
   ..    @ next   : to form a linked list of empty blocks
   ..    @ safety : is an encoded number to make sure,
   ..      you don't allocate or free same page twice
   ..
   */
   typedef struct _FreePage {
+    _H_AST_PTR_ ipage;
     struct _FreePage * next;
     uint32_t safety;
   } _FreePage;
@@ -77,6 +77,7 @@
   ..    @ fhead : head of the linked list of free nodes
   */
   typedef struct _Page {
+    _H_AST_PTR_ ipage;
     size_t size;
     int nnodes, nfree;
     _H_AST_PTR_ fhead;
