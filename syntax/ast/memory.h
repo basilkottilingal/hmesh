@@ -23,25 +23,27 @@
   #define _H_AST_PTR__(_b_,_p_,_n_) ( (_b_<<20) | (_p_<<12) | (_n_) )
 
   /*
-  .. @ _Free : data type to store a linked list of unused blocks/pages/nodes
+  .. @ _FreePage : data type to store a linked list of unused pages
   ..    @ next   : to form a linked list of empty blocks
   ..    @ safety : is an encoded number to make sure,
-  ..      you don't allocate or free same block twice
+  ..      you don't allocate or free same page twice
+  ..
   */
-  typedef struct _Free {
-    struct _Free * next;
+  typedef struct _FreePage {
+    struct _FreePage * next;
     uint32_t safety;
-  } _Free;
+  } _FreePage;
 
   /*
   .. @ _MemoryHandler : Datatype that stores all root information 
   ..    related to memory handling
   ..    @ blocks : array of memory blocks
   ..    @ max    : size of blocks array
-  ..    @ fhead  : head of the free list
+  ..    @ fhead  : head of the free list of pages.
   */
   typedef struct {
-    _Block ** blocks;  
+    void ** blocks;
+    _H_AST_PTR_ max; 
     _Free * fhead;
   } _MemoryHandler
 
@@ -53,12 +55,12 @@
   ..        [ _H_AST_PAGE_SIZE x npages ] = size
   ..    @ nfree   : number of free pages available.
   ..    @ fhead : head of the linked list of free nodes
-  */
   typedef struct _Block {
     size_t size;
     int npages, nfree;
     _Free * fhead;
   } _Block;
+  */
  
   /*
   .. @ _Page : A fixed size memory chunk like a memory page. 
