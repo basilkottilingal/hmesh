@@ -74,8 +74,8 @@
   /* 
   .. Forward declaration of yylex(), which is the main lexer 
   .. function defined by flex 
-  int yylex( _Ast * ast );
   */
+  int yylex( _AstNode ** node, _Ast * ast );
   
   /* 
   .. Forward declaration of yyparse(), which is the main parser 

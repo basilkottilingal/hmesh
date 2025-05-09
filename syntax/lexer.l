@@ -38,7 +38,7 @@
   /* we use the following flex options
   .. 1) noyywrap: means flex doesn't expect a yywrap() function
   .. 2) bison-bridge: This instructs flex that the macro yylval may be used. 
-  ..    The data type for yylval, YYSTYPE, is defined as { _Ast * }
+  ..    The data type for yylval, YYSTYPE, is defined as { _AstNode * }
   .. 3) nounput: unput() won't be defined by flex.
   */
 

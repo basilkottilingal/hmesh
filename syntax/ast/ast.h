@@ -30,8 +30,7 @@
 
   /* 
   .. Macro that update ast->loc (i.e parser location) when a character
-  .. is parsed.
-  .. Assumes tab width = 8.
+  .. is parsed. Assumes tab width = 8.
   .. Doesn't handle other non-common escape keys.
   */
   #define AstLocInput( __c__ )                         \
@@ -51,7 +50,8 @@
   /*
   .. Macro that updates parser loc after going through a full token.
   .. A small overhead, especially for longer token. O (n). 
-  .. Limit to minimal case.
+  .. Use this ONLY for tokens that may contain escape keys.
+  .. For every other characters you can update column by yyleng.
   */
   #define AstLocRead( __text__ )   \
     do {                           \
@@ -72,13 +72,11 @@
   .. @AstNode : represent a node of the Abstract Syntaxt Tree (AST)
   ..   @ child, sibling, parent : tree node connection
   ..   @ type     : which type of tree node ?
-  ..   @ loc      : locate token in file @ line/col
   ..   @ symbol   : token/semantic rule id
   */
   typedef struct _AstNode {
     struct _AstNode * child, * sibling, * parent;
-    unsigned char type;
-    _AstLoc loc;
+    int type;
     int symbol;
   } _AstNode;
   
