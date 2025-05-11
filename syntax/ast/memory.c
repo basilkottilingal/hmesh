@@ -59,15 +59,21 @@ static void * ast_memory_block ( void ) {
 /*
 .. Deallocates all blocks. Should be called at the end of the pgm
 */
-static void ast_memory_deallocate_all() {
+void ast_deallocate_all() {
   _MemoryHandler * m = &_MemoryHandler_;
-  void ** blocks = m->blocks;
+  void ** blocks = m->blocks; 
+  _Mempool ** pools = m->pools;
   if(!blocks)
     return;
 
+  for(int i=0; i<m->npools; ++i)
+    free(pools[i]);
   for(int i=0; i<m->max; ++i)
     free(blocks[i]);
+  free(pools);
   free(blocks);
+
+  *m = {0};
 }
 
 #define _H_AST_PTR_SAFETY 0xFBC9183

@@ -21,31 +21,19 @@
   typedef uint32_t _H_AST_PTR_ ;
 
   /*
-  .. @ _FreePage : data type to store a linked list of unused pages
+  .. @ _Page : data type to store a linked list of pages
   ..    @ ipage  : page number 
-  ..    @ next   : to form a linked list of empty blocks
   ..    @ safety : is an encoded number to make sure,
   ..      you don't allocate or free same page twice
+  ..    @ next   : to form a linked list of empty blocks
   ..
   */
   typedef struct _FreePage {
     _H_AST_PTR_ ipage;
-    struct _FreePage * next;
-    uint32_t safety;
-  } _FreePage;
+    _H_AST_PTR_ safety;
+    struct _Page * next;
+  } _Page;
 
-  /*
-  .. @ _MemoryHandler : Datatype that stores all root information 
-  ..    related to memory handling
-  ..    @ blocks : array of memory blocks
-  ..    @ max    : size of blocks array
-  ..    @ fhead  : head of the free list of pages.
-  */
-  typedef struct {
-    void ** blocks;
-    _H_AST_PTR_ max; 
-    _Free * fhead;
-  } _MemoryHandler
 
   /*
   .. @ _Block : Datatype for a memory block which is ususally a big chunk
@@ -73,15 +61,30 @@
   ..  ]
   ..
   ..    @ size  : size of datatype whose node is stored in page
-  ..    @ nnodes, nfree : number of used & free nodes
   ..    @ fhead : head of the linked list of free nodes
   */
-  typedef struct _Page {
-    _H_AST_PTR_ ipage;
+  typedef struct _Mempool {
+    _Page * head;
     size_t size;
-    int nnodes, nfree;
     _H_AST_PTR_ fhead;
-  } _Page;
+    _H_AST_PTR_ allocator(struct _Mempool *);
+    void deallocator(struct _Mempool *, _H_AST_PTR_);
+  } _Mempool;
+
+  /*
+  .. @ _MemoryHandler : Datatype that stores all root information 
+  ..    related to memory handling
+  ..    @ blocks : array of memory blocks
+  ..    @ max    : size of blocks array
+  ..    @ fhead  : head of the free list of pages.
+  */
+  typedef struct {
+    void ** blocks;
+    _H_AST_PTR_ max; 
+    _FreePage * fhead;
+    _Mempool ** pools;
+    _H_AST_PTR_ npools; 
+  } _MemoryHandler
 
   /*
   .. Following are the api functions repsectively to
@@ -93,9 +96,8 @@
   .. (e) deallocate a node back to the page
   */
   extern _H_AST_PTR_ ast_allocate_page();
-  extern _H_AST_PTR_ ast_split_page(size_t size);
-  extern _H_AST_PTR_ ast_allocate_from(_H_AST_PTR_ page); 
   extern void ast_dealloacte_page(_H_AST_PTR_ page);
-  extern void ast_deallocate_node(_H_AST_PTR_ node);
+  extern _Mempool * ast_mempool(size);
+  extern void ast_deallocate_all();
   
 #endif
