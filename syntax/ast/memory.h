@@ -1,103 +1,64 @@
 #ifndef _H_AST_POOL_
 #define _H_AST_POOL_
-  
-  #include <stdio.h>
-  #include <stdlib.h>
 
   /* A memory node, _H_AST_PTR_, (kind of pointer) is an integer that stores
-  .. adequate information (BLOCK <12 bits> + PAGE<8 bits> + NODE<12 bits>) to 
+  .. adequate information (BLOCK NUMBER <12 bits> + BIT LOCATION<20 bits>) to 
   .. locate the actual memory address. A uint32_t is used over unsigned int
   .. for the reason it's a 32 bit datatype irrespective of the architecture,
   .. unlike unsigned int.
-  .. A block of size 1 MB (2^20) is divided into 256 pages (2^8) each of 
-  .. size 4096 Bytes (2^12).
+  .. 
+  .. The memory pool is an arena allocator, where you cannot deallocate.
+  .. Each allocated node survive till the end of the pgm.
+  .. You can only delete the entire block(s) which you should do
+  .. only at the end of the program.
+  ..
+  .. A block of size 1 MB (2^20) is allocated each time you run out of memory. 
   .. Theoretically you can represent upto 4GB (2^12 Blocks x 2^20 Bytes) using
-  .. _H_AST_PTR_ which we hope is more than adequate for our parser. 
-  */
-
-  #define _H_AST_BLOCK_SIZE_ 1<<20
-  #define _H_AST_PAGE_SIZE_  1<<12
-  #define _H_AST_20_BITS_    2097151  /* 2^21 - 1 */
-  typedef uint32_t _H_AST_PTR_ ;
-
-  /*
-  .. @ _Page : data type to store a linked list of pages
-  ..    @ ipage  : page number 
-  ..    @ safety : is an encoded number to make sure,
-  ..      you don't allocate or free same page twice
-  ..    @ next   : to form a linked list of empty blocks
+  .. _H_AST_PTR_ which we hope is more than adequate for our parser.
   ..
+  .. Thread Safety : NOT THREAD SAFE
   */
-  typedef struct _FreePage {
-    _H_AST_PTR_ ipage;
-    _H_AST_PTR_ safety;
-    struct _Page * next;
-  } _Page;
 
+  #define _H_AST_BLOCK_SIZE_ 1<<20    /* 1 MB     */
+  #define _H_AST_20_BITS_    1048575  /* 2^20 - 1 */
 
-  /*
-  .. @ _Block : Datatype for a memory block which is ususally a big chunk
-  ..  of memory of the order of MB. It's data members are
-  ..    @ size    : size of the memory chunk.
-  ..    @ npages  : number of pages the blocksize can accomodate
-  ..        [ _H_AST_PAGE_SIZE x npages ] = size
-  ..    @ nfree   : number of free pages available.
-  ..    @ fhead : head of the linked list of free nodes
-  typedef struct _Block {
-    size_t size;
-    int npages, nfree;
-    _Free * fhead;
-  } _Block;
-  */
- 
-  /*
-  .. @ _Page : A fixed size memory chunk like a memory page. 
-  ..  [ As of now, set as 4k Bytes by default.
-  ..    _Page data is stored at the head of the memory
-  ..    allocated as a page. The usable memory per each _Page
-  ..    is therefore, = 4KiB - sizeof(_Page).
-  ..    The usable part of a page is divided to store 
-  ..    nodes of same datatype.
-  ..  ]
-  ..
-  ..    @ size  : size of datatype whose node is stored in page
-  ..    @ fhead : head of the linked list of free nodes
-  */
-  typedef struct _Mempool {
-    _Page * head;
-    size_t size;
-    _H_AST_PTR_ fhead;
-    _H_AST_PTR_ allocator(struct _Mempool *);
-    void deallocator(struct _Mempool *, _H_AST_PTR_);
-  } _Mempool;
+  #ifndef _AST_LONG_PRECISION_
+    typedef uint32_t _H_AST_PTR_ ;
+  #else
+    typedef uint64_t _H_AST_PTR_ ;
+  #endif
+
+  #define _H_AST_PTR_B_(_i_)            ( _i_ >> 20 )
+  #define _H_AST_PTR_N_(_i_)            ( _i_ & _H_AST_20_BITS_ )
+  #define _H_AST_PTR_ENCODE_(_b_,_n_)   (  (_b_<<20) | (_n_)  )
 
   /*
   .. @ _MemoryHandler : Datatype that stores all root information 
   ..    related to memory handling
   ..    @ blocks : array of memory blocks
-  ..    @ max    : size of blocks array
-  ..    @ fhead  : head of the free list of pages.
+  ..    @ head  : head of the available memory stack.
   */
   typedef struct {
     void ** blocks;
-    _H_AST_PTR_ max; 
-    _FreePage * fhead;
-    _Mempool ** pools;
-    _H_AST_PTR_ npools; 
-  } _MemoryHandler
+    _H_AST_PTR_ head; 
+  } _MemoryHandler;
+  _MemoryHandler _H_AST_POOL_ = {0};
 
   /*
   .. Following are the api functions repsectively to
-  .. (a) allocate a page of size 4k Bytes (default)
-  .. (b) allocate a page & split it accomodate 
-  ..       nodes each of size 'size'
-  .. (c) allocate a node from specified page
-  .. (d) deallocate a page back to the block
-  .. (e) deallocate a node back to the page
+  .. (a) allocate a memory chunk of size 'size'.
+  ..     NOTE : don't use this to allocate large chunks,
+  ..     say, > 64 Bytes.
+  .. (c) deallocate all memory block.
   */
-  extern _H_AST_PTR_ ast_allocate_page();
-  extern void ast_dealloacte_page(_H_AST_PTR_ page);
-  extern _Mempool * ast_mempool(size);
+  extern _H_AST_PTR_ ast_allocate(size);
   extern void ast_deallocate_all();
+
+  /*
+  .. Type Cast Memory Location to the specified type.
+  */
+  #define _H_AST_PTR_ADDRESS_(_i_, _type_)         \
+    ( (_type_) ( ((char *) _H_AST_POOL_.blocks[ _H_AST_PTR_B_(_i_) ] )  +  \
+          _H_AST_PTR_N_(_i_)  )  )
   
 #endif
