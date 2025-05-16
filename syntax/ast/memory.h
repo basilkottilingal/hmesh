@@ -8,7 +8,8 @@
   .. You can only delete the entire block(s) which you should do
   .. only at the end of the program.
   ..
-  .. A block of size 1 MB (2^20) is allocated each time you run out of memory. 
+  .. A block of size 1 MB (2^20) is allocated each time you run 
+  .. out of memory. 
   ..
   .. Thread Safety : NOT THREAD SAFE
   */
@@ -23,9 +24,9 @@
   .. (a) allocate a memory chunk of size 'size'.
   ..     NOTE : don't use this to allocate large chunks,
   ..     say, > 64 Bytes.
-  .. (c) deallocate all memory block.
+  .. (d) deallocate all memory block.
   */
-  extern _H_AST_PTR_ ast_allocate(size);
+  extern void * ast_allocate(size_t);
   extern void ast_deallocate_all();
   
 #endif
