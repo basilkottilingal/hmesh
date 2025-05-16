@@ -23,8 +23,8 @@
   .. Following are the api functions repsectively to
   .. (a) allocate a memory chunk of size 'size'.
   ..     NOTE : don't use this to allocate large chunks,
-  ..     say, > 64 Bytes.
-  .. (d) deallocate all memory block.
+  ..     say, > 64 Bytes. (However, Limit is set as 4096 B).
+  .. (b) deallocate all memory blocks.
   */
   extern void * ast_allocate(size_t);
   extern void ast_deallocate_all();
