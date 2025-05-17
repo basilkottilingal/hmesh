@@ -5,7 +5,7 @@
   .. In the context of parser, you have to avoid redundant
   .. creation of same identifier (func name, variable name, ..) node.
   .. In order to implement this, each time you encounter an identifier
-  .. name, you have to see if you have already have created an identifier
+  .. name, you have to see if identifier with same name already exists
   .. node with the same name. This can be efficienty implemented
   .. by a string hashing algorithm.
   ..
@@ -36,7 +36,8 @@
   */
 
   /* 
-  .. default size of the hash table. Make sure size is in [2^8,2^20]
+  .. default size of the hash table is 2^12 hash nodes. 
+  .. If set by user, make sure size is in [2^8, 2^20]
   */
   #ifndef   _H_AST_HASHTABLE_SIZE_
     #define _H_AST_HASHTABLE_SIZE_   12      /* 2^12 = 4096 */
@@ -46,6 +47,14 @@
   #elif     _H_AST_HASHTABLE_SIZE_ < 8
     #undef  _H_AST_HASHTABLE_SIZE_ 
     #define _H_AST_HASHTABLE_SIZE_   8       /* 2^8 */
+  #endif
+
+  /*
+  .. Threshold load of hash table, after which 
+  .. algo will try to double the table size.
+  */
+  #ifndef _H_AST_HASHTABLE_THRESHOLD_
+    #define _H_AST_HASHTABLE_THRESHOLD_ 0.75
   #endif
 
   /* 

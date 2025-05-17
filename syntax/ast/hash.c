@@ -12,17 +12,77 @@
 
 typedef struct _HashNode {
   struct _HashNode * next;
-  char * string;
-  uint32_t key;
+  char * key;
+  uint32_t hash;
 } _HashNode;
 
+typedef struct _StringPool {
+  char * page;
+  struct _StringPool * prev;
+  size_t index;
+  size_t limit;
+}
+
 typedef struct _HashTable {
-  _HashNode ** nodes;
-  uint32_t nnodes;
+  _HashNode ** table;
+  _AstPool * pool;
+  uint32_t bits;
   uint32_t inuse;
   uint32_t threshold;
 } _HashTable;
 
+_HashTable _hash_table_ = {0};
+
+void hash_table_init () {
+  if(t->nodes)
+    return;
+
+  t->node_pool  = ast_pool (sizeof (_HashNode));
+  uint32_t nnodes = 1 << _H_AST_HASHTABLE_SIZE_;
+  t->bits       = nnodes - 1;
+  t->inuse      = 0;
+  _HashNode ** nodes = malloc(nnodes * sizeof(_HashNode *));
+  if(!nodes) {
+    fprintf(stderr, "hash_table_init() : couldn't create table");
+    fflush(stderr);
+    exit(EXIT_FAILURE);
+  }
+  t->nodes      = nodes; 
+  t->threshold  = _H_AST_HASHTABLE_THRESHOLD_ * nnodes;
+  while(nnodes--)
+    t->nodes[nnodes] = NULL; 
+}
+
+static int hash_table_resize () {
+  _HashTable * t = &_hash_table_;
+  assert ( t->nodes && t->inuse >= t->threshold);
+  uint32_t nnodes = t->bits + 1;
+  _HashNode ** nodes = realloc ( 2 * nnodes* sizeof(_HashNode *));
+  if(!nodes)
+    return -1;
+  
+  t->bits |= nnodes;
+  t->threshold *= 2;
+  return 0;
+}
+
+static _HashNode * hash_insert ( const char * id ) {
+  _HashTable * t = &_hash_table_;
+  uint32_t h = hash ( id );
+  uint32_t index = h & t->bits;
+  _HashNode * node = t->nodes[index];
+  while (node) {
+    if (h == node->hash)
+      return node;
+    if( !strcmp (h->name, id) )
+      return node;
+    node = node->next;
+  }
+  _HashNode * new_node = (_HashNode * ) ast_allocate_from (t->pool);
+  new_node->next = t->nodes[index];
+  t->nodes[index] = new_node;
+  new_node->hash = h;
+}
 
 /*
 .. MurmurHash3 algorithm.
