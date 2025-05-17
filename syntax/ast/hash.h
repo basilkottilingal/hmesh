@@ -35,7 +35,23 @@
   ..
   */
 
-  extern void * ast_hash_put ( const char * );
+  /* 
+  .. default size of the hash table. Make sure size is in [2^8,2^20]
+  */
+  #ifndef   _H_AST_HASHTABLE_SIZE_
+    #define _H_AST_HASHTABLE_SIZE_   12      /* 2^12 = 4096 */
+  #elif     _H_AST_HASHTABLE_SIZE_ > 20
+    #undef  _H_AST_HASHTABLE_SIZE_ 
+    #define _H_AST_HASHTABLE_SIZE_   20      /* 2^20 */
+  #elif     _H_AST_HASHTABLE_SIZE_ < 8
+    #undef  _H_AST_HASHTABLE_SIZE_ 
+    #define _H_AST_HASHTABLE_SIZE_   8       /* 2^8 */
+  #endif
+
+  /* 
+  .. following are the api functions 
+  */
+  extern void * ast_hash_insert ( const char * );
   extern void * ast_hash_search ( const char * );
 
 #endif

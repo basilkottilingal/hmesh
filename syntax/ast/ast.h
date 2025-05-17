@@ -6,9 +6,9 @@
   .. are limited to 1024 characters (including the path and trailing '\0') 
   .. if not overridden like -D_HMESH_PARSER_FILENAME_=4096
   */
-  # ifndef _HMESH_PARSER_FILENAME_MAX
-  # define _HMESH_PARSER_FILENAME_MAX_ 1024
-  # endif
+  #ifndef _HMESH_PARSER_FILENAME_MAX_
+    #define _HMESH_PARSER_FILENAME_MAX_ 1024
+  #endif
     
   /*
   .. @ _AstLoc : Parser tracker 
@@ -118,4 +118,4 @@
   extern _Ast * AstInit(const char *);
   extern void AstResetSource(_AstLoc * , const char * );
   
-#endif   /* End of _HMESH_AST */
+#endif
