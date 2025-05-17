@@ -18,7 +18,7 @@ typedef struct {
 _AstPoolHandler _ast_pool_ = {0};
  
 /*
-.. Create a new memory block
+.. Create a new memory block.
 */ 
 static void ast_memory_block ( void ) {
   _AstPoolHandler * p = &_ast_pool_;
@@ -80,6 +80,7 @@ void ast_deallocate_all() {
 /*
 .. @ ast_allocate_internal() : API function (preferred to be used
 .. internally) to allocate memory of size 'size' in [1, 4096]
+.. NOTE : 'size' will be rounded off to 8 Byte alignement.
 */
 void * ast_allocate_internal ( size_t size ) {
 
@@ -89,22 +90,16 @@ void * ast_allocate_internal ( size_t size ) {
     exit(EXIT_FAILURE);
   }
 
-  /*
-  .. 8 Byte alignement.
-  */
-  size = (size + 7) & ~((size_t)7);
+  size = (size + 7) & ~((size_t) 7);
 
   _AstPoolHandler * p = &_ast_pool_;
-
   size_t available = !p->nblocks ? 0 :
     p->head - (char *) p->blocks[p->nblocks - 1];
-
   if( available < size ) 
     ast_memory_block();
 
   p->head -= size;
-
-  return (void *) p->head;
+  return p->head;
 
 }
 
@@ -112,46 +107,76 @@ typedef struct _FreeNode {
   struct _FreeNode * next;
 } _FreeNode;
 
+#define _AST_PAGE_SIZE_ ( (size_t) 4096 )
+
+static void ast_pool_allocate_page (_AstPool * pool) {
+
+  char * page = 
+    (char *) ast_allocate_internal(_AST_PAGE_SIZE_);
+  _FreeNode * fhead = (_FreeNode * ) pool->fhead;
+
+  size_t size = pool->size, n = _AST_PAGE_SIZE_/size;
+  for(size_t i = 0; i < n; ++i) {
+    _FreeNode * node = (_FreeNode *) page;
+    page += size;
+    node->next  = fhead;
+    fhead = node;
+  }
+  pool->fhead = fhead;
+}
+
 /*
+.. Create a pool, and maintain nodes a free list of
+.. small memory chunks each with size 'size'.
 ..
+.. NOTE : 8 BYTES alignement is very recommnded. 
+.. This function is used for creating memory pool for faster
+.. allocation  derived datatypes, carefully made with proper.
+.. alignment. For array of basic datatypes, you may pool the 
+.. whole array as
+..   char * arr = (char *) ast_allocate_internal(1024);
 */
 
 _AstPool * ast_pool (size_t size) {
-  if( (size < sizeof(void *)) || (4096 % size) ){
-    /*
-    .. This function is used for creating memory pool for 
-    .. derived datatypes, carefully made with proper alignment.
-    .. For basic datatypes, you can pool a whole array using
-    ..   char * arr = (char *) ast_allocate_internal(4096);
-    */
-    fprintf(stderr, "ast_pool() : bad alignment.");
+  if( size < sizeof(void *) || size > _AST_PAGE_SIZE_){
+    fprintf(stderr, "ast_pool() : bad datasize");
     fflush(stderr);
     exit(EXIT_FAILURE);
   }
 
-  _AstPool * pool = (_AstPool *) malloc (sizeof(_AstPool *));
+  if(size & 7) {
+    fprintf(stderr, "ast_pool() : WARNING !! bad alignment.");
+    fflush(stderr);
+  }
+
+  _AstPool * pool = malloc (sizeof(_AstPool));
 
   _AstPoolHandler * p = &_ast_pool_;
   p->npools++; 
-  p->pools =  realloc (p->pools, (p->npools)* sizeof(_AstPool*));
+  p->pools = realloc (p->pools, (p->npools)* sizeof(_AstPool*));
   p->pools[p->npools - 1] = pool;
 
-  /*
-  .. allocate a page and divide it into 4096/size FreeNode(s)
-  */
   pool->size = size;
   pool->fhead = NULL;
 
-  char * page = (char *) ast_allocate_internal(4096);
-/*
-  _FreeNode * fhead = NULL,
-    * node = (_FreeNode *) page;
-  for(int i = -(4096/size); i; ++i) {
-    node->next  = fhead;
-    page += size;
-  }
-  pool->fhead = node;
-*/
+  ast_pool_allocate_page(pool);
+
   return pool;
 }
 
+/*
+.. APIs to allocate a node from/deallocate a node to the pool
+*/
+
+void * ast_allocate_from (_AstPool * pool) {
+  if(!pool->fhead)
+    ast_pool_allocate_page(pool);
+  _FreeNode * fhead = (_FreeNode *) pool->fhead;
+  pool->fhead = fhead->next;
+  return fhead;
+}
+
+void ast_deallocate_to (_AstPool * pool, void * fnode) {
+  ((_FreeNode *) fnode)->next = (_FreeNode *) (pool->fhead);
+  pool->fhead = fnode;
+}

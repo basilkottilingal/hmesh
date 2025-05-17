@@ -29,14 +29,14 @@
   .. (c) allocate a node from pool
   .. (d) deallocate a node back to pool.
   ..     NOTE : Not recommended, especially in case of
-  ..     AST construction, as pool used (for ast nodes)
-  ..     survive till the end
+  ..     AST construction, as nodes created (for ast nodes)
+  ..     usually survive till the end
   .. (e) deallocate all memory blocks.
   */
   extern void *     ast_allocate_internal (size_t size);
   extern _AstPool * ast_pool (size_t size);
-  extern void *     ast_allocate (_AstPool * pool);
-  extern void       ast_deallocate (_AstPool *, void * node);
+  extern void *     ast_allocate_from (_AstPool * pool);
+  extern void       ast_deallocate_to (_AstPool *, void * node);
   extern void       ast_deallocate_all ();
   
 #endif
