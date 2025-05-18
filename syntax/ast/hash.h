@@ -2,6 +2,8 @@
 #define _H_AST_HASH_
   
   /*
+  .. string hashing.
+  ..
   .. In the context of parser, you have to avoid redundant
   .. creation of same identifier (func name, variable name, ..) node.
   .. In order to implement this, each time you encounter an identifier

@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include <memory.h>
+
+#define _AST_PAGE_SIZE_ ( (size_t) 4096 )
   
 /*
 .. @ _AstPoolHandler : Datatype that stores all root information 
@@ -28,7 +30,7 @@ static void ast_memory_block ( void ) {
 
   size_t size = _H_AST_BLOCK_SIZE_;
 
-  while (size >= 4096) {
+  while (size >= _AST_PAGE_SIZE_) {
 
     void * mem = malloc(size);
     if (!mem) {
@@ -87,7 +89,7 @@ void ast_deallocate_all() {
 */
 void * ast_allocate_internal ( size_t size ) {
 
-  if(size > 4096) {
+  if(size > _AST_PAGE_SIZE_) {
     fprintf(stderr, "ast_allocate_internal() : size too large");
     fflush(stderr);
     exit(EXIT_FAILURE);
@@ -109,8 +111,6 @@ void * ast_allocate_internal ( size_t size ) {
 typedef struct _FreeNode {
   struct _FreeNode * next;
 } _FreeNode;
-
-#define _AST_PAGE_SIZE_ ( (size_t) 4096 )
 
 static void ast_pool_allocate_page (_AstPool * pool) {
 
