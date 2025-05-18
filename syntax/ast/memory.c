@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <memory.h>
   
@@ -13,6 +14,8 @@ typedef struct {
   char * head;
   _AstPool ** pools;
   int npools; 
+  char * str;
+  size_t nchar;
 } _AstPoolHandler;
 
 _AstPoolHandler _ast_pool_ = {0};
@@ -179,4 +182,33 @@ void * ast_allocate_from (_AstPool * pool) {
 void ast_deallocate_to (_AstPool * pool, void * fnode) {
   ((_FreeNode *) fnode)->next = (_FreeNode *) (pool->fhead);
   pool->fhead = fnode;
+}
+
+/*
+.. strdup() equivalent to pool memory for string. No need/way to 
+.. free() each strings, they all will be freed at the end when 
+.. ast_deallocate_all() is called. A page is allocated to pool
+.. each string, and new page is allocated once the previous one 
+.. runs out.
+.. NOTE : usually expected strlen is <= 31 (excluding '\0')
+.. which is the identifier name size limit in most compilers.
+.. However a 4096 including '\0'  set as the limit.
+*/
+char * ast_strdup ( const char * original ) {
+  size_t len = strlen ( original ) + 1; 
+  if(len > _AST_PAGE_SIZE_ )
+    return NULL;
+
+  _AstPoolHandler * p = &_ast_pool_;
+  if (p->nchar < len ) {
+    p->str =  (char * ) ast_allocate_internal(_AST_PAGE_SIZE_);
+    p->nchar = _AST_PAGE_SIZE_;
+  }
+
+  char * str = p->str;
+  memcpy ( str, original, len );
+  p->str   += len;
+  p->nchar -= len;
+
+  return str;
 }

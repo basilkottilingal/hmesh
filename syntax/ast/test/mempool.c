@@ -13,7 +13,11 @@
 typedef struct  {
   char c[128];
 } str;
-
+/*
+.. Not malloc is used here.
+.. Gives example to create a pool of nodes, allocate a node from pool,
+.. allocate strings, allocate directly using ast_allocate_internal().
+*/
 int main() {
 
   /* 8 Bytes taken from pool handler */
@@ -63,6 +67,28 @@ int main() {
   for(size_t i=0; i<4096/sizeof(str); ++i) {
     fprintf(stdout, "\n : %s", ptr[i]->c);
   }
+
+  /*
+  .. String allocator
+  */
+  char text[] = "The concept of the algorithm traces back to ancient times, long before the advent of modern computing. The term itself is derived from the name of the 9th-century Persian mathematician Muhammad ibn Musa al-Khwarizmi, whose works introduced systematic methods for solving mathematical problems. His book Al-Kitab al-Mukhtasar fi Hisab al-Jabr wal-Muqabala laid the foundations for algebra and described procedures that resemble modern algorithms. Over time, especially with the rise of mechanical and electronic computing in the 20th century, algorithms evolved into formal step-by-step instructions used to solve problems across mathematics, logic, and computer science. Today, they underpin nearly every aspect of technology — from sorting data to encrypting communication.";
+  size_t textlen = strlen(text) - 5;
+
+  char ** string_pool = (char **) ast_allocate_internal (30 * sizeof(char*));
+  for(int i=0; i<30; i++) {
+    char _s[32];
+    size_t start = rand () % textlen;
+    size_t length = rand() % 24 + 7;
+    strncpy (_s,  text + start, length);
+    /* string allocator using ast_strdup() */
+    char * new_string = ast_strdup(_s);
+    string_pool[i] = new_string;
+  }
+  fprintf(stdout, "\n\n\n string allocator checking");
+  for(int i=0; i<10; i++) {
+    fprintf(stdout, "\n :: %s ", string_pool[i]);
+  }
+  
 
   /*
   .. free all

@@ -31,12 +31,15 @@
   ..     NOTE : Not recommended, especially in case of
   ..     AST construction, as nodes created (for ast nodes)
   ..     usually survive till the end
-  .. (e) deallocate all memory blocks.
+  .. (e) strdup() equivalent but memory is pooled by
+  ..     pool handler in memory.c. Faster.
+  .. (f) deallocate all memory blocks.
   */
-  extern void *     ast_allocate_internal (size_t size);
-  extern _AstPool * ast_pool (size_t size);
-  extern void *     ast_allocate_from (_AstPool * pool);
-  extern void       ast_deallocate_to (_AstPool *, void * node);
+  extern void *     ast_allocate_internal ( size_t size );
+  extern _AstPool * ast_pool ( size_t size );
+  extern void *     ast_allocate_from ( _AstPool * pool );
+  extern void       ast_deallocate_to ( _AstPool *, void * node );
+  extern char *     ast_strdup( const char * );
   extern void       ast_deallocate_all ();
   
 #endif

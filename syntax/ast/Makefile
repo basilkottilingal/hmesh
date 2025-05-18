@@ -3,7 +3,7 @@ SOURCE	= ast.c
 CC99		= gcc -std=c99
 CFLAGS += -O2 -Wall -Wextra -I.
 
-%.o: %.c
+%.o: %.c %.h
 	$(CC99) $(CFLAGS) -c $< -o $@
 
 OBJECTS = $(patsubst %.c, %.o, $(SOURCE))
