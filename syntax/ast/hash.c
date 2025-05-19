@@ -127,44 +127,49 @@ void hash_table_free(_HashTable * t) {
 
 static int hash_table_resize (_HashTable * t) {
 
-  assert ( t->table && t->inuse >= t->threshold);
-  uint32_t n = t->bits + 1;
-  _HashNode ** table = realloc ( t->table, 2 * n * sizeof(_HashNode *));
+  assert ( t->table && t->inuse >= t->threshold );
+  uint32_t n = t->bits + 1, N = n << 1;
+  _HashNode ** table = realloc ( t->table, N * sizeof(_HashNode *));
   if(!table)
     return -1;
   
-  t->bits = 2 * n - 1;
+  #ifndef _H_AST_VERBOSE_
+    fprintf(stderr, "\nDoubling hash table size");
+  #endif
+  
+  t->bits      |= n;
   t->threshold *= 2;
-  t->table = table;
+  t->table      = table;
   /*
   .. It's a tricky part and a costly one, goes through the entire 
   .. list of hash nodes. Put all the hash buckets properly at the 
   .. correct index.
-  .. ( index = hash % (2*n), where n is the old table size.  )
+  .. ( index = hash % (2*n), where 2*n is the new table size.  )
   */
-  _HashNode head; 
-  _HashNode * tail = &head;
-  tail->next = NULL;
-  for (uint32_t i=0; i<n; ++i) {
-    _HashNode * node = table[i];
-    if (!node) 
-      continue;
-    tail->next = node;
-    while (node->next) 
-      node = node->next;
-    tail = node;
-    table[i] = NULL;
-  }
 
-  for (uint32_t i=n; i<2*n; ++i)
+   for (uint32_t i=n; i<N; ++i)
     table[i] = NULL;
-  
-  while (head.next) {
-    _HashNode * node = head.next;
-    head.next = node->next;
-    uint32_t index = node->hash & t->bits;
-    node->next = table[index]->next;
-    table[index] = node;
+
+  for (uint32_t i=0; i<n; ++i) {
+    _HashNode * node = table[i], * prev = NULL, * next;
+    while(node) {
+      next = node->next;
+      if(node->hash & n) {
+        /*
+        .. Add to the new place in [n,2n)
+        */
+        node->next = table[n|i];
+        table[n|i] = node;
+        /* 
+        .. Remove from the current place in [0,n) 
+        */
+        if(prev)
+          prev->next = NULL;
+        else
+          table[i] = next;
+      }
+      node = next;
+    }
   }
   
   return 0;
@@ -204,6 +209,8 @@ _HashNode * hash_insert ( _HashTable * t, const char * key ) {
   t->table[index] = node;
   node->hash = h;
   node->key  = ast_strdup(key);
+
+  t->inuse++;
 
   return node;
 }

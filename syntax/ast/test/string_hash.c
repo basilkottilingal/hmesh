@@ -65,11 +65,48 @@ int main() {
   .. "bitfield"  => 1316706014
   */
   const size_t nidentifiers = sizeof(identifiers) / sizeof(identifiers[0]);
-  for(size_t i=0; i<nidentifiers; ++i) {
-    char k1[] = "hello";
+
+  for(size_t i=0; i<nidentifiers; ++i) { 
     _HashNode * node = hash_insert ( t, identifiers[i]);
-      fprintf(stdout, "\nCompare hashes: \"%s\", hash :%u, is same as %u ?", 
-        node->key, node->hash, hashes[i]);
+  }
+
+  for(size_t i=0; i<nidentifiers; ++i) {
+    _HashNode * node = hash_lookup ( t, identifiers[i]);
+      if(node)
+        fprintf(stdout, "\nCompare hashes: \"%s\", hash :%u, is same as %u ?", 
+          node->key, node->hash, hashes[i]);
+  }
+
+  /*
+  .. analysing a large text file
+  */
+  FILE * fp = fopen("hash.txt", "r");
+      
+  if (!fp) {
+    perror("fopen failed");
+    return 1;
+  }
+
+  int nwords = 0;
+  char word[128];
+  while (fscanf(fp, "%127s", word) == 1) {
+    _HashNode * node = hash_insert ( t, word );
+    ++nwords;
+  }
+  fclose(fp);
+
+  _HashNode ** table = t->table;
+  fprintf(stdout, "\n %d scanned", nwords);
+  for(size_t i=0; i<=t->bits; ++i)  {
+    if(table[i]) {
+      
+      fprintf(stdout, "\n %zd : ", i); 
+      _HashNode * node = table[i];
+      while(node) {
+        fprintf(stdout, " \"%s\"", node->key);
+        node = node->next;
+      }
+    }
   }
   
 
