@@ -37,6 +37,10 @@
   ..
   */
 
+  #include <stdint.h>
+
+  #include <memory.h>
+
   /* 
   .. default size of the hash table is 2^12 hash nodes. 
   .. If set by user, make sure size is in [2^8, 2^20]
@@ -65,7 +69,6 @@
     uint32_t           hash;
   } _HashNode;
 
-  #include <memory.h>
   typedef struct _HashTable {
     _HashNode **       table;
     _AstPool *         pool;
