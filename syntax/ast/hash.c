@@ -1,134 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <assert.h>
 
 #include <memory.h>
 #include <hash.h>
-
-/* 
-.. @ _HashNode : struct that store hash node for string hashing.
-..    We maintain linked list of hash bucket to handle hash collision.
-*/
-
-typedef struct _HashNode {
-  struct _HashNode * next;
-  char *             key;
-  uint32_t           hash;
-} _HashNode;
-
-typedef struct _HashTable {
-  _HashNode ** table;
-  _AstPool *   pool;
-  uint32_t     bits, 
-               inuse, 
-               threshold;
-} _HashTable;
-
-_HashTable _hash_table_ = {0};
-
-void hash_table_init () {
-  if(t->table)
-    return;
-
-  t->node_pool  = ast_pool (sizeof (_HashNode));
-  uint32_t n = 1 << _H_AST_HASHTABLE_SIZE_;
-  t->bits = n - 1;
-  t->inuse = 0;
-  _HashNode ** table = malloc(nnodes * sizeof(_HashNode *));
-  if(!table) {
-    fprintf(stderr, "hash_table_init() : couldn't create table");
-    fflush(stderr);
-    exit(EXIT_FAILURE);
-  }
-  t->table = table; 
-  t->threshold = _H_AST_HASHTABLE_THRESHOLD_ * n;
-  while(n--)
-    table[n] = NULL; 
-}
-
-static int hash_table_resize () {
-  _HashTable * t = &_hash_table_;
-  assert ( t->table && t->inuse >= t->threshold);
-  uint32_t n = t->bits + 1;
-  _HashNode ** table = realloc ( 2 * n * sizeof(_HashNode *));
-  if(!table)
-    return -1;
-  
-  t->bits = 2 * n - 1;
-  t->threshold *= 2;
-  t->table = table;
-  /*
-  .. It's a tricky part and a costly one, goes through the entire 
-  .. list of hash nodes. Put all the hash buckets properly at the 
-  .. correct index.
-  .. ( index = hash % (2*n), where n is the old table size.  )
-  */
-  _HashNode list;
-  _HashNode * head = &list.next;
-  *head = NULL;
-/*
-  for (uint32_t i=0; i<n; ++i) {
-    _HashNode * node = table[i];
-    while (node) {
-      _HashNode * next = node->next; 
-      node->next = head;
-      head.next  = node;
-      node = next;
-    }
-    table[i] = NULL;
-  }
-
-  for (uint32_t i=n; i<2*n; ++i)
-    table[i] = NULL;
-
-  while (head.next) {
-    _HashNode * node = head.next;
-    head.next = head.next->next;
-    uint32_t index = node->hash & t->bits;
-    _HashNode * next = node->next; 
-    node->next = head.next;
-    head.next  = node;
-    node = next;
-  }
-    table[i] = NULL;
-*/
-  
-  return 0;
-}
-
-static _HashNode * hash_lookup ( const char * key ) {
-  _HashTable * t = &_hash_table_;
-  uint32_t h = hash ( key );
-  uint32_t index = h & t->bits;
-  _HashNode * node = t->nodes[index];
-  while ( 1 ) {
-    if ( h == node->hash )
-      if ( !strcmp (h->name, id) )
-        return node;
-    node = node->next;
-  }
-  return NULL;
-}
-
-static _HashNode * hash_insert ( const char * key ) {
-
-  _HashTable * t = &_hash_table_;
-  uint32_t h = hash ( key );
-  uint32_t index = h & t->bits;
-  _HashNode * node = t->nodes[index];
-  while ( 1 ) {
-    if ( h == node->hash )
-      if ( !strcmp (h->key, key) )
-        return node;
-    node = node->next;
-  }
-
-  node = (_HashNode * ) ast_allocate_from (t->pool);
-  node->next = t->nodes[index];
-  t->nodes[index] = node;
-  node->hash = h;
-  node->key  = ast_strdup(id);
-}
 
 /*
 .. MurmurHash3 algorithm.
@@ -177,13 +54,22 @@ uint32_t hash ( const char * key, uint32_t len ) {
   */  
   k = 0; 
   switch (len & 3) {
-    case 3: k ^= key[2] << 16;
-    case 2: k ^= key[1] << 8;
-    case 1: k ^= key[0];
-            k *= 0xcc9e2d51;
-            k = (k << 15) | (k >> 17);
-            k *= 0x1b873593;
-            h ^= k;
+    case 3: 
+      k ^= key[2] << 16;
+      #if defined(__GNUC__)  &&  (__GNUC__ >= 7)
+        __attribute__((fallthrough));
+      #endif
+    case 2: 
+      k ^= key[1] << 8;
+      #if defined(__GNUC__)  &&  (__GNUC__ >= 7)
+        __attribute__((fallthrough));
+      #endif
+    case 1: 
+      k ^= key[0];
+      k *= 0xcc9e2d51;
+      k = (k << 15) | (k >> 17);
+      k *= 0x1b873593;
+      h ^= k;
   }
 
   /* 
@@ -200,12 +86,126 @@ uint32_t hash ( const char * key, uint32_t len ) {
   return h;
 }
 
-static inline 
-_HashNode * insert ( const char * s ) {
-  
+/* 
+.. @ _HashNode : struct that store hash node for string hashing.
+..    We maintain linked list of hash bucket to handle hash collision.
+*/
+
+_HashTable * hash_table_init () {
+  _HashTable * t  = malloc (sizeof(_HashTable));
+
+  t->pool  = ast_pool (sizeof (_HashNode));
+  uint32_t n = 1 << _H_AST_HASHTABLE_SIZE_;
+  t->bits = n - 1;
+  t->inuse = 0;
+  _HashNode ** table = malloc(n * sizeof(_HashNode *));
+  if(!table) {
+    fprintf(stderr, "hash_table_init() : couldn't create table");
+    fflush(stderr);
+    exit(EXIT_FAILURE);
+  }
+  t->table = table; 
+  t->threshold = _H_AST_HASHTABLE_THRESHOLD_ * n;
+  while(n--)
+    table[n] = NULL; 
+
+  return t;
 }
 
-static void hash_table_expand (void) {
-  
+/*
+.. Free the hash table.
+.. Returns -1 (if failed to expand) or 0 (successful).
+.. NOTE : WARNING : _AstPool, nodes created are not freed here.
+.. It SHOULD be freed at the end of the program using
+.. ast_deallocate_all().
+*/
+void hash_table_free(_HashTable * t) {
+  if(!t) return;
+  free(t->table);
+  free(t);
 }
+
+static int hash_table_resize (_HashTable * t) {
+
+  assert ( t->table && t->inuse >= t->threshold);
+  uint32_t n = t->bits + 1;
+  _HashNode ** table = realloc ( t->table, 2 * n * sizeof(_HashNode *));
+  if(!table)
+    return -1;
+  
+  t->bits = 2 * n - 1;
+  t->threshold *= 2;
+  t->table = table;
+  /*
+  .. It's a tricky part and a costly one, goes through the entire 
+  .. list of hash nodes. Put all the hash buckets properly at the 
+  .. correct index.
+  .. ( index = hash % (2*n), where n is the old table size.  )
+  */
+  _HashNode head; 
+  _HashNode * tail = &head;
+  tail->next = NULL;
+  for (uint32_t i=0; i<n; ++i) {
+    _HashNode * node = table[i];
+    if (!node) 
+      continue;
+    tail->next = node;
+    while (node->next) 
+      node = node->next;
+    tail = node;
+    table[i] = NULL;
+  }
+
+  for (uint32_t i=n; i<2*n; ++i)
+    table[i] = NULL;
+  
+  while (head.next) {
+    _HashNode * node = head.next;
+    head.next = node->next;
+    uint32_t index = node->hash & t->bits;
+    node->next = table[index]->next;
+    table[index] = node;
+  }
+  
+  return 0;
+}
+
+_HashNode * hash_lookup ( _HashTable * t, const char * key ) {
+
+  uint32_t h = hash ( key, strlen(key) );
+  uint32_t index = h & t->bits;
+  _HashNode * node = t->table[index];
+  while ( node ) {
+    if ( h == node->hash )
+      if ( !strcmp (node->key, key) )
+        return node;
+    node = node->next;
+  }
+  return NULL;
+}
+
+_HashNode * hash_insert ( _HashTable * t, const char * key ) {
+
+  uint32_t h = hash ( key, strlen(key) );
+  uint32_t index = h & t->bits;
+  _HashNode * node = t->table[index];
+  while ( node ) {
+    if ( h == node->hash )
+      if ( !strcmp (node->key, key) )
+        return node;
+    node = node->next;
+  }
+
+  if(t->inuse == t->threshold)
+    hash_table_resize(t);
+
+  node = (_HashNode * ) ast_allocate_from (t->pool);
+  node->next = t->table[index];
+  t->table[index] = node;
+  node->hash = h;
+  node->key  = ast_strdup(key);
+
+  return node;
+}
+
 

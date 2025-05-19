@@ -59,10 +59,35 @@
     #define _H_AST_HASHTABLE_THRESHOLD_ 0.75
   #endif
 
+  typedef struct _HashNode {
+    struct _HashNode * next;
+    char *             key;
+    uint32_t           hash;
+  } _HashNode;
+
+  #include <memory.h>
+  typedef struct _HashTable {
+    _HashNode **       table;
+    _AstPool *         pool;
+    uint32_t           bits, 
+                       inuse, 
+                       threshold;
+  } _HashTable;
+
   /* 
-  .. following are the api functions 
+  .. following are the api functions.
+  .. (a) create a hash table with slot/index size == _H_AST_TABLESIZE_
+  .. (b) to insert a node whose key is the string 'key' 
+  .. (c) to look for  a node with key 'key' 
+  .. (d) delete all key data related to the table.
+  ..     NOTE : WARNING: the pool created for the hash nodes will
+  ..     survive till you destruct all the memory blocks at the end
+  ..     of the progrma using
+  ..     ast_deallocate_all();
   */
-  extern void * ast_hash_insert ( const char * );
-  extern void * ast_hash_search ( const char * );
+  extern _HashTable *  hash_table_init();
+  extern _HashNode *   hash_insert ( _HashTable *, const char * key);
+  extern _HashNode *   hash_lookup ( _HashTable *, const char * key);
+  extern void          hash_table_free ( _HashTable * );
 
 #endif
