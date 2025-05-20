@@ -132,7 +132,6 @@ static int hash_table_resize (_HashTable * t) {
   _HashNode ** table = realloc ( t->table, N * sizeof(_HashNode *));
   if(!table)
     return -1;
-  
   #ifndef _H_AST_VERBOSE_
     fprintf(stderr, "\nDoubling hash table size");
   #endif
@@ -151,27 +150,25 @@ static int hash_table_resize (_HashTable * t) {
     table[i] = NULL;
 
   for (uint32_t i=0; i<n; ++i) {
-    _HashNode * node = table[i], * prev = NULL, * next;
+    _HashNode * node = table[i];
+    if(!node) continue;
+
+    table[i] = NULL;
+
     while(node) {
-      next = node->next;
-      if(node->hash & n) {
-        /*
-        .. Add to the new place in [n,2n)
-        */
-        node->next = table[n|i];
-        table[n|i] = node;
-        /* 
-        .. Remove from the current place in [0,n) 
-        */
-        if(prev)
-          prev->next = NULL;
-        else
-          table[i] = next;
-      }
+      _HashNode * next = node->next;
+      uint32_t _i = node->hash & t->bits;
+      /*
+      .. move node from index (i % n) to (i % 2n)
+      .. where n is the old table size
+      */
+      node->next = table[_i];
+      table[_i] = node;
+
       node = next;
     }
   }
-  
+
   return 0;
 }
 
@@ -201,8 +198,10 @@ _HashNode * hash_insert ( _HashTable * t, const char * key ) {
     node = node->next;
   }
 
-  if(t->inuse == t->threshold)
+  if(t->inuse == t->threshold) {
     hash_table_resize(t);
+    index = h & t->bits;
+  }
 
   node = (_HashNode * ) ast_allocate_from (t->pool);
   node->next = t->table[index];

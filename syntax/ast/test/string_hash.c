@@ -4,11 +4,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "../memory.h"
 #include "../hash.h"
 
-const char *identifiers[] = {
+const char *keys[] = {
     "hello", "world", "murmur", "hash", "example", "test123", "foo", "bar", "baz",
     "openai", "chatgpt", "compiler", "gcc", "parser", "token", "symbol", "function",
     "macro", "define", "typedef", "variable", "constant", "memory", "pointer",
@@ -64,14 +65,14 @@ int main() {
   .. "union"     => 599296923
   .. "bitfield"  => 1316706014
   */
-  const size_t nidentifiers = sizeof(identifiers) / sizeof(identifiers[0]);
+  const size_t nkeys = sizeof(keys) / sizeof(keys[0]);
 
-  for(size_t i=0; i<nidentifiers; ++i) { 
-    _HashNode * node = hash_insert ( t, identifiers[i]);
+  for(size_t i=0; i<nkeys; ++i) { 
+    _HashNode * node = hash_insert ( t, keys[i]);
   }
 
-  for(size_t i=0; i<nidentifiers; ++i) {
-    _HashNode * node = hash_lookup ( t, identifiers[i]);
+  for(size_t i=0; i<nkeys; ++i) {
+    _HashNode * node = hash_lookup ( t, keys[i]);
       if(node)
         fprintf(stdout, "\nCompare hashes: \"%s\", hash :%u, is same as %u ?", 
           node->key, node->hash, hashes[i]);
@@ -103,6 +104,7 @@ int main() {
       fprintf(stdout, "\n %zd : ", i); 
       _HashNode * node = table[i];
       while(node) {
+        if ( (node->hash & t->bits) != i) {fprintf(stdout, "WW");}
         fprintf(stdout, " \"%s\"", node->key);
         node = node->next;
       }
