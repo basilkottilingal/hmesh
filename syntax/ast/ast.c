@@ -30,11 +30,11 @@ AstNode(_AstNode * parent, int symbol, unsigned char type) {
 .. detected
 */
 void AstResetSource(_AstLoc * loc, const char * source) {
-  if (strlen(source) >= _HMESH_PARSER_FILENAME_MAX_) {
+  if (strlen(source) >= _H_AST_FILENAME_MAX_) {
     fprintf(stderr, "Hmesh parser error.\n"
       "AstResetSource() : very large filename : %s\n"
       "Rerun the program with larger filename buffer.\n"
-      "Ex: -D_HMESH_PARSER_FILENAME_MAX_=4096",
+      "Ex: -D_H_AST_FILENAME_MAX_=4096",
       source);
     fflush(stderr);
     exit(EXIT_FAILURE);

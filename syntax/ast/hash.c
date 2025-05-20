@@ -114,7 +114,6 @@ _HashTable * hash_table_init () {
 
 /*
 .. Free the hash table.
-.. Returns -1 (if failed to expand) or 0 (successful).
 .. NOTE : WARNING : _AstPool, nodes created are not freed here.
 .. It SHOULD be freed at the end of the program using
 .. ast_deallocate_all().
@@ -125,6 +124,10 @@ void hash_table_free(_HashTable * t) {
   free(t);
 }
 
+/*
+.. Resize (double) the hash table size.
+.. Returns -1 (if failed to expand) or 0 (successful).
+*/
 static int hash_table_resize (_HashTable * t) {
 
   assert ( t->table && t->inuse >= t->threshold );
@@ -172,6 +175,10 @@ static int hash_table_resize (_HashTable * t) {
   return 0;
 }
 
+/*
+.. look if a key exists
+*/
+
 _HashNode * hash_lookup ( _HashTable * t, const char * key ) {
 
   uint32_t h = hash ( key, strlen(key) );
@@ -186,6 +193,9 @@ _HashNode * hash_lookup ( _HashTable * t, const char * key ) {
   return NULL;
 }
 
+/*
+.. insert a key
+*/
 _HashNode * hash_insert ( _HashTable * t, const char * key ) {
 
   uint32_t h = hash ( key, strlen(key) );

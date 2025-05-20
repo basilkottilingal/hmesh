@@ -379,10 +379,10 @@ WS  [ \t\v\n\f]
     loc->line   = atoi(s) - 1;
     loc->column = 1; 
 
-    char source[_HMESH_PARSER_FILENAME_MAX_ + 1];
+    char source[_H_AST_FILENAME_MAX_ + 1];
     s = strchr (str, '"') + 1;
-    strncpy (source, s, _HMESH_PARSER_FILENAME_MAX_);
-    source[_HMESH_PARSER_FILENAME_MAX_] = '\0';
+    strncpy (source, s, _H_AST_FILENAME_MAX_);
+    source[_H_AST_FILENAME_MAX_] = '\0';
     char * end = strchr(source, '"');
     if(end) 
       *end = '\0';

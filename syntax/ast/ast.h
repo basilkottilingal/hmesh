@@ -1,13 +1,13 @@
-# ifndef _HMESH_AST_
-# define _HMESH_AST_
+# ifndef _H_AST_
+# define _H_AST_
 
   /* 
   .. NOTE: length of the name of source file /include header file
   .. are limited to 1024 characters (including the path and trailing '\0') 
-  .. if not overridden like -D_HMESH_PARSER_FILENAME_=4096
+  .. if not overridden like -D_H_AST_FILENAME_=4096
   */
-  #ifndef _HMESH_PARSER_FILENAME_MAX_
-    #define _HMESH_PARSER_FILENAME_MAX_ 1024
+  #ifndef _H_AST_FILENAME_MAX_
+    #define _H_AST_FILENAME_MAX_ 1024
   #endif
     
   /*
@@ -25,7 +25,7 @@
     
   typedef struct _AstLoc {
     int line, column;
-    char file[_HMESH_PARSER_FILENAME_MAX_];
+    char file[_H_AST_FILENAME_MAX_];
   } _AstLoc;
 
   /* 
