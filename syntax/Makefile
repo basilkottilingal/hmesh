@@ -20,7 +20,7 @@ parser: parser.c parser.h lexer.c ast/libast.a
 	$(CC) $(CFLAGS) lexer.c parser.c ./ast/libast.a -o $@			 # creating parser (executable) "parser"
 
 # parse a .c file 
-%.parse: %.c parser
+%.parse: %.c parser ast/libast.a
 	#gcc -std=c99 -E $< -o $*.i	  # preproc. NOTE: no effect. (preprocessor not yet implemented)
 	./parser $<				 # parse the .c input
 

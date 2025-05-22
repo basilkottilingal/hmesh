@@ -8,7 +8,7 @@
 #include <hash.h>
 
 /*
-.. MurmurHash3 algorithm.
+.. MurmurHash3 algorithm (32 bit hash, x86_64 platform).
 .. 
 .. Credit : Austin Appleby, (MIT License)
 .. https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
@@ -86,9 +86,8 @@ uint32_t hash ( const char * key, uint32_t len ) {
   return h;
 }
 
-/* 
-.. @ _HashNode : struct that store hash node for string hashing.
-..    We maintain linked list of hash bucket to handle hash collision.
+/*
+.. Create a _HashTable which stores a hashtable and other metadata. 
 */
 
 _HashTable * hash_table_init () {

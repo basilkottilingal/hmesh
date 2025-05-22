@@ -2,8 +2,15 @@
 #define _H_AST_HASH_
   
   /*
-  .. string hashing.
+  .. String Hashing :
+  .. - Uses murmurhash3 for string hashing.
+  .. - HashTable uses bucket linked list to handle collision
+  .. - Resizes hashtable when load reaches _H_AST_THRESHOLD_
+  .. - NOTE : WARNING : key (char *) will fail to store, if
+  ..   strlen >= 4096 which can mess the entire program. 
   ..
+  ..
+  .. Read More :
   .. In the context of parser, you have to avoid redundant
   .. creation of same identifier (func name, variable name, ..) node.
   .. In order to implement this, each time you encounter an identifier

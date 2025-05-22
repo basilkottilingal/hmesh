@@ -93,9 +93,10 @@ WS  [ \t\v\n\f]
   # define YY_DECL int yylex (YYSTYPE * yylval_param, _Ast * ast)
 
   /*  
-  .. Warning! : Don't use input(), rather use this input_override().
+  .. Warning! : Don't use input(), rather use ast_getchar()
+  .. to read a character from the source.
   */
-  extern int input_override ( _Ast * ast );
+  extern int ast_getchar ( _Ast * ast );
 
   /* prints grammar violation message. defined in parser.y*/
   extern void yyerror(_Ast *, const char *);  
@@ -114,13 +115,6 @@ WS  [ \t\v\n\f]
 
   /* Ignore __attribute__ () */
   static void ignore_attribute(_Ast *);
-
-  /* 
-  .. set location of parser whenever tokens like 
-  ..   # 5 "header.h"
-  .. are encountered
-  */
-  static void reset_location(_AstLoc *, const char *);
 
   /*
   .. These macros will be called inside token rule section,
@@ -184,7 +178,7 @@ WS  [ \t\v\n\f]
 
 %%
 
-"/*"             { comment(ast); }
+"/*"             { ast->loc.column += 2; comment(ast); }
 "//".*           { /* Neglect */ }
 
 "auto"           { _TOKEN_(AUTO); }
@@ -309,7 +303,7 @@ WS  [ \t\v\n\f]
   **/
 
 ^[ \t]*#[ \t]+[0-9]+[ \t]+\"([^"\\\n]|{ES})*\".*  { 
-  reset_location (&ast->loc, yytext);
+  ast_reset_source(ast, yytext);
 }
 
 "__attribute__"{WS}*\(                            {
@@ -317,6 +311,7 @@ WS  [ \t\v\n\f]
   .. Fixme :  attributes should be rather,
   .. forwarded to the compiler 
   */
+  ast->loc.column += yyleng;
   ignore_attribute (ast);
 }
 
@@ -355,7 +350,7 @@ WS  [ \t\v\n\f]
     int column = ast->loc.column;
     char c = 1, nscope = 1;
     while (nscope && c) {
-      c = input_override (ast);
+      c = ast_getchar(ast);
       if (c == ')') 
         nscope--;
       else if (c == '(')
@@ -370,25 +365,6 @@ WS  [ \t\v\n\f]
   }
 
   
-  /*
-  .. This function is used to reset filename, line number 
-  */
-  static void reset_location(_AstLoc * loc, const char * str) {
-    
-    char * s    = strchr (str, '#') + 1;
-    loc->line   = atoi(s) - 1;
-    loc->column = 1; 
-
-    char source[_H_AST_FILENAME_MAX_ + 1];
-    s = strchr (str, '"') + 1;
-    strncpy (source, s, _H_AST_FILENAME_MAX_);
-    source[_H_AST_FILENAME_MAX_] = '\0';
-    char * end = strchr(source, '"');
-    if(end) 
-      *end = '\0';
-    AstResetSource(loc, source);
-  }
-  
   /* 
   .. This function 'consumes' (skips) comments 
   */
@@ -397,10 +373,10 @@ WS  [ \t\v\n\f]
     int c;
     int line   = ast->loc.line;
     int column = ast->loc.column;
-    while ((c = input_override(ast)) != 0)
+    while ((c = ast_getchar(ast)) != 0)
       if (c == '*')
         {
-          while ((c = input_override(ast)) == '*')
+          while ((c = ast_getchar(ast)) == '*')
             ;
           if (c == '/')
             return;
@@ -426,7 +402,7 @@ WS  [ \t\v\n\f]
     }
   }
 
-  int input_override(_Ast * ast) {
+  int ast_getchar(_Ast * ast) {
     int c = input();
     AstLocInput(c);
     return c;

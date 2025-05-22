@@ -35,7 +35,7 @@
   ..     pool handler in memory.c. Faster.
   .. (f) deallocate all memory blocks.
   */
-  extern void *     ast_allocate_internal ( size_t size );
+  extern void *     ast_allocate_general ( size_t size );
   extern _AstPool * ast_pool ( size_t size );
   extern void *     ast_allocate_from ( _AstPool * pool );
   extern void       ast_deallocate_to ( _AstPool *, void * node );

@@ -16,18 +16,18 @@ typedef struct  {
 /*
 .. No malloc is used here.
 .. Gives example to create a pool of nodes, allocate a node from pool,
-.. allocate strings, allocate directly using ast_allocate_internal().
+.. allocate strings, allocate directly using ast_allocate_general().
 */
 int main() {
 
   /* 8 Bytes taken from pool handler */
-  double * d1 = (double *) ast_allocate_internal(sizeof(double));
+  double * d1 = (double *) ast_allocate_general(sizeof(double));
   char * end = (char *) d1 + 8;
   fprintf(stdout, "\nMemory Upper bound (blocks[0]) %p\n", end); 
 
   /* 500 * sizeof(str *) = 4000 B, taken from pool handler*/
   str ** ptr = (str **) 
-    ast_allocate_internal(500 * sizeof(str *));
+    ast_allocate_general(500 * sizeof(str *));
 
   /* create a pool for str.
   .. which by default consumes a page (4096 B) from pool handler*/
@@ -48,7 +48,7 @@ int main() {
     strncpy( ptr[i]->c, s, 127);
   }
  
-  double * d2 = (double *) ast_allocate_internal(sizeof(double));
+  double * d2 = (double *) ast_allocate_general(sizeof(double));
   fprintf(stdout, "Compare %zd %zd (Is it same ?)", 
     (char *) d1 - ((char *) d2 + sizeof(double)),
     500*sizeof(str *) + 4096 );
@@ -75,7 +75,7 @@ int main() {
   char * text = _text;
   size_t textlen = strlen(text) - 5;
 
-  char ** string_pool = (char **) ast_allocate_internal (30 * sizeof(char*));
+  char ** string_pool = (char **) ast_allocate_general (30 * sizeof(char*));
   for(int i=0; i<30; i++) {
     char _s[32];
     size_t start = rand () % textlen;

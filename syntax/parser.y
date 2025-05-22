@@ -597,7 +597,8 @@ jump_statement
 
   /* This is the root node, from which translation starts */
 start_translation
-  : translation_unit  { }
+  : translation_unit  {
+                      }
   ;
 
 translation_unit
@@ -632,7 +633,7 @@ declaration_list
     */ 
   	fflush(stdout);
   	fprintf(stderr, "*** syntax error in file %s:%d:%d\n*** %s\n", 
-      ast->loc.file, ast->loc.line, ast->loc.column, msg);
+      ast->source, ast->loc.line, ast->loc.column - 1, msg);
   }
   
   int main(int argc, char ** argv) {
@@ -655,7 +656,7 @@ declaration_list
     .. Initializing.
     .. Set up the tree (with root node) 
     */
-    _Ast * ast = AstInit(argv[1]);
+    _Ast * ast = ast_init (argv[1]);
       
     /* 
     .. Parse all tokens and build AST in the process

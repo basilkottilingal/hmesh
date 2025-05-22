@@ -25,7 +25,6 @@
     
   typedef struct _AstLoc {
     int line, column;
-    char file[_H_AST_FILENAME_MAX_];
   } _AstLoc;
 
   /* 
@@ -40,7 +39,7 @@
         ast->loc.column = 1;                           \
       }                                                \
       else if ( (__c__) == '\t' ) {                    \
-        ast->loc.column += 8 - (ast->loc.column)%8;    \
+        ast->loc.column += 8 - (ast->loc.column) % 8;  \
       }                                                \
       else {                                           \
         ++(ast->loc.column);                           \
@@ -109,13 +108,14 @@
   ..   @ stack : stack of identifiers.
   */
   typedef struct _Ast {
+    char source[_H_AST_FILENAME_MAX_];
     _AstNode * root;
     _AstLoc loc;
   } _Ast;
   
   
-  extern _AstNode * AstNode(_AstNode *, int , unsigned char);
-  extern _Ast * AstInit(const char *);
-  extern void AstResetSource(_AstLoc * , const char * );
+  extern _AstNode * ast_node ( _AstNode *, int , unsigned char );
+  extern _Ast *     ast_init ( const char * );
+  extern void       ast_reset_source ( _Ast * , const char * );
   
 #endif

@@ -83,14 +83,14 @@ void ast_deallocate_all() {
 }
 
 /*
-.. @ ast_allocate_internal() : API function (preferred to be used
+.. @ ast_allocate_general() : API function (preferred to be used
 .. internally) to allocate memory of size 'size' in [1, 4096]
 .. NOTE : 'size' will be rounded off to 8 Byte alignement.
 */
-void * ast_allocate_internal ( size_t size ) {
+void * ast_allocate_general ( size_t size ) {
 
   if(size > _AST_PAGE_SIZE_) {
-    fprintf(stderr, "ast_allocate_internal() : size too large");
+    fprintf(stderr, "ast_allocate_general() : size too large");
     fflush(stderr);
     exit(EXIT_FAILURE);
   }
@@ -115,7 +115,7 @@ typedef struct _FreeNode {
 static void ast_pool_allocate_page (_AstPool * pool) {
 
   char * page = 
-    (char *) ast_allocate_internal(_AST_PAGE_SIZE_);
+    (char *) ast_allocate_general(_AST_PAGE_SIZE_);
   _FreeNode * fhead = (_FreeNode * ) pool->fhead;
 
   size_t size = pool->size, n = _AST_PAGE_SIZE_/size;
@@ -137,7 +137,7 @@ static void ast_pool_allocate_page (_AstPool * pool) {
 .. allocation  derived datatypes, carefully made with proper.
 .. alignment. For array of basic datatypes, you may pool the 
 .. whole array as
-..   char * arr = (char *) ast_allocate_internal(1024);
+..   char * arr = (char *) ast_allocate_general(1024);
 */
 
 _AstPool * ast_pool (size_t size) {
@@ -201,7 +201,7 @@ char * ast_strdup ( const char * original ) {
 
   _AstPoolHandler * p = &_ast_pool_;
   if (p->nchar < len ) {
-    p->str =  (char * ) ast_allocate_internal(_AST_PAGE_SIZE_);
+    p->str =  (char * ) ast_allocate_general(_AST_PAGE_SIZE_);
     p->nchar = _AST_PAGE_SIZE_;
   }
 
