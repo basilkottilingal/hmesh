@@ -39,10 +39,10 @@
   .. 1) noyywrap: means flex doesn't expect a yywrap() function
   .. 2) bison-bridge: This instructs flex that the macro yylval may be used. 
   ..    The data type for yylval, YYSTYPE, is defined as { _AstNode * }
-  .. 3) nounput: unput() won't be defined by flex.
+  ..    ~~~ 3) nounput: unput() won't be defined by flex. ~~~
   */
 
-%option noyywrap bison-bridge nounput
+%option noyywrap bison-bridge
 
 /* some regular expression (regex) that you come across in C */
 O   [0-7]
@@ -353,6 +353,12 @@ WS  [ \t\v\n\f]
       c = ast_getchar(ast);
       if (c == ')') 
         nscope--;
+      else if (c == '{') {
+        unput();
+        break;
+      }
+      else if (c == ';') 
+        break;
       else if (c == '(')
         nscope++;
     }

@@ -11,19 +11,11 @@
   #endif
     
   /*
-  .. @ _AstLoc : Parser tracker 
-  ..   [ There is no implcit column number tracker 
-  ..     like yylineno in flex. So instead of using 
-  ..       %option yylineno
-  ..     , we are using a user defined struct _AstLoc for 
-  ..     for tracking location of parser
-  ..   ]
-  ..   
-  ..   @ file : filename of source code 
-  ..   @ line, column : location in the source code that you are reading
+  .. Datatype to store, file name and line & column number of the source.
   */
     
   typedef struct _AstLoc {
+    char source[_H_AST_FILENAME_MAX_];
     int line, column;
   } _AstLoc;
 
@@ -61,60 +53,28 @@
       }                            \
     } while ( 0 );
   
-  /*
-  .. -------------------------------------
-  .. --------- AST Node ------------------
-  .. -------------------------------------
-  */
-  
-  /*
-  .. @AstNode : represent a node of the Abstract Syntaxt Tree (AST)
-  ..   @ child, sibling, parent : tree node connection
-  ..   @ type     : which type of tree node ?
-  ..   @ symbol   : token/semantic rule id
-  */
   typedef struct _AstNode {
-    struct _AstNode * child, * sibling, * parent;
-    int type;
     int symbol;
+    struct _AstNode * parent,
+                    * right, 
+                    * child;
   } _AstNode;
-  
-  /* 
-  ..  Identify attribute of an ast node 
-  */
-  enum {
-    AstNodeIsLeaf =  1,
-    AstNodeIsInternal = 2
-  };
-  
-  
-  /*
-  .. -------------------------------------
-  .. --------- AST -----------------------
-  .. -------------------------------------
-  */
-  
-  
-  
-  /* @ _Ast : stores metadata related to AST (root node), .. 
-  ..   parser global variables. 
-  ..   [ when you use "pure" parser i,e if you have set api.pure as full, 
-  ..     you don't use any global variables. As an Alternative,
-  ..     we use arguements that you pass to yyparse() &/ yylex().
-  ..   ]
-  ..   
-  ..   @ root  : root node of ast
-  ..   @ loc   : current parser location. source file + line + column
-  ..   @ stack : stack of identifiers.
-  */
+
+  typedef struct{
+    _AstNode node;
+    _AstLoc  loc;
+    char *   token;
+  } _AstTNode ;
+
   typedef struct _Ast {
-    char source[_H_AST_FILENAME_MAX_];
-    _AstNode * root;
-    _AstLoc loc;
+    _AstNode      root;
+    _AstLoc       loc;
+    _AstPool *    nodes;
+    _AstPool *    tnodes;
+    _HashTable *  identifiers;
   } _Ast;
   
-  
-  extern _AstNode * ast_node ( _AstNode *, int , unsigned char );
+  extern _AstNode * ast_node ( _AstNode *, int);
   extern _Ast *     ast_init ( const char * );
   extern void       ast_reset_source ( _Ast * , const char * );
   

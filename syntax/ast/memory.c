@@ -5,7 +5,7 @@
 #include <memory.h>
 
 #define _AST_PAGE_SIZE_ ( (size_t) 4096 )
-  
+
 /*
 .. @ _AstPoolHandler : Datatype that stores all root information 
 ..    related to memory handling

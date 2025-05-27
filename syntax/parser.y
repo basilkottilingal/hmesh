@@ -633,7 +633,7 @@ declaration_list
     */ 
   	fflush(stdout);
   	fprintf(stderr, "*** syntax error in file %s:%d:%d\n*** %s\n", 
-      ast->source, ast->loc.line, ast->loc.column - 1, msg);
+      ast->loc.source, ast->loc.line, ast->loc.column - 1, msg);
   }
   
   int main(int argc, char ** argv) {

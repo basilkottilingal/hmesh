@@ -8,17 +8,16 @@
 .. Create an AST Node
 */
  
-_AstNode * 
-ast_node (_AstNode * parent, int symbol, unsigned char type) {
-  /* fixme : Use mempool */
-  _AstNode * node = (_AstNode *) malloc (sizeof(_AstNode));
+_AstTNode * 
+ast_tnode_new (_AstNode * parent, int symbol) {
+
+  _AstTNode 
  
   *node = (_AstNode) { 
     .symbol  = symbol,
-    .type    = type,
     .child   = NULL, 
     .parent  = parent,
-    .sibling = NULL
+    .right   = NULL
   };
 
   return node;  
@@ -31,8 +30,9 @@ ast_node (_AstNode * parent, int symbol, unsigned char type) {
 */
 void ast_reset_source(_Ast * ast, const char * str) {
   char * s    = strchr (str, '#') + 1;
-  ast->loc.line   = atoi(s) - 1;
-  ast->loc.column = 1; 
+  _AstLoc * loc = &ast->loc;
+  loc->line   = atoi(s) - 1;
+  loc->column = 1; 
   
   s = strchr (str, '"') + 1;
   char * end = strchr(s, '"');
@@ -47,8 +47,8 @@ void ast_reset_source(_Ast * ast, const char * str) {
     fflush(stderr);
     exit(EXIT_FAILURE);
   }
-  memcpy(ast->source, s, len);
-  ast->source[len] = '\0';
+  memcpy(loc->source, s, len);
+  loc->source[len] = '\0';
 
 }
 
@@ -59,7 +59,8 @@ void ast_reset_source(_Ast * ast, const char * str) {
 _Ast * ast_init(const char * source) {
 
   _Ast * ast = (_Ast *) malloc (sizeof(_Ast));
-  ast->loc.line = ast->loc.column = 1;
+  _AstLoc * loc = &ast->loc;
+  loc->line = loc->column = 1;
   size_t len = strlen ( source );
   if(len >= _H_AST_FILENAME_MAX_) {
     fprintf(stderr, 
@@ -71,10 +72,23 @@ _Ast * ast_init(const char * source) {
     fflush(stderr);
     exit(EXIT_FAILURE);
   }
-  memcpy(ast->source, source, len+1);
+  memcpy(loc->source, source, len+1);
 
-  ast->root = ast_node (NULL, -1, AstNodeIsInternal);
+  ast->root = (_AstNode) {
+    .symbol = -1,
+    .child  = NULL, 
+    .parent = NULL,
+    .right  = NULL
+  };
+
+  ast->nodes = ast_pool ( sizeof (_AstNode) );
+  ast->tnodes = ast_pool ( sizeof (_AstTNode) );
+  ast->identifiers = hash_table_init ();
 
   return ast;
 }
 
+void ast_free ( _Ast * ast ) {
+  hash_table_free ( ast->identifiers );
+  ast_deallocate_all ();
+}

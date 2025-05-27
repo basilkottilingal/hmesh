@@ -39,7 +39,7 @@
   extern _AstPool * ast_pool ( size_t size );
   extern void *     ast_allocate_from ( _AstPool * pool );
   extern void       ast_deallocate_to ( _AstPool *, void * node );
-  extern char *     ast_strdup( const char * );
+  extern char *     ast_strdup ( const char * );
   extern void       ast_deallocate_all ();
   
 #endif
