@@ -106,6 +106,10 @@
 
 %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
+%token  SEMICOLON LBRACE RBRACE COMMA COLON EQUAL LPARANTHESIS RPARANTHESIS
+%token  LBRACKET RBRACKET DOT AMPERSAND NOT TILDE MINUS PLUS STAR
+%token  SLASH PERCENT L_T R_T CARET PIPE QUESTION
+
 %start  root
 %%
 
@@ -597,8 +601,7 @@ jump_statement
 
   /* This is the root node, from which translation starts */
 root
-  : translation_unit  {
-                      }
+  : translation_unit { }
   ;
 
 translation_unit

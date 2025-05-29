@@ -125,15 +125,20 @@ void hash_table_free(_HashTable * t) {
 
 /*
 .. Resize (double) the hash table size.
+.. There is a 1 MB limit for table size (excluding nodes).
 .. Returns -1 (if failed to expand) or 0 (successful).
 */
 static int hash_table_resize (_HashTable * t) {
 
   assert ( t->table && t->inuse >= t->threshold );
   uint32_t n = t->bits + 1, N = n << 1;
-  _HashNode ** table = realloc ( t->table, N * sizeof(_HashNode *));
+
+  _HashNode ** table = (N * sizeof(_HashNode *) > 1<<20) ? NULL :
+    realloc ( t->table, N * sizeof(_HashNode *));
+
   if(!table)
     return -1;
+
   #ifndef _H_AST_VERBOSE_
     fprintf(stderr, "\nDoubling hash table size");
   #endif
@@ -216,6 +221,7 @@ _HashNode * hash_insert ( _HashTable * t, const char * key ) {
   node->next = t->table[index];
   t->table[index] = node;
   node->hash = h;
+  node->attr = NULL;
   node->key  = ast_strdup(key);
 
   t->inuse++;

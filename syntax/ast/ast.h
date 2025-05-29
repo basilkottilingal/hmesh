@@ -1,6 +1,9 @@
 # ifndef _H_AST_
 # define _H_AST_
 
+  #include <memory.h>
+  #include <hash.h>
+
   /* 
   .. NOTE: length of the name of source file /include header file
   .. are limited to 1024 characters (including the path and trailing '\0') 
@@ -53,14 +56,21 @@
       }                            \
     } while ( 0 );
   
+  /*
+  .. structs for 
+  .. (a) an internal AST node which represents a grammaar rule.
+  .. (b) a terminal AST node which represents a token like keyword
+  .. (c) metadata of the AST tree 
+  */
   typedef struct _AstNode {
     int symbol;
     struct _AstNode * parent,
+                    * left,
                     * right, 
                     * child;
   } _AstNode;
 
-  typedef struct{
+  typedef struct {
     _AstNode node;
     _AstLoc  loc;
     char *   token;
@@ -68,14 +78,22 @@
 
   typedef struct _Ast {
     _AstNode      root;
+    _AstNode *    iterator;
     _AstLoc       loc;
     _AstPool *    nodes;
     _AstPool *    tnodes;
     _HashTable *  identifiers;
   } _Ast;
   
-  extern _AstNode * ast_node ( _AstNode *, int);
+  /*
+  .. (a) initialize an AST. parameter is source code name
+  .. (b) reset source location 
+  .. (c) create a terminal node
+  .. (d) create an internal node 
+  */
   extern _Ast *     ast_init ( const char * );
   extern void       ast_reset_source ( _Ast * , const char * );
+  extern _AstNode * ast_tnode_new ( _Ast *, int, const char * );
+  /*extern _AstNode * ast_node_new (_Ast *, ... );*/
   
 #endif

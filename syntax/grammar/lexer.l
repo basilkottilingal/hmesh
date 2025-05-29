@@ -136,14 +136,6 @@ WS  [ \t\v\n\f]
     AstLocRead(yytext);                             \
     *yylval = ast_tnode_new (ast, __sym__, yytext); \
     return __sym__;
-  
-  /* Single character token. 
-  .. yyleng is 1 with exception of ANSI C digraphs*/
-  #define _TOKEN_CHAR_(__c__)                       \
-    ast->loc.column += yyleng;                      \
-    int __sym__ = YYTRANSLATE ( __c__ );            \
-    *yylval = ast_tnode_new (ast, __sym__, yytext); \
-    return __sym__;
 
   /* Identifiers */
   #define _TOKEN_IDENTIFIER_()                      \
@@ -272,30 +264,30 @@ WS  [ \t\v\n\f]
 "=="           { _TOKEN_(EQ_OP); }
 "!="           { _TOKEN_(NE_OP); }
 
-";"            { _TOKEN_CHAR_(';'); }
-("{"|"<%")     { _TOKEN_CHAR_('{'); }
-("}"|"%>")     { _TOKEN_CHAR_('}'); }
-","            { _TOKEN_CHAR_(','); }
-":"            { _TOKEN_CHAR_(':'); }
-"="            { _TOKEN_CHAR_('='); }
-"("            { _TOKEN_CHAR_('('); }
-")"            { _TOKEN_CHAR_(')'); }
-("["|"<:")     { _TOKEN_CHAR_('['); }
-("]"|":>")     { _TOKEN_CHAR_(']'); }
-"."            { _TOKEN_CHAR_('.'); }
-"&"            { _TOKEN_CHAR_('&'); }
-"!"            { _TOKEN_CHAR_('!'); }
-"~"            { _TOKEN_CHAR_('~'); }
-"-"            { _TOKEN_CHAR_('-'); }
-"+"            { _TOKEN_CHAR_('+'); }
-"*"            { _TOKEN_CHAR_('*'); }
-"/"            { _TOKEN_CHAR_('/'); }
-"%"            { _TOKEN_CHAR_('%'); }
-"<"            { _TOKEN_CHAR_('<'); }
-">"            { _TOKEN_CHAR_('>'); }
-"^"            { _TOKEN_CHAR_('^'); }
-"|"            { _TOKEN_CHAR_('|'); }
-"?"            { _TOKEN_CHAR_('?'); }
+";"            { _TOKEN_(SEMICOLON); }
+("{"|"<%")     { _TOKEN_(LBRACE); }
+("}"|"%>")     { _TOKEN_(RBRACE); }
+","            { _TOKEN_(COMMA); }
+":"            { _TOKEN_(COLON); }
+"="            { _TOKEN_(EQUAL); }
+"("            { _TOKEN_(LPARENTHESIS); }
+")"            { _TOKEN_(RPARENTHESIS); }
+("["|"<:")     { _TOKEN_(LBRACKET); }
+("]"|":>")     { _TOKEN_(RBRACKET); }
+"."            { _TOKEN_(DOT); }
+"&"            { _TOKEN_(AMPERSAND); }
+"!"            { _TOKEN_(NOT); }
+"~"            { _TOKEN_(TILDE); }
+"-"            { _TOKEN_(MINUS); }
+"+"            { _TOKEN_(PLUS); }
+"*"            { _TOKEN_(STAR); }
+"/"            { _TOKEN_(SLASH); }
+"%"            { _TOKEN_(PERCENT); }
+"<"            { _TOKEN_(L_T); }
+">"            { _TOKEN_(G_T); }
+"^"            { _TOKEN_(CARET); }
+"|"            { _TOKEN_(PIPE); }
+"?"            { _TOKEN_(QUESTION); }
 
 \n             { ++(ast->loc.line);  ast->loc.column = 1;    }
 \t             { ast->loc.column += 8 - (ast->loc.column)%8; }

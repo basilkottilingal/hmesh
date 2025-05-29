@@ -72,7 +72,8 @@
 
   typedef struct _HashNode {
     struct _HashNode * next;
-    char *             key;
+    const char *       key;
+    void *             attr;
     uint32_t           hash;
   } _HashNode;
 

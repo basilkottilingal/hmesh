@@ -1,27 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include <ast.h>
+#include <memory.h>
+#include <hash.h>
 
 /*
 .. Create an AST Node
 */
  
-_AstTNode * 
-ast_tnode_new (_AstNode * parent, int symbol) {
-
-  _AstTNode 
- 
-  *node = (_AstNode) { 
-    .symbol  = symbol,
-    .child   = NULL, 
-    .parent  = parent,
-    .right   = NULL
-  };
-
-  return node;  
-}
 
 /*
 .. Reset source file name, whenever
@@ -78,8 +67,12 @@ _Ast * ast_init(const char * source) {
     .symbol = -1,
     .child  = NULL, 
     .parent = NULL,
+    .left   = NULL,
     .right  = NULL
   };
+
+  /* fixme : it's wrong. */
+  ast->iterator = &ast->root;
 
   ast->nodes = ast_pool ( sizeof (_AstNode) );
   ast->tnodes = ast_pool ( sizeof (_AstTNode) );
@@ -92,3 +85,43 @@ void ast_free ( _Ast * ast ) {
   hash_table_free ( ast->identifiers );
   ast_deallocate_all ();
 }
+
+/*
+.. Create a terminal node.
+*/
+_AstNode * 
+ast_tnode_new (_Ast * ast, int symbol, const char * token) {
+
+  _AstTNode * tnode = ast_allocate_from (ast->tnodes);
+
+  _AstNode * node = &tnode->node;
+  node->symbol = symbol;
+  node->right = node->parent = node->child = NULL;
+
+  if( ast->iterator )
+    ast->iterator->right = node;
+  node->left = ast->iterator;
+  ast->iterator = node;
+
+  if ( token ) {
+    tnode->token = ast_strdup (token) ;
+    /*
+    .. Might fail for very large token, like strings longer than
+    .. 4k Bytes.
+    */
+    assert ( tnode->token );
+  }
+  /*
+  .. fixme : strdup file name;
+  */
+  memcpy ( &tnode->loc, &ast->loc, sizeof(_AstLoc) );
+
+  return node;  
+}
+
+/*
+void 
+ast_node_internalize ( _Ast * ast, _AstNode * node ) {
+   
+}
+*/
