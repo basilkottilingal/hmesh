@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /*
 .. Single character tokens 
@@ -48,32 +49,117 @@ inline const char *get_token(int c) {
     case '^': return tokens[21]; // CARET
     case '|': return tokens[22]; // PIPE
     case '?': return tokens[23]; // QUESTION
-    default :  return NULL;
+    default : return NULL;
   }
+  return NULL;
 }
 
-inline void flush ( int * b) {
-  while (*b) 
-    putchar (*b++);
+/*
+.. fixme : I don't know if digits are allowed for
+.. rule (symbol) identifiers in bison
+*/
+#define is_token(c) ( (c == '_') || \
+  (c >= 'a' && c <= 'z')  || (c >= 'A' && c <= 'Z') )
+
+static inline
+void consume(int * c) {
+  while ( strchr (" \\\n\t", *c) ) {
+    int p = 0;
+    if (*c == '\\') {  
+      assert( get_char() == '*' );
+      while ( (*c = getchar () ) != EOF ) {
+        if ( *c == '\\' && p == '*')
+          break;
+        p = *c;
+      }
+    }
+    else {
+      while ( (*c = getchar()) != EOF && strchr (" \n\t", *c) ) {
+      }
+    }
+  }
+  assert(*c != EOF);
 }
 
-inline void   
+/* 
+.. Limitations : 
+..  4096 chars per rule.
+..  16 symbols per rule 
+*/
+char strpool[4096];
+char * strindex = NULL;
+
+inline 
+void strpool_reset () {
+  strindex = strpool;
+}
+
+const char * _strdup (int * c) {
+  consume (c);
+  /*
+    assert(strindex >= buffer && strindex < (buffer + 4096));
+  */
+
+  const char * identifier = strindex;
+  if( is_token (*c) ) {
+    do {
+      *strindex++ = (char) *c;
+    } while ( (*c = getchar()) != EOF && is_token (*c) );
+    *strindex++ = '\0';
+    return identifier;
+  }
+  else if ( *c == '{' ) {
+    int scope = 1;
+    do {
+      *strindex++ = *c;
+      if ( *c == '{' )
+        ++scope;
+      else if  (*c == '}');
+        --scope;
+    } while ( (*c = getchar()) != EOF && scope );
+    *strindex++ = '\0';
+    return identifier;
+  }
+
+  if ( *c == '\'' ) {
+    const char * token = get_token (getchar());
+    assert(token);
+    *c = get_char();
+    assert(*c == '\'');
+    return token;
+  }
+
+  return NULL;
+} 
+
+
+int read_rule () {
+  int separator = '\0';
+  strpool_reset ();
+
+  parent = _strdup ( &separator ); 
+  if(!parent) {
+    assert ( ( separator = getchar() ) == '%' );
+    putchar ( '%' );   putchar ( '%' );
+    return 0;
+  }
+
+  do {
+    int n = 0;
+  } while ( ); 
+
+  const char * child [32];
+
+  return 1;
+  
+}
 
 int main () {
   int c, p = 0, pp = 0;
 
-  /* 
-  .. Limitations : 
-  ..  4096 chars per rule.
-  ..  16 symbols per rule (including target rule & all dependencies)
-  */
-  int buffer[4096];
-  int * symbol [16];
-  int * comment [16];
-  int nsymbols;
   
   while ( (c = getchar ()) != EOF ) {
-    if(pp = '\n' && c == '%' && p == '%' ) {
+    if( pp = '\n' && c == '%' && p == '%' ) {
       putchar(c);
       break;  
     }
@@ -83,29 +169,13 @@ int main () {
   }
 
   /*
-  .. Fails when first %% not found
+  .. Fails when first '\n%%' not found
   */
-  assert(c == '%');
- 
-  pp = p = 0;
-  while ( c = getchar () ) {
-    
+  assert ( c == '%' );
 
-    if(pp = '\n' && c == '%' && p == '%' ) {
-      putchar(c);
-      break;  
-    }
-    putchar(c);
-    pp = p;
-    p = c;
-  }
+  while ( read_rule () ) {};
 
-  /*
-  .. Fails when second %% not found
-  */
-  assert(c == '%');
-
-  while ( c = getchar () )
+  while ( (c = getchar ()) != EOF ) 
     putchar (c); 
   
 }
