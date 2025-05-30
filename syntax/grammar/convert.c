@@ -101,6 +101,7 @@ const char * _strdup (int * c) {
   */
 
   const char * identifier = strindex;
+
   if( is_token (*c) ) {
     do {
       *strindex++ = (char) *c;
@@ -108,7 +109,8 @@ const char * _strdup (int * c) {
     *strindex++ = '\0';
     return identifier;
   }
-  else if ( *c == '{' ) {
+
+  if ( *c == '{' ) {
     int scope = 1;
     do {
       *strindex++ = *c;
@@ -129,6 +131,9 @@ const char * _strdup (int * c) {
     return token;
   }
 
+  if( *c == '%' ) 
+    assert(getchar() == '%');
+
   return NULL;
 } 
 
@@ -139,16 +144,34 @@ int read_rule () {
 
   parent = _strdup ( &separator ); 
   if(!parent) {
-    assert ( ( separator = getchar() ) == '%' );
+    assert ( separator == '%' );
     putchar ( '%' );   putchar ( '%' );
     return 0;
   }
 
+  int k = 0;
+  const char * child [32] = {NULL}, 
+    * csource [32] = {NULL}, * identifier = NULL;
+
+  identifier = _strdup( &separator );
+  assert(!identifer && separator == ':'); 
+
   do {
     int n = 0;
-  } while ( ); 
+    do { 
+      identifier = _strdup( &separator ); 
+      if (identifier) {
+        if (identifier[0] == '{')
+          csource[n] = identifier;
+        else
+          child[++n] = identifier;
+      }
+    } while ( identifier);
 
-  const char * child [32];
+    assert(separator == ';' || separator == '|');
+
+    m++;
+  } while ( separator != ';'); 
 
   return 1;
   
