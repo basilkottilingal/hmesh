@@ -2,8 +2,7 @@
 .. Convert "_parser.y" to "parser.y". "parser.y" is the same 
 .. as "_parser.y", but create internal ast nodes each time it
 .. encounters one. 
-..  $ gcc -o convert convert.c
-..  $ ./convert  < _parser.y > parser.y
+..  $ gcc -o convert convert.c && ./convert  < _parser.y > parser.y
 ..  $ diff _parser.y parser.y
 */
 
@@ -23,7 +22,7 @@ const char * tokens[] = {
   "PERCENT", "L_T", "G_T", "CARET", "PIPE", "QUESTION"
 };
 
-inline const char *get_token(int c) {
+static inline const char *get_token(int c) {
   switch (c) {
     case ';': return tokens[0];  // SEMICOLON
     case '{': return tokens[1];  // LBRACE
@@ -61,26 +60,6 @@ inline const char *get_token(int c) {
 #define is_token(c) ( (c == '_') || \
   (c >= 'a' && c <= 'z')  || (c >= 'A' && c <= 'Z') )
 
-static inline
-void consume(int * c) {
-  while ( strchr (" \\\n\t", *c) ) {
-    int p = 0;
-    if (*c == '\\') {  
-      assert( get_char() == '*' );
-      while ( (*c = getchar () ) != EOF ) {
-        if ( *c == '\\' && p == '*')
-          break;
-        p = *c;
-      }
-    }
-    else {
-      while ( (*c = getchar()) != EOF && strchr (" \n\t", *c) ) {
-      }
-    }
-  }
-  assert(*c != EOF);
-}
-
 /* 
 .. Limitations : 
 ..  4096 chars per rule.
@@ -89,29 +68,48 @@ void consume(int * c) {
 char strpool[4096];
 char * strindex = NULL;
 
-inline 
+static inline 
 void strpool_reset () {
   strindex = strpool;
 }
 
-const char * _strdup (int * c) {
-  consume (c);
-  /*
-    assert(strindex >= buffer && strindex < (buffer + 4096));
-  */
+const char * identifier (int * c) {
 
-  const char * identifier = strindex;
+  /* 
+  .. remove all whitespaces and comment 
+  */
+  while ( strchr (" /\n\t", *c) ) {
+    int p = 0;
+    if (*c == '/') {  
+      assert( getchar() == '*' );
+      while ( (*c = getchar () ) != EOF ) {
+        if ( *c == '/' && p == '*')
+          break;
+        p = *c;
+      }
+      *c = getchar();
+    }
+    else {
+      while ( (*c = getchar()) != EOF && strchr (" \n\t", *c) ) {
+      }
+    }
+  }
+
+  const char * id = strindex;
 
   if( is_token (*c) ) {
     do {
       *strindex++ = (char) *c;
     } while ( (*c = getchar()) != EOF && is_token (*c) );
     *strindex++ = '\0';
-    return identifier;
+    return id;
   }
 
   if ( *c == '{' ) {
-    int scope = 1;
+    /*
+    .. warning : no brace expected inside string/char const
+    */
+    int scope = 1, p = '\0';
     do {
       *strindex++ = *c;
       if ( *c == '{' )
@@ -119,62 +117,80 @@ const char * _strdup (int * c) {
       else if  (*c == '}');
         --scope;
     } while ( (*c = getchar()) != EOF && scope );
+    *strindex++ = '}';
     *strindex++ = '\0';
-    return identifier;
+    *c = getchar();
+    return id;
   }
 
   if ( *c == '\'' ) {
     const char * token = get_token (getchar());
     assert(token);
-    *c = get_char();
-    assert(*c == '\'');
+    assert(getchar() == '\'');
+    *c = getchar();
     return token;
   }
-
-  if( *c == '%' ) 
-    assert(getchar() == '%');
 
   return NULL;
 } 
 
 
-int read_rule () {
-  int separator = '\0';
-  strpool_reset ();
+void read_rules ( void ) {
 
-  parent = _strdup ( &separator ); 
-  if(!parent) {
-    assert ( separator == '%' );
-    putchar ( '%' );   putchar ( '%' );
-    return 0;
+  const char * child [32] = {NULL}, * csource [32] = {NULL}, 
+    * id = NULL, * parent;
+
+  strpool_reset ();
+  int separator = getchar();
+
+  while ( (parent = identifier ( &separator )) != NULL ) { 
+    printf("\n%s\n  :", parent); 
+
+    assert( !identifier( &separator ) && separator == ':' );
+ 
+    int k = 0;
+    do {
+      separator = getchar();
+      int n = -1;
+      for ( id = identifier( &separator ); id; id = identifier( &separator ) ) {
+        if (id[0] == '{') {
+          assert( child[n] );
+          csource[n] = id;
+        }
+        else {
+          child[++n] = id;
+          csource[n] = NULL;
+          if( !strcmp (id, "error") ) {
+            csource[n] = strindex;
+            sprintf( strindex, "{ $$ = ast_node_new (YYSYMBOL_YYerror); }" ); 
+            strindex += strlen (strindex) + 1;
+          }
+        }
+      }
+
+      if(!csource[n]) {
+        csource[n] = strindex;
+        sprintf( strindex, "{\n      $$ = ast_node_new (YYSYMBOL_%s);"
+                           "\n    }", parent ); 
+        strindex += strlen (strindex) + 1;
+      }
+      
+      for(int i=0; i <= n; ++i)
+        printf(" %s %s", child[i], csource[i] ? csource[i] : "");
+      printf("\n  %c", separator);
+
+      assert( (separator == ';' || separator == '|' ) && ( ++n > 0 ) );
+      k++;
+    } while ( separator != ';' && separator != EOF ); 
+
+    separator = getchar();  
+    strpool_reset ();
   }
 
-  int k = 0;
-  const char * child [32] = {NULL}, 
-    * csource [32] = {NULL}, * identifier = NULL;
+  assert ( separator == '%' );
+  assert ( getchar() == '%' );
+  printf("\n\n%%%%");
 
-  identifier = _strdup( &separator );
-  assert(!identifer && separator == ':'); 
-
-  do {
-    int n = 0;
-    do { 
-      identifier = _strdup( &separator ); 
-      if (identifier) {
-        if (identifier[0] == '{')
-          csource[n] = identifier;
-        else
-          child[++n] = identifier;
-      }
-    } while ( identifier);
-
-    assert(separator == ';' || separator == '|');
-
-    m++;
-  } while ( separator != ';'); 
-
-  return 1;
-  
 }
 
 int main () {
@@ -196,9 +212,11 @@ int main () {
   */
   assert ( c == '%' );
 
-  while ( read_rule () ) {};
+  /*
+  .. Read all grammars that falls in %% and %%
+  */
+  read_rules ();
 
   while ( (c = getchar ()) != EOF ) 
     putchar (c); 
-  
 }
