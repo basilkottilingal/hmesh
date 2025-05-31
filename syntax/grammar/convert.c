@@ -17,7 +17,7 @@
 
 const char * tokens[] = {
   "SEMICOLON", "LBRACE", "RBRACE", "COMMA", "COLON", "EQUAL",
-  "LPARANTHESIS", "RPARANTHESIS", "LBRACKET", "RBRACKET", "DOT",
+  "LPARENTHESIS", "RPARENTHESIS", "LBRACKET", "RBRACKET", "DOT",
   "AMPERSAND", "NOT", "TILDE", "MINUS", "PLUS", "STAR", "SLASH",
   "PERCENT", "L_T", "G_T", "CARET", "PIPE", "QUESTION"
 };
@@ -109,15 +109,14 @@ const char * identifier (int * c) {
     /*
     .. warning : no brace expected inside string/char const
     */
-    int scope = 1, p = '\0';
+    int scope = 0;
     do {
       *strindex++ = *c;
       if ( *c == '{' )
         ++scope;
-      else if  (*c == '}');
+      else if (*c == '}') 
         --scope;
     } while ( (*c = getchar()) != EOF && scope );
-    *strindex++ = '}';
     *strindex++ = '\0';
     *c = getchar();
     return id;
@@ -149,8 +148,6 @@ void read_rules ( void ) {
     assert( !identifier( &separator ) && separator == ':' );
     strindex = strpool + strlen (parent) + 1;
  
-    int k = 0;
-    int error = 0;
     do {
       separator = getchar();
       int n = -1;
@@ -162,23 +159,19 @@ void read_rules ( void ) {
         else {
           child[++n] = id;
           csource[n] = NULL;
-          if( !strcmp (id, "error") ) 
-            error = n + 1;
+          if( !strcmp (id, "error") ) {
+            sprintf( strindex, "{ /*$$ = ast_node_new (YYSYMBOL_YYerror, 0); */ }" ); 
+            strindex += strlen (strindex) + 1;
+          }
         }
       }
 
       if(!csource[n]) {
         csource[n] = strindex;
-        /*
-        if(error) {
-          sprintf( strindex, "{ $$ = ast_node_new (YYSYMBOL_YYerror, 0); }" ); 
-          strindex += strlen (strindex) + 1;
-        }
-        */
         sprintf( strindex, 
-          "{\n      $$ = ast_node_new (YYSYMBOL_%s, %d);"
-          "\n      ast_node_children($$",
-          parent, n+1);
+          "{\n      $$ = ast_node_new (ast, YYSYMBOL_%s, %d);"
+          "\n      ast_node_children($$, %d",
+          parent, n+1, n+1 );
         strindex += strlen (strindex);
         for(int i=0; i <= n; ++i) {
           sprintf( strindex, ", $%d", i+1); 
@@ -192,8 +185,12 @@ void read_rules ( void ) {
         printf(" %s %s", child[i], csource[i] ? csource[i] : "");
       printf("\n  %c", separator);
 
-      assert( (separator == ';' || separator == '|' ) && ( ++n > 0 ) );
-      k++;
+      //assert( (separator == ';' || separator == '|' ) && ( ++n > 0 ) );
+      if( !( (separator == ';' || separator == '|' ) && ( ++n > 0 ) )) {
+        printf("-par%s %c-", parent, separator);
+        exit(-1);
+      }
+
     } while ( separator != ';' && separator != EOF ); 
 
     separator = getchar();  
@@ -211,7 +208,7 @@ int main () {
 
   
   while ( (c = getchar ()) != EOF ) {
-    if( pp = '\n' && c == '%' && p == '%' ) {
+    if( ( pp = '\n' && c == '%' ) &&  p == '%' ) {
       putchar(c);
       break;  
     }

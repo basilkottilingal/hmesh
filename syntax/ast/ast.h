@@ -63,17 +63,20 @@
   .. (c) metadata of the AST tree 
   */
   typedef struct _AstNode {
-    int symbol;
     struct _AstNode * parent,
+    /*
                     * left,
                     * right, 
-                    * child;
+    */
+                    ** child;
+    int symbol;
   } _AstNode;
 
   typedef struct {
     _AstNode node;
-    _AstLoc  loc;
+    char * source;
     char *   token;
+    int line, column;
   } _AstTNode ;
 
   typedef struct _Ast {
@@ -89,11 +92,13 @@
   .. (a) initialize an AST. parameter is source code name
   .. (b) reset source location 
   .. (c) create a terminal node
-  .. (d) create an internal node 
+  .. (d) create an internal node
+  .. (e) set children of an internal node. 
   */
   extern _Ast *     ast_init ( const char * );
   extern void       ast_reset_source ( _Ast * , const char * );
   extern _AstNode * ast_tnode_new ( _Ast *, int, const char * );
-  /*extern _AstNode * ast_node_new (_Ast *, ... );*/
+  extern _AstNode * ast_node_new (_Ast *, int, int );
+  extern void       ast_node_children (_AstNode *, int, ... );
   
 #endif

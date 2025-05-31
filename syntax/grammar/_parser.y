@@ -106,9 +106,9 @@
 
 %token  ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
-%token  SEMICOLON LBRACE RBRACE COMMA COLON EQUAL LPARANTHESIS RPARANTHESIS
+%token  SEMICOLON LBRACE RBRACE COMMA COLON EQUAL LPARENTHESIS RPARENTHESIS
 %token  LBRACKET RBRACKET DOT AMPERSAND NOT TILDE MINUS PLUS STAR
-%token  SLASH PERCENT L_T R_T CARET PIPE QUESTION
+%token  SLASH PERCENT L_T G_T CARET PIPE QUESTION
 
 %start  root
 %%
@@ -599,9 +599,14 @@ jump_statement
   | RETURN expression ';'
   ;
 
-  /* This is the root node, from which translation starts */
+  /* This is the root node */
 root
-  : translation_unit { }
+  : translation_unit { 
+      $$ = &ast->root;
+      $$->symbol = YYSYMBOL_root;
+      $$->child[0] = $1;
+      $1->parent = $$;
+    }
   ;
 
 translation_unit

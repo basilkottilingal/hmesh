@@ -104,8 +104,8 @@ void * ast_allocate_general ( size_t size ) {
     ast_memory_block();
 
   p->head -= size;
+  memset (p->head, 0, size);
   return p->head;
-
 }
 
 typedef struct _FreeNode {
@@ -193,6 +193,7 @@ void ast_deallocate_to (_AstPool * pool, void * fnode) {
 .. NOTE : usually expected strlen is <= 31 (excluding '\0')
 .. which is the identifier name size limit in most compilers.
 .. However a 4096 including '\0'  set as the limit.
+.. WARNING : Any token with size > 4095 chars will fail.
 */
 char * ast_strdup ( const char * original ) {
   size_t len = strlen ( original ) + 1; 
