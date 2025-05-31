@@ -144,11 +144,13 @@ void read_rules ( void ) {
   int separator = getchar();
 
   while ( (parent = identifier ( &separator )) != NULL ) { 
-    printf("\n%s\n  :", parent); 
+    printf("\n\n%s\n  :", parent); 
 
     assert( !identifier( &separator ) && separator == ':' );
+    strindex = strpool + strlen (parent) + 1;
  
     int k = 0;
+    int error = 0;
     do {
       separator = getchar();
       int n = -1;
@@ -160,18 +162,29 @@ void read_rules ( void ) {
         else {
           child[++n] = id;
           csource[n] = NULL;
-          if( !strcmp (id, "error") ) {
-            csource[n] = strindex;
-            sprintf( strindex, "{ $$ = ast_node_new (YYSYMBOL_YYerror); }" ); 
-            strindex += strlen (strindex) + 1;
-          }
+          if( !strcmp (id, "error") ) 
+            error = n + 1;
         }
       }
 
       if(!csource[n]) {
         csource[n] = strindex;
-        sprintf( strindex, "{\n      $$ = ast_node_new (YYSYMBOL_%s);"
-                           "\n    }", parent ); 
+        /*
+        if(error) {
+          sprintf( strindex, "{ $$ = ast_node_new (YYSYMBOL_YYerror, 0); }" ); 
+          strindex += strlen (strindex) + 1;
+        }
+        */
+        sprintf( strindex, 
+          "{\n      $$ = ast_node_new (YYSYMBOL_%s, %d);"
+          "\n      ast_node_children($$",
+          parent, n+1);
+        strindex += strlen (strindex);
+        for(int i=0; i <= n; ++i) {
+          sprintf( strindex, ", $%d", i+1); 
+          strindex += strlen (strindex);
+        }
+        sprintf( strindex, ");\n    }"); 
         strindex += strlen (strindex) + 1;
       }
       
