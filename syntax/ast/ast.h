@@ -4,13 +4,8 @@
   #include <memory.h>
   #include <hash.h>
 
-  /* 
-  .. NOTE: length of the name of source file /include header file
-  .. are limited to 1024 characters (including the path and trailing '\0') 
-  .. if not overridden like -D_H_AST_FILENAME_=4096
-  */
-  #ifndef _H_AST_FILENAME_MAX_
-    #define _H_AST_FILENAME_MAX_ 1024
+  #ifndef _H_AST_STACK_SIZE_
+    #define _H_AST_STACK_SIZE_ 128
   #endif
     
   /*
@@ -18,7 +13,11 @@
   */
     
   typedef struct _AstLoc {
-    char source[_H_AST_FILENAME_MAX_];
+    /* 
+    .. NOTE: length of the name of source file /include header file
+    .. are limited to _PAGE_SIZE_ = 4kB 
+    */
+    char * source;
     int line, column;
   } _AstLoc;
 
@@ -55,6 +54,7 @@
         ++c;                       \
       }                            \
     } while ( 0 );
+
   
   /*
   .. structs for 
@@ -64,19 +64,14 @@
   */
   typedef struct _AstNode {
     struct _AstNode * parent,
-    /*
-                    * left,
-                    * right, 
-    */
-                    ** child;
+      ** child;
     int symbol;
   } _AstNode;
 
   typedef struct {
     _AstNode node;
-    char * source;
     char *   token;
-    int line, column;
+    _AstLoc  loc;
   } _AstTNode ;
 
   typedef struct _Ast {
@@ -87,18 +82,51 @@
     _AstPool *    tnodes;
     _HashTable *  identifiers;
   } _Ast;
+
+  /*
+  .. AST (stack based) traversal : DFS - pre-order algorithm
+  .. fixme : implement a proper stack.
+  */
+  #define AstNodeEachStart(_ast_, _stack_) do {        \
+    _stack_[ 0 ] = NULL;                               \
+    _stack_[ 1 ] = _ast_->root.child;                  \
+    int _l_ = 1;                                       \
+    while ( _l_ ) {                                    \
+      while ( *_stack_[ _l_ ] ) {                      \
+        _AstNode * _node_ = *_stack_[ _l_ ];           \
+        _AstNode * node = _node_;                      \
+        /* Do something with node */     
+
+  #define AstNodeEachEnd(_ast_, _stack_)               \
+        /* Go right. .. But only                       \
+        .. After covering all it's children */         \
+        (_stack_[ _l_ ])++;                            \
+        if ( _node_->child ) {                         \
+          _stack_[ _l_+1 ] = _node_->child;            \
+          assert( _l_ < _H_AST_STACK_SIZE_ - 1 );      \
+          /* Go down */                                \
+          ++_l_;                                       \
+        }                                              \
+      }                                                \
+                                                       \
+      /* Go up */                                      \
+      --_l_;                                           \
+    }                                                  \
+  } while (0) ;
   
   /*
   .. (a) initialize an AST. parameter is source code name
   .. (b) reset source location 
   .. (c) create a terminal node
   .. (d) create an internal node
-  .. (e) set children of an internal node. 
+  .. (e) set children of an internal node.
+  .. (f) print ast back to C code. 
   */
   extern _Ast *     ast_init ( const char * );
   extern void       ast_reset_source ( _Ast * , const char * );
   extern _AstNode * ast_tnode_new ( _Ast *, int, const char * );
   extern _AstNode * ast_node_new (_Ast *, int, int );
   extern void       ast_node_children (_AstNode *, int, ... );
+  extern void       ast_print (_Ast * ast);
   
 #endif

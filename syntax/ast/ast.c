@@ -26,20 +26,16 @@ void ast_reset_source(_Ast * ast, const char * str) {
   
   s = strchr (str, '"') + 1;
   char * end = strchr(s, '"');
-  size_t len = end - s; 
-  if(len >= _H_AST_FILENAME_MAX_) {
+  *end = '\0';
+  loc->source = ast_strdup (s); 
+  if(!loc->source) {
     fprintf(stderr, 
       "ast_reset_source() parser error : "
-      "very large filename : %s\n"
-      "Rerun the program with larger filename buffer.\n"
-      "Ex: -D_H_AST_FILENAME_MAX_=4096",
-      s-1);
+      "(possibly) very large filename : %s\n", s-1);
     fflush(stderr);
     exit(EXIT_FAILURE);
   }
-  memcpy(loc->source, s, len);
-  loc->source[len] = '\0';
-
+  *end = '"';
 }
 
 /* 
@@ -48,21 +44,17 @@ void ast_reset_source(_Ast * ast, const char * str) {
 */
 _Ast * ast_init(const char * source) {
 
-  _Ast * ast = (_Ast *) malloc (sizeof(_Ast));
+  _Ast * ast = ast_allocate_general ( sizeof(_Ast) );
   _AstLoc * loc = &ast->loc;
   loc->line = loc->column = 1;
-  size_t len = strlen ( source );
-  if(len >= _H_AST_FILENAME_MAX_) {
+  loc->source = ast_strdup (source); 
+  if(!loc->source) {
     fprintf(stderr, 
-      "ast_init() parser error : "
-      "very large source name : \"%s\"\n."
-      "Rerun the program with larger filename buffer.\n"
-      "Ex: -D_H_AST_FILENAME_MAX_=4096",
-      source);
+      "ast_reset_source() parser error : "
+      "(possibly) very large filename : \"%s\"\n", source);
     fflush(stderr);
     exit(EXIT_FAILURE);
   }
-  memcpy(loc->source, source, len+1);
 
   ast->root = (_AstNode) {
     .symbol = -1,
@@ -103,20 +95,13 @@ ast_tnode_new (_Ast * ast, int symbol, const char * token) {
     assert ( tnode->token );
   }
 
-  /* 
-  .. source code location of this token.
-  .. fixme : remove file name if possible.
-  */
-  tnode->source = ast_strdup (ast->loc.source);
-  tnode->line   = ast->loc.line;
-  tnode->column = ast->loc.column;
+  memcpy ( &tnode->loc, &ast->loc, sizeof (_AstLoc) );
 
   return node;  
 }
 
 _AstNode *
 ast_node_new (_Ast * ast, int symbol, int n) {
-
   _AstNode * node = ast_allocate_from (ast->nodes);
   node->symbol = symbol;
   node->parent = NULL;
@@ -137,3 +122,69 @@ ast_node_children (_AstNode * node, int n, ... ) {
   va_end(args);      
 }
 
+_AstNode *** _AST_STACK_ = NULL;
+
+static inline
+_AstNode *** ast_stack () {
+  if(!_AST_STACK_)
+    _AST_STACK_ = 
+      ast_allocate_general (_H_AST_STACK_SIZE_ * sizeof(_AstNode **));
+  return _AST_STACK_;
+}
+
+void
+ast_print (_Ast * ast) {
+
+ _AstNode *** stack = ast_stack();
+  if (!stack) {
+    fprintf (stderr, "ast_print() stack not available");
+    fflush(stderr);
+    exit (EXIT_FAILURE);
+  }
+  
+  const char * source = NULL;
+
+  const char * sp = NULL, * in [] = 
+    { "\n", "\n  ", "\n    ", "\n      ", "\n        ", " ", ""};          
+ 
+  int indent = 0, toggle = 1;
+
+  AstNodeEachStart (ast, stack) 
+    if (!node->child) {
+
+      _AstTNode * t = (_AstTNode *) node;
+      
+      if (source != t->loc.source) {
+        source = t->loc.source;
+        printf("\n#line %d \"%s\"\n", t->loc.line, source);
+        toggle = 0;
+      }
+
+      assert (t->token);
+      sp = toggle ? in[indent % 5] : in[5];
+      switch ( t->token[0] ) {
+        case '{' : 
+          toggle = 1; 
+          ++indent; 
+          break;
+        case '}' : 
+          toggle = 1; 
+          --indent; 
+          sp = in[indent % 5];
+          break;
+        case ';' : 
+          toggle = 1; 
+          break;
+        case  '.':
+          sp = in[6];
+          break;
+        default :
+          /* fixme : use YYSYMBOL_ELSE */
+          if(!strcmp ("else", t->token))
+            sp = in [indent%5];
+          toggle = 0;
+      }
+      printf ("%s%s", sp, t->token);
+    }
+  AstNodeEachEnd (ast, stack) 
+}

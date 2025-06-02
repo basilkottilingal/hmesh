@@ -558,7 +558,7 @@ labeled_statement
 
 compound_statement
   : '{' '}'
-  | '{'  block_item_list '}'
+  | '{' block_item_list '}'
   ;
 
 block_item_list
@@ -674,7 +674,7 @@ declaration_list
     /*
     .. fixme: use status, to see if parser has exited properly
     */
-    (void)status;
+    ast_print (ast);
 
     /*
     .. AST syntax check, analysis, etc

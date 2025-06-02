@@ -4,6 +4,11 @@ CFLAGS	= -Wall -Wextra
 CFLAGS += -I./ast
 #CFLAGS += -L./ast -last
 
+# Generater parser.y ( with ast ) from grammar/_parser.y ( simpler )
+parser.y: grammar/_parser.y grammar/convert.c
+	cd grammar && make convert 
+	./grammar/convert < grammar/_parser.y > parser.y
+
 # Generate parser source
 parser.c parser.h: parser.y
 	bison $<						# generating parser source code using bison
@@ -21,8 +26,11 @@ parser: parser.c parser.h lexer.c ast/libast.a
 
 # parse a .c file 
 %.parse: %.c parser ast/libast.a
-	#gcc -std=c99 -E $< -o $*.i	  # preproc. NOTE: no effect. (preprocessor not yet implemented)
+	#gcc -std=c99 -E $< -o $*.i		# preproc. NOTE: no effect. (preprocessor not yet implemented)
 	./parser $<				 # parse the .c input
+
+
+all: parser.y parser.c lexer.c ast/libast.a parser
 
 # Clean up generated files
 clean:

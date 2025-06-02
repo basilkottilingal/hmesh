@@ -1494,7 +1494,7 @@ declaration_list
     /*
     .. fixme: use status, to see if parser has exited properly
     */
-    (void)status;
+    ast_print (ast);
 
     /*
     .. AST syntax check, analysis, etc
