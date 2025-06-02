@@ -132,9 +132,9 @@ _AstNode *** ast_stack () {
   return _AST_STACK_;
 }
 
+#if 0
 void
 ast_print (_Ast * ast) {
-
  _AstNode *** stack = ast_stack();
   if (!stack) {
     fprintf (stderr, "ast_print() stack not available");
@@ -143,10 +143,8 @@ ast_print (_Ast * ast) {
   }
   
   const char * source = NULL;
-
   const char * sp = NULL, * in [] = 
     { "\n", "\n  ", "\n    ", "\n      ", "\n        ", " ", ""};          
- 
   int indent = 0, toggle = 1;
 
   AstNodeEachStart (ast, stack) 
@@ -185,6 +183,62 @@ ast_print (_Ast * ast) {
           toggle = 0;
       }
       printf ("%s%s", sp, t->token);
+    }
+  AstNodeEachEnd (ast, stack) 
+}
+#endif
+
+void
+ast_print (_Ast * ast) {
+
+ _AstNode *** stack = ast_stack();
+  if (!stack) {
+    fprintf (stderr, "ast_print() stack not available");
+    fflush(stderr);
+    exit (EXIT_FAILURE);
+  }
+  
+  const char * source = NULL;
+  int line = 0, column = 0;
+  _AstLoc * loc;
+
+  AstNodeEachStart (ast, stack) 
+    if (!node->child) {
+
+      _AstTNode * t = (_AstTNode *) node;
+      char * token = t->token;
+      assert(token);
+     
+      loc = &t->loc;
+      if (source != t->loc.source) {
+        source = loc->source;
+        line   = loc->line;
+        column = 1;
+        printf("\n#line %d \"%s\"\n", loc->line, source);
+      }
+
+      if (line < loc->line) { 
+        while (line < loc->line) {
+          line++;
+          putchar('\n');
+        }
+        column = 1;
+      }
+
+      while (column < loc->column) {
+        column++;
+        putchar(' ');
+      }
+      int c;
+      while ( (c = (int) *token++) != '\0'){
+        putchar(c);
+        if(*token == '\n') {
+          line++;
+          column = 1;
+        }
+        else
+          column++;
+      }
     }
   AstNodeEachEnd (ast, stack) 
 }

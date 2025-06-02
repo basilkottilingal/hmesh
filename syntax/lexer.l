@@ -127,21 +127,21 @@ WS  [ \t\v\n\f]
 
   /* General tokens */
   #define _TOKEN_(__sym__)                          \
-    ast->loc.column += yyleng;                      \
     *yylval = ast_tnode_new (ast, __sym__, yytext); \
+    ast->loc.column += yyleng;                      \
     return __sym__;
 
   /* Token that can possibly contain escape characters*/
   #define _TOKEN_ESC_KEYS_(__sym__)                 \
-    AstLocRead(yytext);                             \
     *yylval = ast_tnode_new (ast, __sym__, yytext); \
+    AstLocRead(yytext);                             \
     return __sym__;
 
   /* Identifiers */
   #define _TOKEN_IDENTIFIER_()                      \
-    ast->loc.column += yyleng;                      \
     int __sym__ = check_type();                     \
     *yylval = ast_tnode_new (ast, __sym__, yytext); \
+    ast->loc.column += yyleng;                      \
     return __sym__;
 
 %}
@@ -291,7 +291,8 @@ WS  [ \t\v\n\f]
 
 \n             { ++(ast->loc.line);  ast->loc.column = 1;    }
 \t             { ast->loc.column += 8 - (ast->loc.column)%8; }
-([ \v\f])+     { ast->loc.column += yyleng;                  }
+  /*([ \v\f])+     { ast->loc.column += yyleng;                  }*/
+([ \v\f])      { ast->loc.column += 1;                  }
 
         
   /** 
@@ -351,14 +352,6 @@ WS  [ \t\v\n\f]
       c = ast_getchar(ast);
       if (c == ')') 
         nscope--;
-      /*
-      else if (c == '{') {
-        unput();
-        break;
-      }
-      else if (c == ';') 
-        break;
-      */
       else if (c == '(')
         nscope++;
     }
