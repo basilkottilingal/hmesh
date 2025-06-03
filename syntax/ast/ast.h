@@ -103,6 +103,7 @@
         (_stack_[ _l_ ])++;                            \
         if ( _node_->child ) {                         \
           _stack_[ _l_+1 ] = _node_->child;            \
+          /* if it fails rerun with larger stack size*/\
           assert( _l_ < _H_AST_STACK_SIZE_ - 1 );      \
           /* Go down */                                \
           ++_l_;                                       \
@@ -113,6 +114,13 @@
       --_l_;                                           \
     }                                                  \
   } while (0) ;
+
+  /*
+  .. Identifer type. Encode this to hash->attr
+  */
+  #define AST_IDENTIFIER NULL
+  #define AST_TYPEDEF    ((void *) -1)
+  #define ASt_ENUM       ((void *) -2)
   
   /*
   .. (a) initialize an AST. parameter is source code name

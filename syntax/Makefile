@@ -1,13 +1,13 @@
 # Compiler and flags
-CC			= gcc
-CFLAGS	= -Wall -Wextra
-CFLAGS += -I./ast
+CC			 = gcc
+CFLAGS	 = -Wall -Wextra
+CFLAGS  += -I./ast
 #CFLAGS += -L./ast -last
 
-# Generater parser.y ( with ast ) from grammar/_parser.y ( simpler )
-parser.y: grammar/_parser.y grammar/convert.c
+# Generater parser.y ( with ast ) from grammar/parser.y ( simpler )
+parser.y: grammar/parser.y grammar/convert.c
 	cd grammar && make convert 
-	./grammar/convert < grammar/_parser.y > parser.y
+	./grammar/convert < grammar/parser.y > parser.y
 
 # Generate parser source
 parser.c parser.h: parser.y
@@ -28,7 +28,6 @@ parser: parser.c parser.h lexer.c ast/libast.a
 %.parse: %.c parser ast/libast.a
 	#gcc -std=c99 -E $< -o $*.i		# preproc. NOTE: no effect. (preprocessor not yet implemented)
 	./parser $<				 # parse the .c input
-
 
 all: parser.y parser.c lexer.c ast/libast.a parser
 

@@ -101,17 +101,19 @@ WS  [ \t\v\n\f]
   /* prints grammar violation message. defined in parser.y*/
   extern void yyerror(_Ast *, const char *);  
 
-  /* returns type from symbol table */
+  /* returns type from symbol table 
   extern int sym_type(const char *);  
+  */
 
-  /* with no symbol table, fake it */
+  /* with no symbol table, fake it 
   #define sym_type(identifier) IDENTIFIER 
+  */
 
   /* Ignore multi-line comments */
   static void comment(_Ast * );
 
   /* check_type of the identifier */
-  static int check_type(void);
+  static int check_type(_Ast *, const char *, _AstNode *);
 
   /* Ignore __attribute__ () */
   static void ignore_attribute(_Ast *);
@@ -139,8 +141,8 @@ WS  [ \t\v\n\f]
 
   /* Identifiers */
   #define _TOKEN_IDENTIFIER_()                      \
-    int __sym__ = check_type();                     \
-    *yylval = ast_tnode_new (ast, __sym__, yytext); \
+    *yylval = ast_tnode_new (ast, 0, NULL);         \
+    int __sym__ = check_type(ast, yytext, *yylval); \
     ast->loc.column += yyleng;                      \
     return __sym__;
 
@@ -289,10 +291,7 @@ WS  [ \t\v\n\f]
 "|"            { _TOKEN_(PIPE); }
 "?"            { _TOKEN_(QUESTION); }
 
-\n             { ++(ast->loc.line);  ast->loc.column = 1;    }
-\t             { ast->loc.column += 8 - (ast->loc.column)%8; }
-  /*([ \v\f])+     { ast->loc.column += yyleng;                  }*/
-([ \v\f])      { ast->loc.column += 1;                  }
+([ \v\f\n\t])+  { AstLocRead(yytext); }
 
         
   /** 
@@ -367,8 +366,7 @@ WS  [ \t\v\n\f]
   /* 
   .. This function 'consumes' (skips) comments 
   */
-  static void comment(_Ast * ast)
-  {
+  static void comment(_Ast * ast) {
     int c;
     int line   = ast->loc.line;
     int column = ast->loc.column;
@@ -389,16 +387,16 @@ WS  [ \t\v\n\f]
   }
   
   /* which type of identifier ? */
-  static int check_type(void)
-  {
-    switch (sym_type(yytext)) {
-      case TYPEDEF_NAME:                /* previously defined */
-        return TYPEDEF_NAME;
-      case ENUMERATION_CONSTANT:        /* previously defined */
-        return ENUMERATION_CONSTANT;
-      default:                          /* includes undefined */
-        return IDENTIFIER;
-    }
+  static 
+  int check_type(_Ast * ast, const char * id, _AstNode * node) {
+
+    _HashNode * h = hash_insert (ast->identifiers, id);
+    ((_AstTNode *)node)->token = h->key;
+    
+    int sym = (h->attr == AST_IDENTIFIER) ? IDENTIFIER :
+      ((h->attr == AST_TYPEDEF) ? TYPEDEF_NAME : ENUMERATION_CONSTANT);
+
+    return (node->symbol = sym);
   }
 
   int ast_getchar(_Ast * ast) {

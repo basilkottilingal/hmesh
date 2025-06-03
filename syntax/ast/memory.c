@@ -176,6 +176,7 @@ void * ast_allocate_from (_AstPool * pool) {
     ast_pool_allocate_page(pool);
   _FreeNode * fhead = (_FreeNode *) pool->fhead;
   pool->fhead = fhead->next;
+  memset(fhead, 0, pool->size);
   return fhead;
 }
 
