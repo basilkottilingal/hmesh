@@ -126,7 +126,7 @@ primary_expression
       $$ = ast_node_new (ast, YYSYMBOL_primary_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | LPARENTHESIS  expression  RPARENTHESIS {
+  | LPARENTHESIS expression RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_primary_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -170,7 +170,7 @@ string
   ;
 
 generic_selection
-  : GENERIC  LPARENTHESIS  assignment_expression  COMMA  generic_assoc_list  RPARENTHESIS {
+  : GENERIC LPARENTHESIS assignment_expression COMMA generic_assoc_list RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_generic_selection, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
@@ -181,18 +181,18 @@ generic_assoc_list
       $$ = ast_node_new (ast, YYSYMBOL_generic_assoc_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | generic_assoc_list  COMMA  generic_association {
+  | generic_assoc_list COMMA generic_association {
       $$ = ast_node_new (ast, YYSYMBOL_generic_assoc_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
   ;
 
 generic_association
-  : type_name  COLON  assignment_expression {
+  : type_name COLON assignment_expression {
       $$ = ast_node_new (ast, YYSYMBOL_generic_association, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | DEFAULT  COLON  assignment_expression {
+  | DEFAULT COLON assignment_expression {
       $$ = ast_node_new (ast, YYSYMBOL_generic_association, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -203,39 +203,39 @@ postfix_expression
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | postfix_expression  LBRACKET  expression  RBRACKET {
+  | postfix_expression LBRACKET expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | postfix_expression  LPARENTHESIS  RPARENTHESIS {
+  | postfix_expression LPARENTHESIS RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | postfix_expression  LPARENTHESIS  argument_expression_list  RPARENTHESIS {
+  | postfix_expression LPARENTHESIS argument_expression_list RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | postfix_expression  DOT  IDENTIFIER {
+  | postfix_expression DOT IDENTIFIER {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | postfix_expression  PTR_OP  IDENTIFIER {
+  | postfix_expression PTR_OP IDENTIFIER {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | postfix_expression  INC_OP {
+  | postfix_expression INC_OP {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | postfix_expression  DEC_OP {
+  | postfix_expression DEC_OP {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | LPARENTHESIS  type_name  RPARENTHESIS  LBRACE  initializer_list  RBRACE {
+  | LPARENTHESIS type_name RPARENTHESIS LBRACE initializer_list RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
-  | LPARENTHESIS  type_name  RPARENTHESIS  LBRACE  initializer_list  COMMA  RBRACE {
+  | LPARENTHESIS type_name RPARENTHESIS LBRACE initializer_list COMMA RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_postfix_expression, 7);
       ast_node_children($$, 7, $1, $2, $3, $4, $5, $6, $7);
     }
@@ -246,7 +246,7 @@ argument_expression_list
       $$ = ast_node_new (ast, YYSYMBOL_argument_expression_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | argument_expression_list  COMMA  assignment_expression {
+  | argument_expression_list COMMA assignment_expression {
       $$ = ast_node_new (ast, YYSYMBOL_argument_expression_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -257,27 +257,27 @@ unary_expression
       $$ = ast_node_new (ast, YYSYMBOL_unary_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | INC_OP  unary_expression {
+  | INC_OP unary_expression {
       $$ = ast_node_new (ast, YYSYMBOL_unary_expression, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | DEC_OP  unary_expression {
+  | DEC_OP unary_expression {
       $$ = ast_node_new (ast, YYSYMBOL_unary_expression, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | unary_operator  cast_expression {
+  | unary_operator cast_expression {
       $$ = ast_node_new (ast, YYSYMBOL_unary_expression, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | SIZEOF  unary_expression {
+  | SIZEOF unary_expression {
       $$ = ast_node_new (ast, YYSYMBOL_unary_expression, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | SIZEOF  LPARENTHESIS  type_name  RPARENTHESIS {
+  | SIZEOF LPARENTHESIS type_name RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_unary_expression, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | ALIGNOF  LPARENTHESIS  type_name  RPARENTHESIS {
+  | ALIGNOF LPARENTHESIS type_name RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_unary_expression, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
@@ -315,7 +315,7 @@ cast_expression
       $$ = ast_node_new (ast, YYSYMBOL_cast_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | LPARENTHESIS  type_name  RPARENTHESIS  cast_expression {
+  | LPARENTHESIS type_name RPARENTHESIS cast_expression {
       $$ = ast_node_new (ast, YYSYMBOL_cast_expression, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
@@ -326,15 +326,15 @@ multiplicative_expression
       $$ = ast_node_new (ast, YYSYMBOL_multiplicative_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | multiplicative_expression  STAR  cast_expression {
+  | multiplicative_expression STAR cast_expression {
       $$ = ast_node_new (ast, YYSYMBOL_multiplicative_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | multiplicative_expression  SLASH  cast_expression {
+  | multiplicative_expression SLASH cast_expression {
       $$ = ast_node_new (ast, YYSYMBOL_multiplicative_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | multiplicative_expression  PERCENT  cast_expression {
+  | multiplicative_expression PERCENT cast_expression {
       $$ = ast_node_new (ast, YYSYMBOL_multiplicative_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -345,11 +345,11 @@ additive_expression
       $$ = ast_node_new (ast, YYSYMBOL_additive_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | additive_expression  PLUS  multiplicative_expression {
+  | additive_expression PLUS multiplicative_expression {
       $$ = ast_node_new (ast, YYSYMBOL_additive_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | additive_expression  MINUS  multiplicative_expression {
+  | additive_expression MINUS multiplicative_expression {
       $$ = ast_node_new (ast, YYSYMBOL_additive_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -360,11 +360,11 @@ shift_expression
       $$ = ast_node_new (ast, YYSYMBOL_shift_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | shift_expression  LEFT_OP  additive_expression {
+  | shift_expression LEFT_OP additive_expression {
       $$ = ast_node_new (ast, YYSYMBOL_shift_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | shift_expression  RIGHT_OP  additive_expression {
+  | shift_expression RIGHT_OP additive_expression {
       $$ = ast_node_new (ast, YYSYMBOL_shift_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -375,19 +375,19 @@ relational_expression
       $$ = ast_node_new (ast, YYSYMBOL_relational_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | relational_expression  L_T  shift_expression {
+  | relational_expression L_T shift_expression {
       $$ = ast_node_new (ast, YYSYMBOL_relational_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | relational_expression  G_T  shift_expression {
+  | relational_expression G_T shift_expression {
       $$ = ast_node_new (ast, YYSYMBOL_relational_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | relational_expression  LE_OP  shift_expression {
+  | relational_expression LE_OP shift_expression {
       $$ = ast_node_new (ast, YYSYMBOL_relational_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | relational_expression  GE_OP  shift_expression {
+  | relational_expression GE_OP shift_expression {
       $$ = ast_node_new (ast, YYSYMBOL_relational_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -398,11 +398,11 @@ equality_expression
       $$ = ast_node_new (ast, YYSYMBOL_equality_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | equality_expression  EQ_OP  relational_expression {
+  | equality_expression EQ_OP relational_expression {
       $$ = ast_node_new (ast, YYSYMBOL_equality_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | equality_expression  NE_OP  relational_expression {
+  | equality_expression NE_OP relational_expression {
       $$ = ast_node_new (ast, YYSYMBOL_equality_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -413,7 +413,7 @@ and_expression
       $$ = ast_node_new (ast, YYSYMBOL_and_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | and_expression  AMPERSAND  equality_expression {
+  | and_expression AMPERSAND equality_expression {
       $$ = ast_node_new (ast, YYSYMBOL_and_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -424,7 +424,7 @@ exclusive_or_expression
       $$ = ast_node_new (ast, YYSYMBOL_exclusive_or_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | exclusive_or_expression  CARET  and_expression {
+  | exclusive_or_expression CARET and_expression {
       $$ = ast_node_new (ast, YYSYMBOL_exclusive_or_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -435,7 +435,7 @@ inclusive_or_expression
       $$ = ast_node_new (ast, YYSYMBOL_inclusive_or_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | inclusive_or_expression  PIPE  exclusive_or_expression {
+  | inclusive_or_expression PIPE exclusive_or_expression {
       $$ = ast_node_new (ast, YYSYMBOL_inclusive_or_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -446,7 +446,7 @@ logical_and_expression
       $$ = ast_node_new (ast, YYSYMBOL_logical_and_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | logical_and_expression  AND_OP  inclusive_or_expression {
+  | logical_and_expression AND_OP inclusive_or_expression {
       $$ = ast_node_new (ast, YYSYMBOL_logical_and_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -457,7 +457,7 @@ logical_or_expression
       $$ = ast_node_new (ast, YYSYMBOL_logical_or_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | logical_or_expression  OR_OP  logical_and_expression {
+  | logical_or_expression OR_OP logical_and_expression {
       $$ = ast_node_new (ast, YYSYMBOL_logical_or_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -468,7 +468,7 @@ conditional_expression
       $$ = ast_node_new (ast, YYSYMBOL_conditional_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | logical_or_expression  QUESTION  expression  COLON  conditional_expression {
+  | logical_or_expression QUESTION expression COLON conditional_expression {
       $$ = ast_node_new (ast, YYSYMBOL_conditional_expression, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
@@ -479,7 +479,7 @@ assignment_expression
       $$ = ast_node_new (ast, YYSYMBOL_assignment_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | unary_expression  assignment_operator  assignment_expression {
+  | unary_expression assignment_operator assignment_expression {
       $$ = ast_node_new (ast, YYSYMBOL_assignment_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -537,7 +537,7 @@ expression
       $$ = ast_node_new (ast, YYSYMBOL_expression, 1);
       ast_node_children($$, 1, $1);
     }
-  | expression  COMMA  assignment_expression {
+  | expression COMMA assignment_expression {
       $$ = ast_node_new (ast, YYSYMBOL_expression, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -551,11 +551,11 @@ constant_expression
   ;
 
 declaration
-  : declaration_specifiers  SEMICOLON {
+  : declaration_specifiers SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | declaration_specifiers  init_declarator_list  SEMICOLON {
+  | declaration_specifiers init_declarator_list SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -566,7 +566,7 @@ declaration
   ;
 
 declaration_specifiers
-  : storage_class_specifier  declaration_specifiers {
+  : storage_class_specifier declaration_specifiers {
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -574,7 +574,7 @@ declaration_specifiers
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 1);
       ast_node_children($$, 1, $1);
     }
-  | type_specifier  declaration_specifiers {
+  | type_specifier declaration_specifiers {
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -582,7 +582,7 @@ declaration_specifiers
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 1);
       ast_node_children($$, 1, $1);
     }
-  | type_qualifier  declaration_specifiers {
+  | type_qualifier declaration_specifiers {
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -590,7 +590,7 @@ declaration_specifiers
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 1);
       ast_node_children($$, 1, $1);
     }
-  | function_specifier  declaration_specifiers {
+  | function_specifier declaration_specifiers {
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -598,7 +598,7 @@ declaration_specifiers
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 1);
       ast_node_children($$, 1, $1);
     }
-  | alignment_specifier  declaration_specifiers {
+  | alignment_specifier declaration_specifiers {
       $$ = ast_node_new (ast, YYSYMBOL_declaration_specifiers, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -613,14 +613,14 @@ init_declarator_list
       $$ = ast_node_new (ast, YYSYMBOL_init_declarator_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | init_declarator_list  COMMA  init_declarator {
+  | init_declarator_list COMMA init_declarator {
       $$ = ast_node_new (ast, YYSYMBOL_init_declarator_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
   ;
 
 init_declarator
-  : declarator  EQUAL  initializer {
+  : declarator EQUAL initializer {
       $$ = ast_node_new (ast, YYSYMBOL_init_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -725,15 +725,15 @@ type_specifier
   ;
 
 struct_or_union_specifier
-  : struct_or_union  LBRACE  struct_declaration_list  RBRACE {
+  : struct_or_union LBRACE struct_declaration_list RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_struct_or_union_specifier, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | struct_or_union  IDENTIFIER  LBRACE  struct_declaration_list  RBRACE {
+  | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_struct_or_union_specifier, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | struct_or_union  IDENTIFIER {
+  | struct_or_union IDENTIFIER {
       $$ = ast_node_new (ast, YYSYMBOL_struct_or_union_specifier, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -755,18 +755,18 @@ struct_declaration_list
       $$ = ast_node_new (ast, YYSYMBOL_struct_declaration_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | struct_declaration_list  struct_declaration {
+  | struct_declaration_list struct_declaration {
       $$ = ast_node_new (ast, YYSYMBOL_struct_declaration_list, 2);
       ast_node_children($$, 2, $1, $2);
     }
   ;
 
 struct_declaration
-  : specifier_qualifier_list  SEMICOLON {
+  : specifier_qualifier_list SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_struct_declaration, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | specifier_qualifier_list  struct_declarator_list  SEMICOLON {
+  | specifier_qualifier_list struct_declarator_list SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_struct_declaration, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -777,7 +777,7 @@ struct_declaration
   ;
 
 specifier_qualifier_list
-  : type_specifier  specifier_qualifier_list {
+  : type_specifier specifier_qualifier_list {
       $$ = ast_node_new (ast, YYSYMBOL_specifier_qualifier_list, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -785,7 +785,7 @@ specifier_qualifier_list
       $$ = ast_node_new (ast, YYSYMBOL_specifier_qualifier_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | type_qualifier  specifier_qualifier_list {
+  | type_qualifier specifier_qualifier_list {
       $$ = ast_node_new (ast, YYSYMBOL_specifier_qualifier_list, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -800,18 +800,18 @@ struct_declarator_list
       $$ = ast_node_new (ast, YYSYMBOL_struct_declarator_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | struct_declarator_list  COMMA  struct_declarator {
+  | struct_declarator_list COMMA struct_declarator {
       $$ = ast_node_new (ast, YYSYMBOL_struct_declarator_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
   ;
 
 struct_declarator
-  : COLON  constant_expression {
+  : COLON constant_expression {
       $$ = ast_node_new (ast, YYSYMBOL_struct_declarator, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | declarator  COLON  constant_expression {
+  | declarator COLON constant_expression {
       $$ = ast_node_new (ast, YYSYMBOL_struct_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -822,23 +822,23 @@ struct_declarator
   ;
 
 enum_specifier
-  : ENUM  LBRACE  enumerator_list  RBRACE {
+  : ENUM LBRACE enumerator_list RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_enum_specifier, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | ENUM  LBRACE  enumerator_list  COMMA  RBRACE {
+  | ENUM LBRACE enumerator_list COMMA RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_enum_specifier, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | ENUM  IDENTIFIER  LBRACE  enumerator_list  RBRACE {
+  | ENUM IDENTIFIER LBRACE enumerator_list RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_enum_specifier, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | ENUM  IDENTIFIER  LBRACE  enumerator_list  COMMA  RBRACE {
+  | ENUM IDENTIFIER LBRACE enumerator_list COMMA RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_enum_specifier, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
-  | ENUM  IDENTIFIER {
+  | ENUM IDENTIFIER {
       $$ = ast_node_new (ast, YYSYMBOL_enum_specifier, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -849,14 +849,14 @@ enumerator_list
       $$ = ast_node_new (ast, YYSYMBOL_enumerator_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | enumerator_list  COMMA  enumerator {
+  | enumerator_list COMMA enumerator {
       $$ = ast_node_new (ast, YYSYMBOL_enumerator_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
   ;
 
 enumerator
-  : enumeration_constant  EQUAL  constant_expression {
+  : enumeration_constant EQUAL constant_expression {
       $$ = ast_node_new (ast, YYSYMBOL_enumerator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -867,7 +867,7 @@ enumerator
   ;
 
 atomic_type_specifier
-  : ATOMIC  LPARENTHESIS  type_name  RPARENTHESIS {
+  : ATOMIC LPARENTHESIS type_name RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_atomic_type_specifier, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
@@ -904,18 +904,18 @@ function_specifier
   ;
 
 alignment_specifier
-  : ALIGNAS  LPARENTHESIS  type_name  RPARENTHESIS {
+  : ALIGNAS LPARENTHESIS type_name RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_alignment_specifier, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | ALIGNAS  LPARENTHESIS  constant_expression  RPARENTHESIS {
+  | ALIGNAS LPARENTHESIS constant_expression RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_alignment_specifier, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
   ;
 
 declarator
-  : pointer  direct_declarator {
+  : pointer direct_declarator {
       $$ = ast_node_new (ast, YYSYMBOL_declarator, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -930,70 +930,70 @@ direct_declarator
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 1);
       ast_node_children($$, 1, $1);
     }
-  | LPARENTHESIS  declarator  RPARENTHESIS {
+  | LPARENTHESIS declarator RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | direct_declarator  LBRACKET  RBRACKET {
+  | direct_declarator LBRACKET RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | direct_declarator  LBRACKET  STAR  RBRACKET {
+  | direct_declarator LBRACKET STAR RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | direct_declarator  LBRACKET  STATIC  type_qualifier_list  assignment_expression  RBRACKET {
+  | direct_declarator LBRACKET STATIC type_qualifier_list assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
-  | direct_declarator  LBRACKET  STATIC  assignment_expression  RBRACKET {
+  | direct_declarator LBRACKET STATIC assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | direct_declarator  LBRACKET  type_qualifier_list  STAR  RBRACKET {
+  | direct_declarator LBRACKET type_qualifier_list STAR RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | direct_declarator  LBRACKET  type_qualifier_list  STATIC  assignment_expression  RBRACKET {
+  | direct_declarator LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
-  | direct_declarator  LBRACKET  type_qualifier_list  assignment_expression  RBRACKET {
+  | direct_declarator LBRACKET type_qualifier_list assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | direct_declarator  LBRACKET  type_qualifier_list  RBRACKET {
+  | direct_declarator LBRACKET type_qualifier_list RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | direct_declarator  LBRACKET  assignment_expression  RBRACKET {
+  | direct_declarator LBRACKET assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | direct_declarator  LPARENTHESIS  parameter_type_list  RPARENTHESIS {
+  | direct_declarator LPARENTHESIS parameter_type_list RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | direct_declarator  LPARENTHESIS  RPARENTHESIS {
+  | direct_declarator LPARENTHESIS RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | direct_declarator  LPARENTHESIS  identifier_list  RPARENTHESIS {
+  | direct_declarator LPARENTHESIS identifier_list RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
   ;
 
 pointer
-  : STAR  type_qualifier_list  pointer {
+  : STAR type_qualifier_list pointer {
       $$ = ast_node_new (ast, YYSYMBOL_pointer, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | STAR  type_qualifier_list {
+  | STAR type_qualifier_list {
       $$ = ast_node_new (ast, YYSYMBOL_pointer, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | STAR  pointer {
+  | STAR pointer {
       $$ = ast_node_new (ast, YYSYMBOL_pointer, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -1008,14 +1008,14 @@ type_qualifier_list
       $$ = ast_node_new (ast, YYSYMBOL_type_qualifier_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | type_qualifier_list  type_qualifier {
+  | type_qualifier_list type_qualifier {
       $$ = ast_node_new (ast, YYSYMBOL_type_qualifier_list, 2);
       ast_node_children($$, 2, $1, $2);
     }
   ;
 
 parameter_type_list
-  : parameter_list  COMMA  ELLIPSIS {
+  : parameter_list COMMA ELLIPSIS {
       $$ = ast_node_new (ast, YYSYMBOL_parameter_type_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -1030,18 +1030,18 @@ parameter_list
       $$ = ast_node_new (ast, YYSYMBOL_parameter_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | parameter_list  COMMA  parameter_declaration {
+  | parameter_list COMMA parameter_declaration {
       $$ = ast_node_new (ast, YYSYMBOL_parameter_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
   ;
 
 parameter_declaration
-  : declaration_specifiers  declarator {
+  : declaration_specifiers declarator {
       $$ = ast_node_new (ast, YYSYMBOL_parameter_declaration, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | declaration_specifiers  abstract_declarator {
+  | declaration_specifiers abstract_declarator {
       $$ = ast_node_new (ast, YYSYMBOL_parameter_declaration, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -1056,14 +1056,14 @@ identifier_list
       $$ = ast_node_new (ast, YYSYMBOL_identifier_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | identifier_list  COMMA  IDENTIFIER {
+  | identifier_list COMMA IDENTIFIER {
       $$ = ast_node_new (ast, YYSYMBOL_identifier_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
   ;
 
 type_name
-  : specifier_qualifier_list  abstract_declarator {
+  : specifier_qualifier_list abstract_declarator {
       $$ = ast_node_new (ast, YYSYMBOL_type_name, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -1074,7 +1074,7 @@ type_name
   ;
 
 abstract_declarator
-  : pointer  direct_abstract_declarator {
+  : pointer direct_abstract_declarator {
       $$ = ast_node_new (ast, YYSYMBOL_abstract_declarator, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -1089,98 +1089,98 @@ abstract_declarator
   ;
 
 direct_abstract_declarator
-  : LPARENTHESIS  abstract_declarator  RPARENTHESIS {
+  : LPARENTHESIS abstract_declarator RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | LBRACKET  RBRACKET {
+  | LBRACKET RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | LBRACKET  STAR  RBRACKET {
+  | LBRACKET STAR RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | LBRACKET  STATIC  type_qualifier_list  assignment_expression  RBRACKET {
+  | LBRACKET STATIC type_qualifier_list assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | LBRACKET  STATIC  assignment_expression  RBRACKET {
+  | LBRACKET STATIC assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | LBRACKET  type_qualifier_list  STATIC  assignment_expression  RBRACKET {
+  | LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | LBRACKET  type_qualifier_list  assignment_expression  RBRACKET {
+  | LBRACKET type_qualifier_list assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | LBRACKET  type_qualifier_list  RBRACKET {
+  | LBRACKET type_qualifier_list RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | LBRACKET  assignment_expression  RBRACKET {
+  | LBRACKET assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | direct_abstract_declarator  LBRACKET  RBRACKET {
+  | direct_abstract_declarator LBRACKET RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | direct_abstract_declarator  LBRACKET  STAR  RBRACKET {
+  | direct_abstract_declarator LBRACKET STAR RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | direct_abstract_declarator  LBRACKET  STATIC  type_qualifier_list  assignment_expression  RBRACKET {
+  | direct_abstract_declarator LBRACKET STATIC type_qualifier_list assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
-  | direct_abstract_declarator  LBRACKET  STATIC  assignment_expression  RBRACKET {
+  | direct_abstract_declarator LBRACKET STATIC assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | direct_abstract_declarator  LBRACKET  type_qualifier_list  assignment_expression  RBRACKET {
+  | direct_abstract_declarator LBRACKET type_qualifier_list assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | direct_abstract_declarator  LBRACKET  type_qualifier_list  STATIC  assignment_expression  RBRACKET {
+  | direct_abstract_declarator LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
-  | direct_abstract_declarator  LBRACKET  type_qualifier_list  RBRACKET {
+  | direct_abstract_declarator LBRACKET type_qualifier_list RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | direct_abstract_declarator  LBRACKET  assignment_expression  RBRACKET {
+  | direct_abstract_declarator LBRACKET assignment_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | LPARENTHESIS  RPARENTHESIS {
+  | LPARENTHESIS RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | LPARENTHESIS  parameter_type_list  RPARENTHESIS {
+  | LPARENTHESIS parameter_type_list RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | direct_abstract_declarator  LPARENTHESIS  RPARENTHESIS {
+  | direct_abstract_declarator LPARENTHESIS RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | direct_abstract_declarator  LPARENTHESIS  parameter_type_list  RPARENTHESIS {
+  | direct_abstract_declarator LPARENTHESIS parameter_type_list RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_abstract_declarator, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
   ;
 
 initializer
-  : LBRACE  initializer_list  RBRACE {
+  : LBRACE initializer_list RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_initializer, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | LBRACE  initializer_list  COMMA  RBRACE {
+  | LBRACE initializer_list COMMA RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_initializer, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
@@ -1191,7 +1191,7 @@ initializer
   ;
 
 initializer_list
-  : designation  initializer {
+  : designation initializer {
       $$ = ast_node_new (ast, YYSYMBOL_initializer_list, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -1199,18 +1199,18 @@ initializer_list
       $$ = ast_node_new (ast, YYSYMBOL_initializer_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | initializer_list  COMMA  designation  initializer {
+  | initializer_list COMMA designation initializer {
       $$ = ast_node_new (ast, YYSYMBOL_initializer_list, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | initializer_list  COMMA  initializer {
+  | initializer_list COMMA initializer {
       $$ = ast_node_new (ast, YYSYMBOL_initializer_list, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
   ;
 
 designation
-  : designator_list  EQUAL {
+  : designator_list EQUAL {
       $$ = ast_node_new (ast, YYSYMBOL_designation, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -1221,25 +1221,25 @@ designator_list
       $$ = ast_node_new (ast, YYSYMBOL_designator_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | designator_list  designator {
+  | designator_list designator {
       $$ = ast_node_new (ast, YYSYMBOL_designator_list, 2);
       ast_node_children($$, 2, $1, $2);
     }
   ;
 
 designator
-  : LBRACKET  constant_expression  RBRACKET {
+  : LBRACKET constant_expression RBRACKET {
       $$ = ast_node_new (ast, YYSYMBOL_designator, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | DOT  IDENTIFIER {
+  | DOT IDENTIFIER {
       $$ = ast_node_new (ast, YYSYMBOL_designator, 2);
       ast_node_children($$, 2, $1, $2);
     }
   ;
 
 static_assert_declaration
-  : STATIC_ASSERT  LPARENTHESIS  constant_expression  COMMA  STRING_LITERAL  RPARENTHESIS  SEMICOLON {
+  : STATIC_ASSERT LPARENTHESIS constant_expression COMMA STRING_LITERAL RPARENTHESIS SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_static_assert_declaration, 7);
       ast_node_children($$, 7, $1, $2, $3, $4, $5, $6, $7);
     }
@@ -1273,26 +1273,26 @@ statement
   ;
 
 labeled_statement
-  : IDENTIFIER  COLON  statement {
+  : IDENTIFIER COLON statement {
       $$ = ast_node_new (ast, YYSYMBOL_labeled_statement, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | CASE  constant_expression  COLON  statement {
+  | CASE constant_expression COLON statement {
       $$ = ast_node_new (ast, YYSYMBOL_labeled_statement, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | DEFAULT  COLON  statement {
+  | DEFAULT COLON statement {
       $$ = ast_node_new (ast, YYSYMBOL_labeled_statement, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
   ;
 
 compound_statement
-  : LBRACE  RBRACE {
+  : LBRACE RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_compound_statement, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | LBRACE  block_item_list  RBRACE {
+  | LBRACE block_item_list RBRACE {
       $$ = ast_node_new (ast, YYSYMBOL_compound_statement, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -1303,7 +1303,7 @@ block_item_list
       $$ = ast_node_new (ast, YYSYMBOL_block_item_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | block_item_list  block_item {
+  | block_item_list block_item {
       $$ = ast_node_new (ast, YYSYMBOL_block_item_list, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -1325,72 +1325,72 @@ expression_statement
       $$ = ast_node_new (ast, YYSYMBOL_expression_statement, 1);
       ast_node_children($$, 1, $1);
     }
-  | expression  SEMICOLON {
+  | expression SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_expression_statement, 2);
       ast_node_children($$, 2, $1, $2);
     }
   ;
 
 selection_statement
-  : IF  LPARENTHESIS  expression  RPARENTHESIS  statement  ELSE  statement {
+  : IF LPARENTHESIS expression RPARENTHESIS statement ELSE statement {
       $$ = ast_node_new (ast, YYSYMBOL_selection_statement, 7);
       ast_node_children($$, 7, $1, $2, $3, $4, $5, $6, $7);
     }
-  | IF  LPARENTHESIS  expression  RPARENTHESIS  statement {
+  | IF LPARENTHESIS expression RPARENTHESIS statement {
       $$ = ast_node_new (ast, YYSYMBOL_selection_statement, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | SWITCH  LPARENTHESIS  expression  RPARENTHESIS  statement {
+  | SWITCH LPARENTHESIS expression RPARENTHESIS statement {
       $$ = ast_node_new (ast, YYSYMBOL_selection_statement, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
   ;
 
 iteration_statement
-  : WHILE  LPARENTHESIS  expression  RPARENTHESIS  statement {
+  : WHILE LPARENTHESIS expression RPARENTHESIS statement {
       $$ = ast_node_new (ast, YYSYMBOL_iteration_statement, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
     }
-  | DO  statement  WHILE  LPARENTHESIS  expression  RPARENTHESIS  SEMICOLON {
+  | DO statement WHILE LPARENTHESIS expression RPARENTHESIS SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_iteration_statement, 7);
       ast_node_children($$, 7, $1, $2, $3, $4, $5, $6, $7);
     }
-  | FOR  LPARENTHESIS  expression_statement  expression_statement  RPARENTHESIS  statement {
+  | FOR LPARENTHESIS expression_statement expression_statement RPARENTHESIS statement {
       $$ = ast_node_new (ast, YYSYMBOL_iteration_statement, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
-  | FOR  LPARENTHESIS  expression_statement  expression_statement  expression  RPARENTHESIS  statement {
+  | FOR LPARENTHESIS expression_statement expression_statement expression RPARENTHESIS statement {
       $$ = ast_node_new (ast, YYSYMBOL_iteration_statement, 7);
       ast_node_children($$, 7, $1, $2, $3, $4, $5, $6, $7);
     }
-  | FOR  LPARENTHESIS  declaration  expression_statement  RPARENTHESIS  statement {
+  | FOR LPARENTHESIS declaration expression_statement RPARENTHESIS statement {
       $$ = ast_node_new (ast, YYSYMBOL_iteration_statement, 6);
       ast_node_children($$, 6, $1, $2, $3, $4, $5, $6);
     }
-  | FOR  LPARENTHESIS  declaration  expression_statement  expression  RPARENTHESIS  statement {
+  | FOR LPARENTHESIS declaration expression_statement expression RPARENTHESIS statement {
       $$ = ast_node_new (ast, YYSYMBOL_iteration_statement, 7);
       ast_node_children($$, 7, $1, $2, $3, $4, $5, $6, $7);
     }
   ;
 
 jump_statement
-  : GOTO  IDENTIFIER  SEMICOLON {
+  : GOTO IDENTIFIER SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_jump_statement, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
-  | CONTINUE  SEMICOLON {
+  | CONTINUE SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_jump_statement, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | BREAK  SEMICOLON {
+  | BREAK SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_jump_statement, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | RETURN  SEMICOLON {
+  | RETURN SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_jump_statement, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | RETURN  expression  SEMICOLON {
+  | RETURN expression SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_jump_statement, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -1410,7 +1410,7 @@ translation_unit
       $$ = ast_node_new (ast, YYSYMBOL_translation_unit, 1);
       ast_node_children($$, 1, $1);
     }
-  | translation_unit  external_declaration {
+  | translation_unit external_declaration {
       $$ = ast_node_new (ast, YYSYMBOL_translation_unit, 2);
       ast_node_children($$, 2, $1, $2);
     }
@@ -1428,11 +1428,11 @@ external_declaration
   ;
 
 function_definition
-  : declaration_specifiers  declarator  declaration_list  compound_statement {
+  : declaration_specifiers declarator declaration_list compound_statement {
       $$ = ast_node_new (ast, YYSYMBOL_function_definition, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | declaration_specifiers  declarator  compound_statement {
+  | declaration_specifiers declarator compound_statement {
       $$ = ast_node_new (ast, YYSYMBOL_function_definition, 3);
       ast_node_children($$, 3, $1, $2, $3);
     }
@@ -1443,7 +1443,7 @@ declaration_list
       $$ = ast_node_new (ast, YYSYMBOL_declaration_list, 1);
       ast_node_children($$, 1, $1);
     }
-  | declaration_list  declaration {
+  | declaration_list declaration {
       $$ = ast_node_new (ast, YYSYMBOL_declaration_list, 2);
       ast_node_children($$, 2, $1, $2);
     }

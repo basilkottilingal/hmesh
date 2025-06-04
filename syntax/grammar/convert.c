@@ -73,6 +73,10 @@ void strpool_reset () {
   strindex = strpool;
 }
 
+/*
+.. Return the next identifier token (rule name) or mid-rule/end-rule section.
+.. Return Null otherwise
+*/
 const char * identifier (int * c) {
 
   /* 
@@ -97,6 +101,9 @@ const char * identifier (int * c) {
 
   const char * id = strindex;
 
+  /*
+  .. an identifier (rule name)
+  */
   if( is_token (*c) ) {
     do {
       *strindex++ = (char) *c;
@@ -122,6 +129,9 @@ const char * identifier (int * c) {
     return id;
   }
 
+  /*
+  .. Single character lexer token inside single quote
+  */
   if ( *c == '\'' ) {
     const char * token = get_token (getchar());
     assert(token);
@@ -136,7 +146,8 @@ const char * identifier (int * c) {
 
 void read_rules ( void ) {
 
-  const char * child [32] = {NULL}, * csource [32] = {NULL}, 
+  const char * child [32] = {NULL}, 
+    //* csource [32] = {NULL}, 
     * id = NULL, * parent;
 
   strpool_reset ();
@@ -150,46 +161,93 @@ void read_rules ( void ) {
  
     do {
       separator = getchar();
-      int n = -1;
+      int n = 0, m = 0;
       for ( id = identifier( &separator ); id; id = identifier( &separator ) ) {
-        if (id[0] == '{') {
-          assert( child[n] );
-          csource[n] = id;
-        }
-        else {
-          child[++n] = id;
-          csource[n] = NULL;
-          if( !strcmp (id, "error") ) {
-            sprintf( strindex, "{ /*$$ = ast_node_new (YYSYMBOL_YYerror, 0); */ }" ); 
-            strindex += strlen (strindex) + 1;
-          }
-        }
+        child [m++] = id;
+        if ( id[0] != '{' ) 
+          ++n;
+        //else {
+        //  if( !strcmp (id, "error") ) {
+        //    child[m++] = strindex;
+        //    sprintf( strindex, "{ /*$$ = ast_node_new (YYSYMBOL_YYerror, 0); */ }" ); 
+        //    strindex += strlen (strindex) + 1;
+        //  }
+        //}
       }
-
-      if(!csource[n]) {
-        csource[n] = strindex;
-        sprintf( strindex, 
+      assert(n); // m>=n
+      /*
+      .. Define an end-rule section, say ERS, where you create an internal node 
+      .. for this rule, and connect it with it's children. 
+      */
+      child[m] = strindex;
+      sprintf( strindex, 
           "{\n      $$ = ast_node_new (ast, YYSYMBOL_%s, %d);"
           "\n      ast_node_children($$, %d",
-          parent, n+1, n+1 );
-        strindex += strlen (strindex);
-        for(int i=0; i <= n; ++i) {
+          parent, n, n );
+      strindex += strlen (strindex);
+      for(int i = 0; i < m; ++i) 
+        if (child[i][0] != '{' ) {
           sprintf( strindex, ", $%d", i+1); 
           strindex += strlen (strindex);
         }
-        sprintf( strindex, ");\n    }"); 
-        strindex += strlen (strindex) + 1;
+      sprintf( strindex, ");\n    }"); 
+      strindex += strlen (strindex) + 1;
+
+
+      if( child[m-1][0] != '{' ) {  
+        /* 
+        .. If there is no existing end-rule section, then ERS 
+        .. is taken as the end rule section.
+        */
+        m++;
       }
-      
-      for(int i=0; i <= n; ++i)
-        printf(" %s %s", child[i], csource[i] ? csource[i] : "");
+      else if ((m>2) && (child[m-2][0] == '{') ) {
+        if (child[m-3][0] != '{') {
+          /* 
+          .. If there are exactly two end-rule sections already
+          .. there, then insert ERS in between them.
+          .. It's designed such a way that ERS can be inserted 
+          .. before or after a pre-defined end-rule section.
+          .. How? Ex 1:  rule: ID {<PRE>} {      };
+          ..      Ex 2:  rule: ID {     } {<POST>};
+          ..      Ex 3:  rule: ID {<PRE>} {<POST>};
+          .. So things in PRE will preceed ERS and things
+          .. in POST will come after ERS
+          */ 
+          const char * temp = child[m];
+          child[m] = child[m-1]; 
+          child[m-1] = temp;
+          m++;
+          /* 
+          .. combine all the end-rules into a single one 
+          */
+          for (int k=m-2; k>=m-3; k--) {
+            int l = strlen (child[k]);
+            char * str = (char *) child[k];
+            assert(str[l-1] == '}');
+            str[l-1] = '\n';  
+          }
+
+          for (int k=m-2; k<=m-1; k++) {
+            char * str = (char *) child[k];
+            assert(str[0] == '{');
+            str[0] = '\n';  
+          }
+        }
+        
+      }
+      /*
+      .. In all other cases ERS won't be added. 
+      */
+     
+      /*
+      .. Reprint the rule with appropriate end-rule
+      */ 
+      for(int i=0; i < m; ++i)
+        printf(" %s", child[i]);
       printf("\n  %c", separator);
 
-      //assert( (separator == ';' || separator == '|' ) && ( ++n > 0 ) );
-      if( !( (separator == ';' || separator == '|' ) && ( ++n > 0 ) )) {
-        printf("-par%s %c-", parent, separator);
-        exit(-1);
-      }
+      assert( separator == ';' || separator == '|'  );
 
     } while ( separator != ';' && separator != EOF ); 
 
