@@ -392,9 +392,12 @@ WS  [ \t\v\n\f]
 
     _HashNode * h = hash_insert (ast->identifiers, id);
     ((_AstTNode *)node)->token = h->key;
+
+    if(!h->attr)
+      h->attr = AST_IDENTIFIER;
     
-    int sym = (h->attr == AST_IDENTIFIER) ? IDENTIFIER :
-      ((h->attr == AST_TYPEDEF) ? TYPEDEF_NAME : ENUMERATION_CONSTANT);
+    int sym = (h->attr == AST_TYPEDEF) ? TYPEDEF_NAME :
+      ((h->attr == AST_ENUM) ?  ENUMERATION_CONSTANT : IDENTIFIER);
 
     return (node->symbol = sym);
   }

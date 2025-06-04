@@ -202,7 +202,9 @@ ast_print (_Ast * ast) {
   int line = 0, column = 0;
   _AstLoc * loc;
 
-  AstNodeEachStart (ast, stack) 
+  _AstNode * root = &ast->root;
+
+  AstNodeEachStart (root, stack) 
     if (!node->child) {
 
       _AstTNode * t = (_AstTNode *) node;
@@ -240,5 +242,5 @@ ast_print (_Ast * ast) {
           column++;
       }
     }
-  AstNodeEachEnd (ast, stack) 
+  AstNodeEachEnd (stack) 
 }

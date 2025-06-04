@@ -84,12 +84,14 @@
   } _Ast;
 
   /*
-  .. AST (stack based) traversal : DFS - pre-order algorithm
-  .. fixme : implement a proper stack.
+  .. AST subtree traversal.
+  .. Use Stack based traversal & Not recursive.
+  .. WARNING : The root node passed (_root_) won't be traversed.
+  .. Algorithm : DFS - pre-order algorithm
   */
-  #define AstNodeEachStart(_ast_, _stack_) do {        \
+  #define AstNodeEachStart(_root_, _stack_) do {       \
     _stack_[ 0 ] = NULL;                               \
-    _stack_[ 1 ] = _ast_->root.child;                  \
+    _stack_[ 1 ] = _root_->child;                      \
     int _l_ = 1;                                       \
     while ( _l_ ) {                                    \
       while ( *_stack_[ _l_ ] ) {                      \
@@ -97,7 +99,7 @@
         _AstNode * node = _node_;                      \
         /* Do something with node */     
 
-  #define AstNodeEachEnd(_ast_, _stack_)               \
+  #define AstNodeEachEnd(_stack_)                      \
         /* Go right. .. But only                       \
         .. After covering all it's children */         \
         (_stack_[ _l_ ])++;                            \
@@ -118,9 +120,10 @@
   /*
   .. Identifer type. Encode this to hash->attr
   */
-  #define AST_IDENTIFIER NULL
-  #define AST_TYPEDEF    ((void *) -1)
-  #define ASt_ENUM       ((void *) -2)
+  #define AST_UNKNOWN    NULL
+  #define AST_IDENTIFIER ((void *) -1)
+  #define AST_TYPEDEF    ((void *) -2)
+  #define AST_ENUM       ((void *) -3)
   
   /*
   .. (a) initialize an AST. parameter is source code name
