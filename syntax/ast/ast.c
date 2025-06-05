@@ -64,13 +64,24 @@ _Ast * ast_init(const char * source) {
 
   ast->nodes = ast_pool ( sizeof (_AstNode) );
   ast->tnodes = ast_pool ( sizeof (_AstTNode) );
-  ast->identifiers = hash_table_init ();
+
+  ast->scope = 0;
+  ast->scopemax = 2;
+  ast->symbols = malloc ( 2 * sizeof (_HashTable *) );
+  
+  /* 
+  .. 1024 and 128 is the size of sym table @ scope 0 & 1 resp.
+  */
+  ast->symbols[0] = hash_table_init ( 10 ); 
+  ast->symbols[1] = hash_table_init ( 7 );
 
   return ast;
 }
 
 void ast_free ( _Ast * ast ) {
-  hash_table_free ( ast->identifiers );
+  for(int i=0; i<ast->scopemax; ++i)
+    hash_table_free ( ast->symbols[i] );
+  free (ast->symbols);
   ast_deallocate_all ();
 }
 
@@ -132,62 +143,6 @@ _AstNode *** ast_stack () {
   return _AST_STACK_;
 }
 
-#if 0
-void
-ast_print (_Ast * ast) {
- _AstNode *** stack = ast_stack();
-  if (!stack) {
-    fprintf (stderr, "ast_print() stack not available");
-    fflush(stderr);
-    exit (EXIT_FAILURE);
-  }
-  
-  const char * source = NULL;
-  const char * sp = NULL, * in [] = 
-    { "\n", "\n  ", "\n    ", "\n      ", "\n        ", " ", ""};          
-  int indent = 0, toggle = 1;
-
-  AstNodeEachStart (ast, stack) 
-    if (!node->child) {
-
-      _AstTNode * t = (_AstTNode *) node;
-      
-      if (source != t->loc.source) {
-        source = t->loc.source;
-        printf("\n#line %d \"%s\"\n", t->loc.line, source);
-        toggle = 0;
-      }
-
-      assert (t->token);
-      sp = toggle ? in[indent % 5] : in[5];
-      switch ( t->token[0] ) {
-        case '{' : 
-          toggle = 1; 
-          ++indent; 
-          break;
-        case '}' : 
-          toggle = 1; 
-          --indent; 
-          sp = in[indent % 5];
-          break;
-        case ';' : 
-          toggle = 1; 
-          break;
-        case  '.':
-          sp = in[6];
-          break;
-        default :
-          /* fixme : use YYSYMBOL_ELSE */
-          if(!strcmp ("else", t->token))
-            sp = in [indent%5];
-          toggle = 0;
-      }
-      printf ("%s%s", sp, t->token);
-    }
-  AstNodeEachEnd (ast, stack) 
-}
-#endif
-
 void
 ast_print (_Ast * ast) {
 
@@ -244,3 +199,19 @@ ast_print (_Ast * ast) {
     }
   AstNodeEachEnd (stack) 
 }
+
+/*
+.. Retag an identifer as TYPEDEF_NAME or ENUMERATION_CONSTANT 
+void ast_identifier_type (_Ast * ast, _AstNode * node, void * type) {
+  assert(!node->child);
+  _AstTNode * t = (_AstTNode *) node;
+  assert(t->token);
+  _HashNode * h = hash_lookup (ast->identifiers, t->token);
+  assert(h);
+  if ( h->attr != AST_IDENTIFIER ) {
+    fprintf(stderr, "parser error : name %s already exist", t->token);
+    return;
+  }
+  h->attr = type;
+}
+*/

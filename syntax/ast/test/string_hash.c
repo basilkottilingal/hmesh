@@ -26,7 +26,7 @@ const uint32_t hashes[] = {
 
 
 int main() {
-  _HashTable * t = hash_table_init();
+  _HashTable * t = hash_table_init( 10 ); // table with 2^10 slots
 
   /*
   .. Murmurhash3 testing. See the list below:
@@ -68,11 +68,11 @@ int main() {
   const size_t nkeys = sizeof(keys) / sizeof(keys[0]);
 
   for(size_t i=0; i<nkeys; ++i) { 
-    _HashNode * node = hash_insert ( t, keys[i]);
+    _HashNode * node = hash_insert ( t, keys[i], 0);
   }
 
   for(size_t i=0; i<nkeys; ++i) {
-    _HashNode * node = hash_lookup ( t, keys[i]);
+    _HashNode * node = hash_lookup ( t, keys[i], 0);
       if(node)
         fprintf(stdout, "\nCompare hashes: \"%s\", hash :%u, is same as %u ?", 
           node->key, node->hash, hashes[i]);
@@ -91,7 +91,7 @@ int main() {
   int nwords = 0;
   char word[128];
   while (fscanf(fp, "%127s", word) == 1) {
-    _HashNode * node = hash_insert ( t, word );
+    _HashNode * node = hash_insert ( t, word, 0 );
     ++nwords;
   }
   fclose(fp);

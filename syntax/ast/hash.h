@@ -48,20 +48,6 @@
 
   #include <memory.h>
 
-  /* 
-  .. default size of the hash table is 2^12 hash nodes. 
-  .. If set by user, make sure size is in [2^8, 2^20]
-  */
-  #ifndef   _H_AST_HASHTABLE_SIZE_
-    #define _H_AST_HASHTABLE_SIZE_   12      /* 2^12 = 4096 */
-  #elif     _H_AST_HASHTABLE_SIZE_ > 20
-    #undef  _H_AST_HASHTABLE_SIZE_ 
-    #define _H_AST_HASHTABLE_SIZE_   20      /* 2^20 */
-  #elif     _H_AST_HASHTABLE_SIZE_ < 8
-    #undef  _H_AST_HASHTABLE_SIZE_ 
-    #define _H_AST_HASHTABLE_SIZE_   8       /* 2^8 */
-  #endif
-
   /*
   .. Threshold load of hash table, after which 
   .. algo will try to double the table size.
@@ -73,8 +59,8 @@
   typedef struct _HashNode {
     struct _HashNode * next;
     const char *       key;
-    void *             attr;
     uint32_t           hash;
+    int                symbol;
   } _HashNode;
 
   typedef struct _HashTable {
@@ -83,22 +69,23 @@
     uint32_t           bits, 
                        inuse, 
                        threshold;
+                       //is_allocated_from_pool;
   } _HashTable;
 
   /* 
   .. following are the api functions.
-  .. (a) create a hash table with slot/index size == _H_AST_TABLESIZE_
-  .. (b) to insert a node whose key is the string 'key' 
-  .. (c) to look for  a node with key 'key' 
+  .. (a) create a hash table with slot or index size = 2^N
+  .. (b) to insert a node whose key is the string 'key' & symbol is 'sym' 
+  .. (c) to look for a node with key 'key' & symbol 'sym'
   .. (d) delete all key data related to the table.
   ..     NOTE : WARNING: the pool created for the hash nodes will
   ..     survive till you destruct all the memory blocks at the end
   ..     of the progrma using
   ..     ast_deallocate_all();
   */
-  extern _HashTable *  hash_table_init();
-  extern _HashNode *   hash_insert ( _HashTable *, const char * key);
-  extern _HashNode *   hash_lookup ( _HashTable *, const char * key);
+  extern _HashTable *  hash_table_init( unsigned int N );
+  extern _HashNode *   hash_insert ( _HashTable *, const char * key, int sym );
+  extern _HashNode *   hash_lookup ( _HashTable *, const char * key, int sym );
   extern void          hash_table_free ( _HashTable * );
 
 #endif

@@ -84,12 +84,12 @@ void ast_deallocate_all() {
 
 /*
 .. @ ast_allocate_general() : API function (preferred to be used
-.. internally) to allocate memory of size 'size' in [1, 4096]
+.. internally) to allocate memory of size 'size' in [1, 4*4096]
 .. NOTE : 'size' will be rounded off to 8 Byte alignement.
 */
 void * ast_allocate_general ( size_t size ) {
 
-  if(size > _AST_PAGE_SIZE_) {
+  if(size > 4*_AST_PAGE_SIZE_) {
     fprintf(stderr, "ast_allocate_general() : size too large");
     fflush(stderr);
     exit(EXIT_FAILURE);

@@ -285,7 +285,13 @@ constant_expression
 
 declaration
   : declaration_specifiers ';'
-  | declaration_specifiers init_declarator_list ';'
+  | declaration_specifiers init_declarator_list ';'  {} {
+      if(ast->flag) {
+        //ast_look_for_typedef_name($$, YYSYMBOL_dec);
+        //printf("/*look for typedef identifer(s)*/");
+        ast->flag = 0;
+      }
+    }
   | static_assert_declaration
   ;
 
@@ -314,6 +320,11 @@ init_declarator
 
 storage_class_specifier
   : TYPEDEF  /* identifiers must be flagged as TYPEDEF_NAME */
+    {}  {
+      /* Set this flag, so you look for the corresponding IDENTIFIER
+      .. later and re-tag its as a TYPEDEF_NAME*/
+      ast->flag = 1;
+    }
   | EXTERN
   | STATIC
   | THREAD_LOCAL

@@ -390,16 +390,25 @@ WS  [ \t\v\n\f]
   static 
   int check_type(_Ast * ast, const char * id, _AstNode * node) {
 
-    _HashNode * h = hash_insert (ast->identifiers, id);
+    _HashTable ** symbols = ast->symbols;
+
+    _HashNode * h = hash_insert (symbols[ast->scope], id, IDENTIFIER);
     ((_AstTNode *)node)->token = h->key;
 
-    if(!h->attr)
-      h->attr = AST_IDENTIFIER;
-    
-    int sym = (h->attr == AST_TYPEDEF) ? TYPEDEF_NAME :
-      ((h->attr == AST_ENUM) ?  ENUMERATION_CONSTANT : IDENTIFIER);
+    /*
+    .. fixme : It's completely useless implementation.
+    .. There should be a stack of hashtable for each scope.
+    .. There shouln't be any hash collision if identifiers are of different namespace 
+    .. ( i. enum, ii. common identifiers like functions & vars, iii. typedef)
+    .. or of different scopes.
+    .. There should be different provision for insert (during declaration)
+    .. or lookup (during non-declaration usages, like variable reassigning etc)
+    ..
+    .. ALso, this function should be more like
+    .. _AstNode * ast_identifier ( _Ast * ast, const char * id);
+    */
 
-    return (node->symbol = sym);
+    return (node->symbol = h->symbol);
   }
 
   int ast_getchar(_Ast * ast) {

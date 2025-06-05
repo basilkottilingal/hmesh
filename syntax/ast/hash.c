@@ -90,11 +90,14 @@ uint32_t hash ( const char * key, uint32_t len ) {
 .. Create a _HashTable which stores a hashtable and other metadata. 
 */
 
-_HashTable * hash_table_init () {
-  _HashTable * t  = malloc (sizeof(_HashTable));
+_HashTable * hash_table_init (unsigned int N) {
+  _HashTable * t  = ast_allocate_general (sizeof(_HashTable));
 
   t->pool  = ast_pool (sizeof (_HashNode));
-  uint32_t n = 1 << _H_AST_HASHTABLE_SIZE_;
+
+  N = N > 20 ? 20 : N;
+
+  uint32_t n = 1 << N;
   t->bits = n - 1;
   t->inuse = 0;
   _HashNode ** table = malloc(n * sizeof(_HashNode *));
@@ -120,7 +123,6 @@ _HashTable * hash_table_init () {
 void hash_table_free(_HashTable * t) {
   if(!t) return;
   free(t->table);
-  free(t);
 }
 
 /*
@@ -133,7 +135,7 @@ static int hash_table_resize (_HashTable * t) {
   assert ( t->table && t->inuse >= t->threshold );
   uint32_t n = t->bits + 1, N = n << 1;
 
-  _HashNode ** table = (N * sizeof(_HashNode *) > 1<<20) ? NULL :
+  _HashNode ** table = (N > 1<<20) ? NULL :
     realloc ( t->table, N * sizeof(_HashNode *));
 
   if(!table)
@@ -183,14 +185,14 @@ static int hash_table_resize (_HashTable * t) {
 .. look if a key exists
 */
 
-_HashNode * hash_lookup ( _HashTable * t, const char * key ) {
+_HashNode * hash_lookup ( _HashTable * t, const char * key, int symbol ) {
 
   uint32_t h = hash ( key, strlen(key) );
   uint32_t index = h & t->bits;
   _HashNode * node = t->table[index];
   while ( node ) {
     if ( h == node->hash )
-      if ( !strcmp (node->key, key) )
+      if ( !strcmp (node->key, key) && (symbol == node->symbol) )
         return node;
     node = node->next;
   }
@@ -200,14 +202,14 @@ _HashNode * hash_lookup ( _HashTable * t, const char * key ) {
 /*
 .. insert a key
 */
-_HashNode * hash_insert ( _HashTable * t, const char * key ) {
+_HashNode * hash_insert ( _HashTable * t, const char * key, int symbol ) {
 
   uint32_t h = hash ( key, strlen(key) );
   uint32_t index = h & t->bits;
   _HashNode * node = t->table[index];
   while ( node ) {
     if ( h == node->hash )
-      if ( !strcmp (node->key, key) )
+      if ( !strcmp (node->key, key) && (symbol == node->symbol) )
         return node;
     node = node->next;
   }
@@ -221,12 +223,10 @@ _HashNode * hash_insert ( _HashTable * t, const char * key ) {
   node->next = t->table[index];
   t->table[index] = node;
   node->hash = h;
-  node->attr = NULL;
   node->key  = ast_strdup(key);
+  node->symbol = symbol;
 
   t->inuse++;
 
   return node;
 }
-
-

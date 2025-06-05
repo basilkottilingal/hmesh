@@ -58,9 +58,19 @@
   
   /*
   .. structs for 
-  .. (a) an internal AST node which represents a grammaar rule.
-  .. (b) a terminal AST node which represents a token like keyword
-  .. (c) metadata of the AST tree 
+  .. (a) _AstNode : internal AST node which represents a grammar rule.
+  .. (b) _AstTnode : terminal AST node which represents a token like keyword
+  .. (c) _Ast : metadata of the AST tree
+  ..      ( 
+  ..        root : root node, loc : source code location, 
+  ..        nodes/tnodes : memory pool for allocating internal/terminal nodes,
+  ..        symbols : hashtable stack for symbol table of diff scope,
+  ..        scope :  current scope [0, scopemax),
+  ..        scopemax : size of identifiers stack,
+  ..        flag : encode something when you encounter a symbol/rule, 
+  ..          so it can trigger/neglect something later during parsing. 
+  ..          Don't forget to switch off the encode.
+  ..      )
   */
   typedef struct _AstNode {
     struct _AstNode * parent,
@@ -76,11 +86,12 @@
 
   typedef struct _Ast {
     _AstNode      root;
-    _AstNode *    iterator;
     _AstLoc       loc;
     _AstPool *    nodes;
     _AstPool *    tnodes;
-    _HashTable *  identifiers;
+    _HashTable ** symbols;
+    int           scope, scopemax;
+    int           flag;
   } _Ast;
 
   /*
@@ -118,25 +129,21 @@
   } while (0) ;
 
   /*
-  .. Identifer type. Encode this to hash->attr
-  */
-  #define AST_UNKNOWN    NULL
-  #define AST_IDENTIFIER ((void *) -1)
-  #define AST_TYPEDEF    ((void *) -2)
-  #define AST_ENUM       ((void *) -3)
-  
-  /*
   .. (a) initialize an AST. parameter is source code name
   .. (b) reset source location 
   .. (c) create a terminal node
   .. (d) create an internal node
-  .. (e) set children of an internal node.
-  .. (f) print ast back to C code. 
+  .. (e) set type (common identifier/typedef/enum) for an identifier 
+  .. (f) get type of an identifier
+  .. (g) set children of an internal node.
+  .. (h) print ast back to C code. 
   */
   extern _Ast *     ast_init ( const char * );
   extern void       ast_reset_source ( _Ast * , const char * );
   extern _AstNode * ast_tnode_new ( _Ast *, int, const char * );
-  extern _AstNode * ast_node_new (_Ast *, int, int );
+  extern _AstNode * ast_node_new ( _Ast *, int, int );
+  //extern void       ast_set_id_type ( _Ast *, const char *, int );
+  //extern int        ast_get_id_type ( _Ast *, const char * );
   extern void       ast_node_children (_AstNode *, int, ... );
   extern void       ast_print (_Ast * ast);
   

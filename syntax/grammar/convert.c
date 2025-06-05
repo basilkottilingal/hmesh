@@ -125,7 +125,7 @@ const char * identifier (int * c) {
         --scope;
     } while ( (*c = getchar()) != EOF && scope );
     *strindex++ = '\0';
-    *c = getchar();
+    //*c = getchar();
     return id;
   }
 
@@ -224,15 +224,9 @@ void read_rules ( void ) {
           for (int k=m-2; k>=m-3; k--) {
             int l = strlen (child[k]);
             char * str = (char *) child[k];
-            assert(str[l-1] == '}');
-            str[l-1] = '\n';  
+            str[l-1] = ' ';  
           }
-
-          for (int k=m-2; k<=m-1; k++) {
-            char * str = (char *) child[k];
-            assert(str[0] == '{');
-            str[0] = '\n';  
-          }
+          child[m-2]++, child[m-1]++;
         }
         
       }

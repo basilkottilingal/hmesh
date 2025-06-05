@@ -555,9 +555,15 @@ declaration
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 2);
       ast_node_children($$, 2, $1, $2);
     }
-  | declaration_specifiers init_declarator_list SEMICOLON {
+  | declaration_specifiers init_declarator_list SEMICOLON {  
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 3);
       ast_node_children($$, 3, $1, $2, $3);
+      
+      if(ast->flag) {
+        //ast_look_for_typedef_name($$, YYSYMBOL_dec);
+        //printf("/*look for typedef identifer(s)*/");
+        ast->flag = 0;
+      }
     }
   | static_assert_declaration {
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 1);
@@ -631,9 +637,13 @@ init_declarator
   ;
 
 storage_class_specifier
-  : TYPEDEF {
+  : TYPEDEF {  
       $$ = ast_node_new (ast, YYSYMBOL_storage_class_specifier, 1);
       ast_node_children($$, 1, $1);
+      
+      /* Set this flag, so you look for the corresponding IDENTIFIER
+      .. later and re-tag its as a TYPEDEF_NAME*/
+      ast->flag = 1;
     }
   | EXTERN {
       $$ = ast_node_new (ast, YYSYMBOL_storage_class_specifier, 1);
