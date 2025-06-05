@@ -287,8 +287,6 @@ declaration
   : declaration_specifiers ';'
   | declaration_specifiers init_declarator_list ';'  {} {
       if(ast->flag) {
-        //ast_look_for_typedef_name($$, YYSYMBOL_dec);
-        //printf("/*look for typedef identifer(s)*/");
         ast->flag = 0;
       }
     }
@@ -436,7 +434,15 @@ declarator
   ;
 
 direct_declarator
-  : IDENTIFIER
+  : IDENTIFIER {} {
+      if(ast->flag) {
+        const char * id = ((_AstTNode *) ($1))->token; 
+        _HashNode * h = 
+          hash_lookup (ast->symbols[ast->scope], id, IDENTIFIER);
+        assert(h);
+        //printf("<found %s>", id);
+      }
+    }
   | '(' declarator ')'
   | direct_declarator '[' ']'
   | direct_declarator '[' '*' ']'
@@ -685,7 +691,7 @@ declaration_list
     /*
     .. fixme: use status, to see if parser has exited properly
     */
-    ast_print (ast);
+    ast_print (ast, NULL);
 
     /*
     .. AST syntax check, analysis, etc

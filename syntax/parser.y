@@ -560,8 +560,6 @@ declaration
       ast_node_children($$, 3, $1, $2, $3);
       
       if(ast->flag) {
-        //ast_look_for_typedef_name($$, YYSYMBOL_dec);
-        //printf("/*look for typedef identifer(s)*/");
         ast->flag = 0;
       }
     }
@@ -936,9 +934,17 @@ declarator
   ;
 
 direct_declarator
-  : IDENTIFIER {
+  : IDENTIFIER {  
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 1);
       ast_node_children($$, 1, $1);
+      
+      if(ast->flag) {
+        const char * id = ((_AstTNode *) ($1))->token; 
+        _HashNode * h = 
+          hash_lookup (ast->symbols[ast->scope], id, IDENTIFIER);
+        assert(h);
+        //printf("<found %s>", id);
+      }
     }
   | LPARENTHESIS declarator RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 3);
@@ -1504,7 +1510,7 @@ declaration_list
     /*
     .. fixme: use status, to see if parser has exited properly
     */
-    ast_print (ast);
+    ast_print (ast, NULL);
 
     /*
     .. AST syntax check, analysis, etc

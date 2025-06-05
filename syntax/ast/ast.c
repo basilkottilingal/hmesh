@@ -144,7 +144,7 @@ _AstNode *** ast_stack () {
 }
 
 void
-ast_print (_Ast * ast) {
+ast_print (_Ast * ast, _AstNode * Root) {
 
  _AstNode *** stack = ast_stack();
   if (!stack) {
@@ -157,7 +157,13 @@ ast_print (_Ast * ast) {
   int line = 0, column = 0;
   _AstLoc * loc;
 
-  _AstNode * root = &ast->root;
+  _AstNode * root = Root ? Root : &ast->root;
+
+  if(!root->child)
+    /* 
+    .. There is nothing to print.
+    */
+    return;
 
   AstNodeEachStart (root, stack) 
     if (!node->child) {

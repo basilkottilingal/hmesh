@@ -55,6 +55,13 @@
       }                            \
     } while ( 0 );
 
+  /*
+  .. some flags for parser
+  */
+  #define AST_TYPEDEF_START() {ast->flag = 1;}    /* start looking for an identifier for typedef */
+  #define AST_TYPEDEF_END()   {ast->flag &= ~3;}  /* switch off looking */
+  #define AST_DECL_LIST()     {ast->flag |= (ast->flag & 1) << 1;}  
+  #define AST_ID_TYPEDEF()    (ast->flag & 2)    /* Is this identifier to be tagged as typedef*/
   
   /*
   .. structs for 
@@ -136,7 +143,7 @@
   .. (e) set type (common identifier/typedef/enum) for an identifier 
   .. (f) get type of an identifier
   .. (g) set children of an internal node.
-  .. (h) print ast back to C code. 
+  .. (h) print ast back to C code. Can be used to print a subtree of AST 
   */
   extern _Ast *     ast_init ( const char * );
   extern void       ast_reset_source ( _Ast * , const char * );
@@ -145,6 +152,6 @@
   //extern void       ast_set_id_type ( _Ast *, const char *, int );
   //extern int        ast_get_id_type ( _Ast *, const char * );
   extern void       ast_node_children (_AstNode *, int, ... );
-  extern void       ast_print (_Ast * ast);
+  extern void       ast_print (_Ast * ast, _AstNode * root);
   
 #endif
