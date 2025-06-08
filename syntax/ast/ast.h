@@ -55,13 +55,6 @@
       }                            \
     } while ( 0 );
 
-  /*
-  .. some flags for parser
-  */
-  #define AST_TYPEDEF_START() {ast->flag = 1;}    /* start looking for an identifier for typedef */
-  #define AST_TYPEDEF_END()   {ast->flag &= ~3;}  /* switch off looking */
-  #define AST_DECL_LIST()     {ast->flag |= (ast->flag & 1) << 1;}  
-  #define AST_ID_TYPEDEF()    (ast->flag & 2)    /* Is this identifier to be tagged as typedef*/
   
   /*
   .. structs for 
@@ -134,6 +127,51 @@
       --_l_;                                           \
     }                                                  \
   } while (0) ;
+
+  /*
+  .. See if the declaration is typedef. 
+  .. NOTE : this macro is expected to be used inside parser.y
+  .. as enums YYSYMBOL_*** are only accesible inside parser.c
+  */
+
+  #define AST_IS_TYPEDEF(_1_,_2_)                     \
+      if (_1_->child[0]->symbol == YYSYMBOL_storage_class_specifier && \
+          _1_->child[0]->child[0]->symbol == TYPEDEF) {       \
+        _AstNode * idl = _2_, ** id, * d = NULL, * dd = NULL;\
+        do {\
+          id = idl->child; \
+          if ((*id)->symbol == YYSYMBOL_init_declarator_list)  {\
+            idl = *id;\
+            id += 2;\
+          }\
+          else {\
+            idl = NULL;\
+          }\
+          d = (*id)->child[0]; \
+          do {\
+            if(!dd) dd = \
+  d->child[0]->symbol == YYSYMBOL_pointer ? d->child[1] :  d->child[0];\
+            if(dd->child[0]->symbol ==  IDENTIFIER) {\
+              _AstTNode * t = (_AstTNode *)dd->child[0];\
+              printf(" %s",t->token);\
+              _HashNode * h = \
+  hash_lookup (ast->symbols[ast->scope], t->token, IDENTIFIER);\
+              assert(h); \
+              /*h->symbol = TYPEDEF_NAME;*/\
+              break;\
+            }\
+            else if (dd->child[1]->symbol == YYSYMBOL_declarator){\
+              d = dd->child[1];\
+              dd = NULL; \
+            }\
+            else {\
+              dd = dd->child[0];\
+              assert(dd->symbol == YYSYMBOL_direct_declarator);\
+            }\
+          } while( d || dd );\
+        }while(idl);\
+      } 
+
 
   /*
   .. (a) initialize an AST. parameter is source code name

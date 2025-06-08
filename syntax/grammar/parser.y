@@ -284,11 +284,10 @@ constant_expression
   ;
 
 declaration
-  : declaration_specifiers ';'
+  : declaration_specifiers ';'  
   | declaration_specifiers init_declarator_list ';'  {} {
-      if(ast->flag) {
-        ast->flag = 0;
-      }
+      /* check if the declaration is typedef */
+      AST_IS_TYPEDEF ($1, $2); 
     }
   | static_assert_declaration
   ;
@@ -318,11 +317,6 @@ init_declarator
 
 storage_class_specifier
   : TYPEDEF  /* identifiers must be flagged as TYPEDEF_NAME */
-    {}  {
-      /* Set this flag, so you look for the corresponding IDENTIFIER
-      .. later and re-tag its as a TYPEDEF_NAME*/
-      ast->flag = 1;
-    }
   | EXTERN
   | STATIC
   | THREAD_LOCAL
@@ -434,15 +428,7 @@ declarator
   ;
 
 direct_declarator
-  : IDENTIFIER {} {
-      if(ast->flag) {
-        const char * id = ((_AstTNode *) ($1))->token; 
-        _HashNode * h = 
-          hash_lookup (ast->symbols[ast->scope], id, IDENTIFIER);
-        assert(h);
-        //printf("<found %s>", id);
-      }
-    }
+  : IDENTIFIER
   | '(' declarator ')'
   | direct_declarator '[' ']'
   | direct_declarator '[' '*' ']'

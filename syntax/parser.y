@@ -559,9 +559,8 @@ declaration
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 3);
       ast_node_children($$, 3, $1, $2, $3);
       
-      if(ast->flag) {
-        ast->flag = 0;
-      }
+      /* check if the declaration is typedef */
+      AST_IS_TYPEDEF ($1, $2); 
     }
   | static_assert_declaration {
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 1);
@@ -635,13 +634,9 @@ init_declarator
   ;
 
 storage_class_specifier
-  : TYPEDEF {  
+  : TYPEDEF {
       $$ = ast_node_new (ast, YYSYMBOL_storage_class_specifier, 1);
       ast_node_children($$, 1, $1);
-      
-      /* Set this flag, so you look for the corresponding IDENTIFIER
-      .. later and re-tag its as a TYPEDEF_NAME*/
-      ast->flag = 1;
     }
   | EXTERN {
       $$ = ast_node_new (ast, YYSYMBOL_storage_class_specifier, 1);
@@ -934,17 +929,9 @@ declarator
   ;
 
 direct_declarator
-  : IDENTIFIER {  
+  : IDENTIFIER {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 1);
       ast_node_children($$, 1, $1);
-      
-      if(ast->flag) {
-        const char * id = ((_AstTNode *) ($1))->token; 
-        _HashNode * h = 
-          hash_lookup (ast->symbols[ast->scope], id, IDENTIFIER);
-        assert(h);
-        //printf("<found %s>", id);
-      }
     }
   | LPARENTHESIS declarator RPARENTHESIS {
       $$ = ast_node_new (ast, YYSYMBOL_direct_declarator, 3);
