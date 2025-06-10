@@ -85,7 +85,7 @@
   */
   extern _HashTable *  hash_table_init( unsigned int N );
   extern _HashNode *   hash_insert ( _HashTable *, const char * key, int sym );
-  extern _HashNode *   hash_lookup ( _HashTable *, const char * key, int sym );
+  extern _HashNode *   hash_lookup ( _HashTable *, const char * key );
   extern void          hash_table_free ( _HashTable * );
 
 #endif

@@ -152,10 +152,10 @@ constant
   ;
 
 enumeration_constant
-  : IDENTIFIER {
+  : IDENTIFIER {  
       $$ = ast_node_new (ast, YYSYMBOL_enumeration_constant, 1);
       ast_node_children($$, 1, $1);
-    }
+       AST_ENUM ($1); }
   ;
 
 string
@@ -551,10 +551,10 @@ constant_expression
   ;
 
 declaration
-  : declaration_specifiers SEMICOLON {
+  : declaration_specifiers SEMICOLON {  
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 2);
       ast_node_children($$, 2, $1, $2);
-    }
+      printf("<DECL>");}
   | declaration_specifiers init_declarator_list SEMICOLON {  
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 3);
       ast_node_children($$, 3, $1, $2, $3);
@@ -1493,6 +1493,7 @@ declaration_list
     .. Parse all tokens and build AST in the process
     */
     int status = yyparse(ast);
+    (void) status;
 
     /*
     .. fixme: use status, to see if parser has exited properly

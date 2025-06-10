@@ -128,49 +128,67 @@
     }                                                  \
   } while (0) ;
 
+  #define AST_UNDECLARED -1
+
   /*
   .. See if the declaration is typedef. 
   .. NOTE : this macro is expected to be used inside parser.y
   .. as enums YYSYMBOL_*** are only accesible inside parser.c
   */
 
-  #define AST_IS_TYPEDEF(_1_,_2_)                     \
-      if (_1_->child[0]->symbol == YYSYMBOL_storage_class_specifier && \
-          _1_->child[0]->child[0]->symbol == TYPEDEF) {       \
-        _AstNode * idl = _2_, ** id, * d = NULL, * dd = NULL;\
-        do {\
-          id = idl->child; \
-          if ((*id)->symbol == YYSYMBOL_init_declarator_list)  {\
-            idl = *id;\
-            id += 2;\
-          }\
-          else {\
-            idl = NULL;\
-          }\
-          d = (*id)->child[0]; \
-          do {\
-            if(!dd) dd = \
-  d->child[0]->symbol == YYSYMBOL_pointer ? d->child[1] :  d->child[0];\
-            if(dd->child[0]->symbol ==  IDENTIFIER) {\
-              _AstTNode * t = (_AstTNode *)dd->child[0];\
-              printf(" %s",t->token);\
-              _HashNode * h = \
-  hash_lookup (ast->symbols[ast->scope], t->token, IDENTIFIER);\
-              assert(h); \
-              /*h->symbol = TYPEDEF_NAME;*/\
-              break;\
-            }\
-            else if (dd->child[1]->symbol == YYSYMBOL_declarator){\
-              d = dd->child[1];\
-              dd = NULL; \
-            }\
-            else {\
-              dd = dd->child[0];\
-              assert(dd->symbol == YYSYMBOL_direct_declarator);\
-            }\
-          } while( d || dd );\
-        }while(idl);\
-      } 
+  #define AST_IS_TYPEDEF(_1_,_2_)  { \
+      int type = (_1_->child[0]->symbol == YYSYMBOL_storage_class_specifier &&  \
+        _1_->child[0]->child[0]->symbol == TYPEDEF) ? TYPEDEF_NAME : IDENTIFIER;\
+      _AstNode * idl = _2_, ** id;                                              \
+      do {                                                                      \
+        id = idl->child;                                                        \
+        if ((*id)->symbol == YYSYMBOL_init_declarator_list)  {                  \
+          idl = *id;                                                            \
+          id += 2;                                                              \
+        }                                                                       \
+        else {                                                                  \
+          idl = NULL;                                                           \
+        }                                                                       \
+        _AstNode * d = (*id)->child[0], * dd = NULL;                            \
+        do {                                                                    \
+          if(!dd)                                                               \
+            dd =                                                                \
+  d->child[0]->symbol == YYSYMBOL_pointer ? d->child[1] :  d->child[0];         \
+          if(dd->child[0]->symbol == IDENTIFIER) {                              \
+            _AstTNode * t = (_AstTNode *)dd->child[0];                          \
+            fprintf(stderr, "[%s]",t->token);                                   \
+            _HashNode * h =                                                     \
+  hash_insert ( ast->symbols[ast->scope], t->token, -1 );                       \
+            if( !h )                                                            \
+  fprintf(stderr, "\nsymbol %s already declared in the current scope",          \
+    t->token);                                                                  \
+            else                                                                \
+              h->symbol = type;                                                 \
+            break;                                                              \
+          }                                                                     \
+          else if (dd->child[1]->symbol == YYSYMBOL_declarator) {               \
+            d = dd->child[1], dd = NULL;                                        \
+          }                                                                     \
+          else {                                                                \
+            dd = dd->child[0];                                                  \
+            assert(dd->symbol == YYSYMBOL_direct_declarator);                   \
+          }                                                                     \
+        } while( d || dd );                                                     \
+      }while(idl);                                                              \
+    }
+
+    /*
+    .. identifier is an enum constant
+    */ 
+    #define AST_ENUM(n) {\
+      const char * t = ((_AstTNode *) n)->token;                              \
+      _HashNode * h = hash_insert ( ast->symbols[ast->scope], t, -1 );        \
+      if(!h)                                                                  \
+        fprintf(stderr, "\nsymbol %s already declared in the current scope",  \
+          ((_AstTNode *) n)->token);                                          \
+      else                                                                    \
+        h->symbol = ENUMERATION_CONSTANT;                                     \
+    }
 
 
   /*

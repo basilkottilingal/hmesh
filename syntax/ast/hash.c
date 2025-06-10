@@ -185,14 +185,14 @@ static int hash_table_resize (_HashTable * t) {
 .. look if a key exists
 */
 
-_HashNode * hash_lookup ( _HashTable * t, const char * key, int symbol ) {
+_HashNode * hash_lookup ( _HashTable * t, const char * key ) {
 
   uint32_t h = hash ( key, strlen(key) );
   uint32_t index = h & t->bits;
   _HashNode * node = t->table[index];
   while ( node ) {
     if ( h == node->hash )
-      if ( !strcmp (node->key, key) && (symbol == node->symbol) )
+      if ( !strcmp (node->key, key) )
         return node;
     node = node->next;
   }
@@ -209,8 +209,13 @@ _HashNode * hash_insert ( _HashTable * t, const char * key, int symbol ) {
   _HashNode * node = t->table[index];
   while ( node ) {
     if ( h == node->hash )
-      if ( !strcmp (node->key, key) && (symbol == node->symbol) )
-        return node;
+      if ( !strcmp (node->key, key) ) {
+        /* 
+        .. return NULL if there exists another hash node but with a
+        .. different symbol. 
+        */
+        return node->symbol == symbol ?  node : NULL ;
+      }
     node = node->next;
   }
 

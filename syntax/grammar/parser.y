@@ -128,7 +128,7 @@ constant
   ;
 
 enumeration_constant    /* before it has been defined as such */
-  : IDENTIFIER
+  : IDENTIFIER          {} { AST_ENUM ($1); }
   ;
 
 string
@@ -284,7 +284,7 @@ constant_expression
   ;
 
 declaration
-  : declaration_specifiers ';'  
+  : declaration_specifiers ';' {} {printf("<DECL>");} 
   | declaration_specifiers init_declarator_list ';'  {} {
       /* check if the declaration is typedef */
       AST_IS_TYPEDEF ($1, $2); 
@@ -673,6 +673,7 @@ declaration_list
     .. Parse all tokens and build AST in the process
     */
     int status = yyparse(ast);
+    (void) status;
 
     /*
     .. fixme: use status, to see if parser has exited properly
