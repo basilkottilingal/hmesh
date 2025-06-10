@@ -155,7 +155,7 @@ enumeration_constant
   : IDENTIFIER {  
       $$ = ast_node_new (ast, YYSYMBOL_enumeration_constant, 1);
       ast_node_children($$, 1, $1);
-       AST_ENUM ($1); }
+       AST_TYPE ($1, ENUMERATION_CONSTANT); }
   ;
 
 string
@@ -551,16 +551,16 @@ constant_expression
   ;
 
 declaration
-  : declaration_specifiers SEMICOLON {  
+  : declaration_specifiers SEMICOLON {
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 2);
       ast_node_children($$, 2, $1, $2);
-      printf("<DECL>");}
+    }
   | declaration_specifiers init_declarator_list SEMICOLON {  
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 3);
       ast_node_children($$, 3, $1, $2, $3);
       
       /* check if the declaration is typedef */
-      AST_IS_TYPEDEF ($1, $2); 
+      AST_DECLARATION ($1, $2); 
     }
   | static_assert_declaration {
       $$ = ast_node_new (ast, YYSYMBOL_declaration, 1);
@@ -732,14 +732,14 @@ struct_or_union_specifier
       $$ = ast_node_new (ast, YYSYMBOL_struct_or_union_specifier, 4);
       ast_node_children($$, 4, $1, $2, $3, $4);
     }
-  | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE {
+  | struct_or_union IDENTIFIER LBRACE struct_declaration_list RBRACE {  
       $$ = ast_node_new (ast, YYSYMBOL_struct_or_union_specifier, 5);
       ast_node_children($$, 5, $1, $2, $3, $4, $5);
-    }
-  | struct_or_union IDENTIFIER {
+       AST_TYPE ($2, IDENTIFIER); }
+  | struct_or_union IDENTIFIER {  
       $$ = ast_node_new (ast, YYSYMBOL_struct_or_union_specifier, 2);
       ast_node_children($$, 2, $1, $2);
-    }
+       AST_TYPE ($2, IDENTIFIER); }
   ;
 
 struct_or_union

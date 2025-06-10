@@ -131,12 +131,12 @@
   #define AST_UNDECLARED -1
 
   /*
-  .. See if the declaration is typedef. 
+  .. See if the declaration is typedef/other 
   .. NOTE : this macro is expected to be used inside parser.y
   .. as enums YYSYMBOL_*** are only accesible inside parser.c
   */
 
-  #define AST_IS_TYPEDEF(_1_,_2_)  { \
+  #define AST_DECLARATION(_1_,_2_)  { \
       int type = (_1_->child[0]->symbol == YYSYMBOL_storage_class_specifier &&  \
         _1_->child[0]->child[0]->symbol == TYPEDEF) ? TYPEDEF_NAME : IDENTIFIER;\
       _AstNode * idl = _2_, ** id;                                              \
@@ -156,14 +156,12 @@
   d->child[0]->symbol == YYSYMBOL_pointer ? d->child[1] :  d->child[0];         \
           if(dd->child[0]->symbol == IDENTIFIER) {                              \
             _AstTNode * t = (_AstTNode *)dd->child[0];                          \
-            fprintf(stderr, "[%s]",t->token);                                   \
+            /* fprintf(stderr, "[%s]",t->token); */                             \
             _HashNode * h =                                                     \
   hash_insert ( ast->symbols[ast->scope], t->token, -1 );                       \
-            if( !h )                                                            \
-  fprintf(stderr, "\nsymbol %s already declared in the current scope",          \
-    t->token);                                                                  \
-            else                                                                \
+            if( h )                                                             \
               h->symbol = type;                                                 \
+            /* else { fprintf(stderr, "type exists"); }; */                     \
             break;                                                              \
           }                                                                     \
           else if (dd->child[1]->symbol == YYSYMBOL_declarator) {               \
@@ -178,16 +176,14 @@
     }
 
     /*
-    .. identifier is an enum constant
+    .. declare identifier is a type _TYPE_
     */ 
-    #define AST_ENUM(n) {\
-      const char * t = ((_AstTNode *) n)->token;                              \
-      _HashNode * h = hash_insert ( ast->symbols[ast->scope], t, -1 );        \
-      if(!h)                                                                  \
-        fprintf(stderr, "\nsymbol %s already declared in the current scope",  \
-          ((_AstTNode *) n)->token);                                          \
-      else                                                                    \
-        h->symbol = ENUMERATION_CONSTANT;                                     \
+    #define AST_TYPE(n, _TYPE_) {\
+      const char * t = ((_AstTNode *) n)->token;                                \
+      _HashNode * h = hash_insert ( ast->symbols[ast->scope], t, -1 );          \
+      if(h)                                                                     \
+        h->symbol = _TYPE_;                                                     \
+      /* else { fprintf(stderr, "type exists"); }; */                           \
     }
 
 

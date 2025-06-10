@@ -128,7 +128,7 @@ constant
   ;
 
 enumeration_constant    /* before it has been defined as such */
-  : IDENTIFIER          {} { AST_ENUM ($1); }
+  : IDENTIFIER          {} { AST_TYPE ($1, ENUMERATION_CONSTANT); }
   ;
 
 string
@@ -284,10 +284,10 @@ constant_expression
   ;
 
 declaration
-  : declaration_specifiers ';' {} {printf("<DECL>");} 
+  : declaration_specifiers ';' 
   | declaration_specifiers init_declarator_list ';'  {} {
       /* check if the declaration is typedef */
-      AST_IS_TYPEDEF ($1, $2); 
+      AST_DECLARATION ($1, $2); 
     }
   | static_assert_declaration
   ;
@@ -345,8 +345,9 @@ type_specifier
 
 struct_or_union_specifier
   : struct_or_union '{' struct_declaration_list '}'
-  | struct_or_union IDENTIFIER '{' struct_declaration_list '}'
-  | struct_or_union IDENTIFIER
+  | struct_or_union IDENTIFIER '{' struct_declaration_list '}' {}
+    { AST_TYPE ($2, IDENTIFIER); }
+  | struct_or_union IDENTIFIER {} { AST_TYPE ($2, IDENTIFIER); }
   ;
 
 struct_or_union
