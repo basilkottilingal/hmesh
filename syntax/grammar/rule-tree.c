@@ -16,13 +16,14 @@
 typedef struct _Rule {
   struct _Rule *** subrules;
   const char * name;
+  int n;
   int flag;
 } _Rule;
 
 enum RuleType {
   RULE_PARENT = 0,      /* Internal/root node  */
-  RULE_SOURCE_CODE = 1, /* { ... something.. } */
-  RULE_TOKEN = 2,       /* Token identifier    */
+  RULE_TOKEN = 1,       /* Token identifier    */
+  RULE_SOURCE_CODE = 2, /* { ... something.. } */
   RULE_TRAVERSED = 4,   /* flag set during traversal */
   RULE_DOESNT_HAVE_TYPEDEF_NAME = 8, 
   RULE_DOESNT_HAVE_ANY_IDENTIFIER = 16,
@@ -48,14 +49,28 @@ static void destroy () {
 }
 
 static _Rule * rule_allocate (const char * name) {
+
+  assert (nrules < 512);
+  if ( name[0] == '{' ) {
+fprintf(stderr, "-D-"); fflush(stderr);
+    _Rule * rule = Rules[ nrules++ ] = ast_allocate_general (sizeof (_Rule));
+fprintf(stderr, "-E-"); fflush(stderr);
+    rule->name = ast_strdup (name);
+fprintf(stderr, "-F-"); fflush(stderr);
+    rule->flag = RULE_SOURCE_CODE ;
+fprintf(stderr, "-G-"); fflush(stderr);
+    return rule;
+  }
+
   _HashNode * h =  hash_lookup (Table, name);
   if(h)
     return Rules[h->symbol];
-  assert (nrules < 512);
-  h = hash_insert (Table, name, nrules++);
+
+  h = hash_insert (Table, name, nrules);
   assert(h);
-  _Rule * rule = Rules[nrules-1] = ast_allocate_general (sizeof (_Rule));
+  _Rule * rule = Rules[ nrules++ ] = ast_allocate_general (sizeof (_Rule));
   rule->name = h->key;
+  rule->flag = RULE_TOKEN ;
   return rule;  
 }
 
@@ -195,7 +210,7 @@ const char * identifier (int * c) {
 void read_rules ( void ) {
 
   _Rule * rule, * chain [32] = {NULL}, ** subrules [32] = {NULL}; 
-   const char * id = NULL, * child [32], * parent = NULL;
+  const char * id = NULL, * child [32], * parent = NULL;
 
   strpool_reset ();
   int separator = getchar();
@@ -204,7 +219,7 @@ void read_rules ( void ) {
   
     rule = rule_allocate (parent);
     assert(rule && !rule->subrules);
-    fprintf(stderr, "\n%s\n  :", rule->name); fflush(stderr);
+    rule->flag = RULE_PARENT;
 
     printf("\n\n%s\n  :", parent); 
 
@@ -217,7 +232,6 @@ void read_rules ( void ) {
       int n = 0, m = 0;
       for ( id = identifier( &separator ); id; id = identifier( &separator ) ) {
         chain [m] = rule_allocate ( child [m] = id );
-        fprintf(stderr, "%s ", chain[m]->name); fflush(stderr);
         m++;
 
         if ( id[0] != '{' )
@@ -263,6 +277,7 @@ void read_rules ( void ) {
         .. If there is no existing end-rule section, then ERS 
         .. is taken as the end rule section.
         */
+        subrules[k-1][m] = rule_allocate ( child[m] );
         m++;
       }
       else if ((m>2) && (child[m-2][0] == '{') ) {
@@ -291,8 +306,13 @@ void read_rules ( void ) {
             str[l-1] = ' ';  
           }
           child[m-2]++, child[m-1]++;
+
+          sprintf(strindex, "%s%s%s", child[m-3], child[m-2], child[m-1]);
+          //nrules -= 2;
+          subrules[k-1][m-3]->name = ast_strdup ( strindex );
+          subrules[k-1][m-2] = NULL;
+          
         }
-        
       }
       /*
       .. In all other cases ERS won't be added. 
@@ -306,7 +326,6 @@ void read_rules ( void ) {
       printf("\n  %c", separator);
 
       assert( separator == ';' || separator == '|'  );
-      fprintf(stderr, "\n  %c", separator); fflush(stderr);
 
 
     } while ( separator != ';' && separator != EOF ); 
@@ -314,8 +333,10 @@ void read_rules ( void ) {
     separator = getchar();  
     strpool_reset ();
 
+    /* Create a set of subrules for this rule 'rule' */
     rule->subrules = ast_allocate_general ( (k+1) * sizeof (_Rule **));
     memcpy (rule->subrules, subrules, k * sizeof (_Rule **));
+    rule->n = k;
     rule->subrules[k] = NULL;
   }
 
@@ -323,6 +344,27 @@ void read_rules ( void ) {
   assert ( getchar() == '%' );
   printf("\n\n%%%%");
 
+}
+
+void print () {
+  for (int i=0; i<nrules; ++i) {
+    _Rule * rule = Rules[i];
+    if(rule && rule->subrules) {
+      _Rule *** subrule = rule->subrules, ** chain = NULL;
+      
+      fprintf(stderr, "\n%s\n  :", rule->name); fflush(stderr);
+      int k = rule->n;
+      while( (chain = *subrule++) ){
+        int n = 0;
+        k--;
+        while( chain[n] ) {
+          fprintf(stderr, "  %s", chain[n]->name);
+          ++n;
+        }
+        fprintf(stderr, "\n  %c", k ? '|' : ';' );
+      }
+    }
+  }
 }
 
 int main () {
@@ -350,6 +392,11 @@ int main () {
   .. Read all grammars that falls in %% and %%
   */
   read_rules ();
+
+  /*
+  .. 
+  */
+  print ();
 
   while ( (c = getchar ()) != EOF ) 
     putchar (c); 
