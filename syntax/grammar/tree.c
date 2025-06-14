@@ -1,78 +1,25 @@
 /*
-.. Convert "_parser.y" to "parser.y". "parser.y" is the same 
-.. as "_parser.y", but create internal ast nodes each time it
-.. encounters one. 
-..  $ gcc -o rule-tree rule-tree.c -L./../ast -last && ./rule-tree  < _parser.y > parser.y
-..  $ diff _parser.y parser.y
+.. "tree.c"
+.. 
+.. Create a new bison parser code from "./parser.y". The difference between the
+.. source and target is that, the target ".y" file creates internal node each 
+.. time bison parser detects a new rule.
+.. 
+.. Create a rule tree, in the process, whose root is "root".
+.. 
+.. Uses memory pool, string pool and  hash table in ../ast/libast.a
+.. So make sure ../ast/libast.a is upto-date
+..
+.. $ gcc -o tree tree.c -L./../ast -last && ./tree  < parser.y > _parser.y
+.. $ diff parser.y _parser.y
 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-#include "../ast/memory.h"
-#include "../ast/hash.h"
-
-typedef struct _Rule {
-  struct _Rule *** subrules;
-  const char * name;
-  int n;
-  int flag;
-} _Rule;
-
-enum RuleType {
-  RULE_PARENT = 0,      /* Internal/root node  */
-  RULE_TOKEN = 1,       /* Token identifier    */
-  RULE_SOURCE_CODE = 2, /* { ... something.. } */
-  RULE_TRAVERSED = 4,   /* flag set during traversal */
-  RULE_DOESNT_HAVE_TYPEDEF_NAME = 8, 
-  RULE_DOESNT_HAVE_ANY_IDENTIFIER = 16,
-  RULE_MAY_HAVE_EITHER = 32
-};
-
-_HashTable * Table = NULL;
-_Rule ** Rules = NULL;
-int nrules = 0;
-
-static void init () {
-  Table = hash_table_init (9);   //2^9 buckets
-  fprintf(stderr, "Table created "); fflush(stderr);
-  Rules = ast_allocate_general (512 * sizeof(_Rule *)); //max of 512 rules expected including 
-  fprintf(stderr, "Rules pool allocated "); fflush(stderr);
-  nrules = 0;
-  assert ( Table && Rules );
-}
-
-static void destroy () {
-  hash_table_free(Table);
-  ast_deallocate_all();
-}
-
-static _Rule * rule_allocate (const char * name) {
-
-  assert (nrules < 512);
-  if ( name[0] == '{' ) {
-fprintf(stderr, "-D-"); fflush(stderr);
-    _Rule * rule = Rules[ nrules++ ] = ast_allocate_general (sizeof (_Rule));
-fprintf(stderr, "-E-"); fflush(stderr);
-    rule->name = ast_strdup (name);
-fprintf(stderr, "-F-"); fflush(stderr);
-    rule->flag = RULE_SOURCE_CODE ;
-fprintf(stderr, "-G-"); fflush(stderr);
-    return rule;
-  }
-
-  _HashNode * h =  hash_lookup (Table, name);
-  if(h)
-    return Rules[h->symbol];
-
-  h = hash_insert (Table, name, nrules);
-  assert(h);
-  _Rule * rule = Rules[ nrules++ ] = ast_allocate_general (sizeof (_Rule));
-  rule->name = h->key;
-  rule->flag = RULE_TOKEN ;
-  return rule;  
-}
+#include "rules.h"
 
 /*
 .. Single character tokens 
@@ -340,31 +287,9 @@ void read_rules ( void ) {
     rule->subrules[k] = NULL;
   }
 
-  assert ( separator == '%' );
-  assert ( getchar() == '%' );
+  assert ( separator == '%' && getchar() == '%' );
   printf("\n\n%%%%");
 
-}
-
-void print () {
-  for (int i=0; i<nrules; ++i) {
-    _Rule * rule = Rules[i];
-    if(rule && rule->subrules) {
-      _Rule *** subrule = rule->subrules, ** chain = NULL;
-      
-      fprintf(stderr, "\n%s\n  :", rule->name); fflush(stderr);
-      int k = rule->n;
-      while( (chain = *subrule++) ){
-        int n = 0;
-        k--;
-        while( chain[n] ) {
-          fprintf(stderr, "  %s", chain[n]->name);
-          ++n;
-        }
-        fprintf(stderr, "\n  %c", k ? '|' : ';' );
-      }
-    }
-  }
 }
 
 int main () {
@@ -396,7 +321,8 @@ int main () {
   /*
   .. 
   */
-  print ();
+  //print ();
+  traverse ();
 
   while ( (c = getchar ()) != EOF ) 
     putchar (c); 
