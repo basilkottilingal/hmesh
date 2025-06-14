@@ -18,9 +18,8 @@ enum RuleType {
   RULE_TOKEN = 1,       /* Token identifier    */
   RULE_SOURCE_CODE = 2, /* { ... something.. } */
   RULE_TRAVERSED = 4,   /* flag set during traversal */
-  RULE_DOESNT_HAVE_TYPEDEF_NAME = 8, 
-  RULE_DOESNT_HAVE_ANY_IDENTIFIER = 16,
-  RULE_MAY_HAVE_EITHER = 32
+  RULE_HAVE_TYPEDEF_NAME = 8, 
+  RULE_HAVE_IDENTIFIER = 16
 };
 
 /*
@@ -120,7 +119,7 @@ void print () {
 */
 
 struct RuleStack {
-  _Rule * rule;
+  _Rule * rule, * parent;
   int i, j;
 } stack [ 128 ] ;
 
@@ -148,11 +147,16 @@ int push (int * level) {
       {
         stack[++(*level)] = 
           (struct RuleStack) {
+          .parent = rule,
           .rule = child,
           .i = 0, .j = 0
         };
         child->flag |= RULE_TRAVERSED;
         return 1;
+      }
+      else if (child->flag & RULE_TRAVERSED) {
+        rule->flag |= 
+          child->flag & (RULE_HAVE_TYPEDEF_NAME | RULE_HAVE_IDENTIFIER);
       }
     }
     (*i)++;
@@ -175,10 +179,15 @@ void traverse () {
     Rules[i]->flag &= ~RULE_TRAVERSED;
   }
 
-  _Rule * root = rule_allocate ("root");
+  _Rule * root = rule_allocate ("root"),
+    * TYPEDEF_NAME = rule_allocate ("TYPEDEF_NAME"),
+    * IDENTIFIER = rule_allocate ("IDENTIFIER");
+  TYPEDEF_NAME->flag |= RULE_HAVE_TYPEDEF_NAME;
+  IDENTIFIER->flag   |= RULE_HAVE_IDENTIFIER;
   assert( root && root->subrules );
   
   stack [0] = (struct RuleStack) {
+    .parent = NULL,
     .rule = root,
     .i = 0, .j = 0
   };
@@ -199,7 +208,15 @@ void traverse () {
     for(int i=0; i<level; ++i)
       fprintf(stderr,"  ");
     */
-    fprintf(stderr, "%s[%d]", stack[level].rule->name, level);
+    _Rule * rule = stack[level].rule, 
+      * parent = stack[level].parent; 
+    if(parent) {
+      parent->flag |= 
+        rule->flag & (RULE_HAVE_TYPEDEF_NAME | RULE_HAVE_IDENTIFIER);
+    }
+    fprintf(stderr, "\n%s[%d][t%d][i%d]", 
+      rule->name, level, rule->flag & RULE_HAVE_TYPEDEF_NAME,
+      rule->flag & RULE_HAVE_IDENTIFIER );
 
     /* Pop */
     pop( &level );
