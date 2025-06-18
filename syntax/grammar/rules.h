@@ -6,6 +6,25 @@
 #include "../ast/memory.h"
 #include "../ast/hash.h"
 
+/* 
+.. Limitations : 
+..  4096 chars per rule.
+..  16 symbols per rule 
+*/
+
+char strpool[4096];
+char * strindex = NULL;
+
+void strpool_reset () {
+  strindex = strpool;
+}
+
+#define STRING_APPEND(str, buff, ...)        \
+  do {                                       \
+    int n = sprintf(str,buff,##__VA_ARGS__); \
+    str += n;                                \
+  } while(0);
+
 typedef struct _Rule {
   struct _Rule *** subrules;
   const char * name;
@@ -170,7 +189,6 @@ void pop (int * level) {
   (*level)--;
 }
 
-
 extern
 void traverse () {
   int level = 0;
@@ -192,6 +210,9 @@ void traverse () {
     .i = 0, .j = 0
   };
 
+  char * symbols = strpool, * pool = strpool; 
+  STRING_APPEND(pool,"\n\nenum ast_symbols {");
+
   /*
   .. DFS, Post Order.
   .. Each instance, you go back up the chain, 
@@ -203,23 +224,25 @@ void traverse () {
     /* Go down till the max depth. */
     while ( push (&level) ) {};
 
-    /* Do something 
-    fprintf(stderr, "\n");
-    for(int i=0; i<level; ++i)
-      fprintf(stderr,"  ");
-    */
+    /* Do something */ 
     _Rule * rule = stack[level].rule, 
       * parent = stack[level].parent; 
     if(parent) {
       parent->flag |= 
         rule->flag & (RULE_HAVE_TYPEDEF_NAME | RULE_HAVE_IDENTIFIER);
     }
-    fprintf(stderr, "\n%s[%d][t%d][i%d]", 
-      rule->name, level, rule->flag & RULE_HAVE_TYPEDEF_NAME,
-      rule->flag & RULE_HAVE_IDENTIFIER );
+    fprintf(stderr, "\n%s[l %d][t %d][i %d]", 
+      rule->name, level, 
+      rule->flag & RULE_HAVE_TYPEDEF_NAME ? 1 : 0,
+      rule->flag & RULE_HAVE_IDENTIFIER ? 1 : 0);
+  
+    STRING_APPEND(pool,"\n  sym_%s", rule->name);
 
     /* Pop */
     pop( &level );
   }
+
+  STRING_APPEND(pool,"\n}");
+  fprintf(stderr, "%s", symbols);
 
 }

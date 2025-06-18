@@ -20,6 +20,17 @@
 ..    - hash : uint32_t
 */
 
+static
+_AstPool * pool = NULL;
+  
+struct _HashTable {
+  _HashNode ** table;
+  uint32_t n,
+           bits, 
+           inuse, 
+           threshold;
+};
+
 static inline 
 uint32_t hash ( const char * key, uint32_t len ) {
   	
@@ -90,28 +101,35 @@ uint32_t hash ( const char * key, uint32_t len ) {
 .. Create a _HashTable which stores a hashtable and other metadata. 
 */
 
-_HashTable * hash_table_init (unsigned int N) {
+_HashTable * hash_table_init ( unsigned int N ) {
   _HashTable * t  = ast_allocate_general (sizeof(_HashTable));
 
-  t->pool  = ast_pool (sizeof (_HashNode));
+  if(!pool)
+    pool = ast_pool ( sizeof (_HashNode) );
 
   N = N > 20 ? 20 : N;
 
   uint32_t n = 1 << N;
-  t->bits = n - 1;
-  t->inuse = 0;
   _HashNode ** table = malloc(n * sizeof(_HashNode *));
   if(!table) {
     fprintf(stderr, "hash_table_init() : couldn't create table");
     fflush(stderr);
     exit(EXIT_FAILURE);
   }
+
+  t->n     = n;
+  t->bits  = n - 1;
+  t->inuse = 0;
   t->table = table; 
   t->threshold = _H_AST_HASHTABLE_THRESHOLD_ * n;
   while(n--)
     table[n] = NULL; 
 
   return t;
+}
+
+void hash_deallocate_node ( _HashNode * node ) {
+  ast_deallocate_to ( pool, node );
 }
 
 /*
@@ -133,7 +151,7 @@ void hash_table_free(_HashTable * t) {
 static int hash_table_resize (_HashTable * t) {
 
   assert ( t->table && t->inuse >= t->threshold );
-  uint32_t n = t->bits + 1, N = n << 1;
+  uint32_t n = t->n, N = n << 1;
 
   _HashNode ** table = (N > 1<<20) ? NULL :
     realloc ( t->table, N * sizeof(_HashNode *));
@@ -145,6 +163,7 @@ static int hash_table_resize (_HashTable * t) {
     fprintf(stderr, "\nDoubling hash table size");
   #endif
   
+  t->n          = N; 
   t->bits      |= n;
   t->threshold *= 2;
   t->table      = table;
@@ -224,7 +243,7 @@ _HashNode * hash_insert ( _HashTable * t, const char * key, int symbol ) {
     index = h & t->bits;
   }
 
-  node = (_HashNode * ) ast_allocate_from (t->pool);
+  node = (_HashNode * ) ast_allocate_from (pool);
   node->next = t->table[index];
   t->table[index] = node;
   node->hash = h;

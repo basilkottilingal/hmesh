@@ -63,14 +63,7 @@
     int                symbol;
   } _HashNode;
 
-  typedef struct _HashTable {
-    _HashNode **       table;
-    _AstPool *         pool;
-    uint32_t           bits, 
-                       inuse, 
-                       threshold;
-                       //is_allocated_from_pool;
-  } _HashTable;
+  typedef struct _HashTable _HashTable;
 
   /* 
   .. following are the api functions.
@@ -82,10 +75,12 @@
   ..     survive till you destruct all the memory blocks at the end
   ..     of the progrma using
   ..     ast_deallocate_all();
+  .. (e) deallocate a hash node to pool ( & reuse later )
   */
   extern _HashTable *  hash_table_init( unsigned int N );
   extern _HashNode *   hash_insert ( _HashTable *, const char * key, int sym );
   extern _HashNode *   hash_lookup ( _HashTable *, const char * key );
   extern void          hash_table_free ( _HashTable * );
+  extern void          hash_deallocate_node ( _HashNode * );
 
 #endif

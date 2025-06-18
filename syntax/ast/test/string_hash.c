@@ -23,7 +23,7 @@ const uint32_t hashes[] = {
     3256841337, 1322743076, 3107807967, 311699825, 3191576, 3193017409, 1249588206,
     1363043438, 2903753601, 1083080571, 599296923, 1316706014
 };
-
+ 
 
 int main() {
   _HashTable * t = hash_table_init( 10 ); // table with 2^10 slots
@@ -72,7 +72,7 @@ int main() {
   }
 
   for(size_t i=0; i<nkeys; ++i) {
-    _HashNode * node = hash_lookup ( t, keys[i], 0);
+    _HashNode * node = hash_lookup ( t, keys[i]);
       if(node)
         fprintf(stdout, "\nCompare hashes: \"%s\", hash :%u, is same as %u ?", 
           node->key, node->hash, hashes[i]);
@@ -96,6 +96,7 @@ int main() {
   }
   fclose(fp);
 
+/*
   _HashNode ** table = t->table;
   fprintf(stdout, "\n %d scanned", nwords);
   for(size_t i=0; i<=t->bits; ++i)  {
@@ -110,7 +111,7 @@ int main() {
       }
     }
   }
-  
+*/
 
   hash_table_free(t);
   ast_deallocate_all();

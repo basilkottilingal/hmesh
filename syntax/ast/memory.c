@@ -9,13 +9,15 @@
 /*
 .. @ _AstPoolHandler : Datatype that stores all root information 
 ..    related to memory handling
+..    blocks : array of memory blocsk, nblocks : num of blocks,
+..    head & end: head and end of non-allocated part of memory block,
+..    str : current head of string allocator, nchar : available num
+..    of characters in the string allocator 
 */
 typedef struct {
   void ** blocks;
   int nblocks; 
   char * head;
-  _AstPool ** pools;
-  int npools; 
   char * str;
   size_t nchar;
 } _AstPoolHandler;
@@ -69,17 +71,9 @@ void ast_deallocate_all() {
     free(blocks[iblock]);
   free(blocks);
 
-  _AstPool ** pools = p->pools;
-  int ipool = p->npools;
-  while(ipool--)
-    free(pools[ipool]);
-  free(pools);
-
   p->blocks =  NULL;
   p->nblocks = 0; 
   p->head = NULL;
-  p->pools =  NULL;
-  p->npools = 0; 
 }
 
 /*
@@ -152,13 +146,7 @@ _AstPool * ast_pool (size_t size) {
     fflush(stderr);
   }
 
-  _AstPool * pool = malloc (sizeof(_AstPool));
-
-  _AstPoolHandler * p = &_ast_pool_;
-  p->npools++; 
-  p->pools = realloc (p->pools, (p->npools)* sizeof(_AstPool*));
-  p->pools[p->npools - 1] = pool;
-
+  _AstPool * pool = ast_allocate_general (sizeof(_AstPool));
   pool->size = size;
   pool->fhead = NULL;
 

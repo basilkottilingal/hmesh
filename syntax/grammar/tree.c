@@ -70,18 +70,6 @@ static inline const char *get_token(int c) {
 #define is_token(c) ( (c == '_') || \
   (c >= 'a' && c <= 'z')  || (c >= 'A' && c <= 'Z') )
 
-/* 
-.. Limitations : 
-..  4096 chars per rule.
-..  16 symbols per rule 
-*/
-char strpool[4096];
-char * strindex = NULL;
-
-static inline 
-void strpool_reset () {
-  strindex = strpool;
-}
 
 /*
 .. Return the next identifier token (rule name) or mid-rule/end-rule section.
