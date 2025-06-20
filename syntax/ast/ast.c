@@ -7,6 +7,7 @@
 #include <ast.h>
 #include <memory.h>
 #include <hash.h>
+#include <scope.h>
 
 /*
 .. Create an AST Node
@@ -65,23 +66,17 @@ _Ast * ast_init(const char * source) {
   ast->nodes = ast_pool ( sizeof (_AstNode) );
   ast->tnodes = ast_pool ( sizeof (_AstTNode) );
 
-  ast->scope = 0;
-  ast->scopemax = 2;
-  ast->symbols = malloc ( 2 * sizeof (_HashTable *) );
-  
-  /* 
-  .. 1024 and 128 is the size of sym table @ scope 0 & 1 resp.
-  */
-  ast->symbols[0] = hash_table_init ( 10 ); 
-  ast->symbols[1] = hash_table_init ( 7 );
+  ast->scope = scope_push ( NULL );
 
   return ast;
 }
 
 void ast_free ( _Ast * ast ) {
-  for(int i=0; i<ast->scopemax; ++i)
-    hash_table_free ( ast->symbols[i] );
-  free (ast->symbols);
+  _Scope * scope = ast->scope;
+  do {
+    hash_table_free ( scope->symbols );  
+  } while ( (scope = scope->parent) );
+
   ast_deallocate_all ();
 }
 

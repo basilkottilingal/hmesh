@@ -389,15 +389,14 @@ WS  [ \t\v\n\f]
   /* which type of identifier ? */
   static 
   int check_type(_Ast * ast, const char * id, _AstNode * node) {
-    _HashTable ** symbols = ast->symbols;
-    int scope = ast->scope;
+    _Scope * scope = ast->scope;
     _HashNode * h = NULL;
     do {
-      if( (h = hash_lookup (symbols[scope], id)) )  {
+      if( (h = hash_lookup (scope->symbols, id)) )  {
         ((_AstTNode *) node)->token = h->key;
         return ( node->symbol = h->symbol ); 
       }
-    } while (scope--);
+    } while ( (scope = scope->parent) );
     ((_AstTNode *)node)->token = ast_strdup (id) ;
     return ( node->symbol = IDENTIFIER ); 
   }

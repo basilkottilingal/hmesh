@@ -68,19 +68,19 @@
   /* 
   .. following are the api functions.
   .. (a) create a hash table with slot or index size = 2^N
-  .. (b) to insert a node whose key is the string 'key' & symbol is 'sym' 
-  .. (c) to look for a node with key 'key' & symbol 'sym'
-  .. (d) delete all key data related to the table.
+  .. (b) reset a hashtable. Also, recover all hash nodes back to pool.
+  .. (c) delete all key data related to the table.
   ..     NOTE : WARNING: the pool created for the hash nodes will
   ..     survive till you destruct all the memory blocks at the end
   ..     of the progrma using
   ..     ast_deallocate_all();
-  .. (e) deallocate a hash node to pool ( & reuse later )
+  .. (d) to insert a node whose key is the string 'key' & symbol is 'sym' 
+  .. (e) to look for a node with key 'key' & symbol 'sym'
   */
   extern _HashTable *  hash_table_init( unsigned int N );
+  extern void          hash_table_reset ( _HashTable * );
+  extern void          hash_table_free ( _HashTable * );
   extern _HashNode *   hash_insert ( _HashTable *, const char * key, int sym );
   extern _HashNode *   hash_lookup ( _HashTable *, const char * key );
-  extern void          hash_table_free ( _HashTable * );
-  extern void          hash_deallocate_node ( _HashNode * );
 
 #endif

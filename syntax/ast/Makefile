@@ -1,4 +1,4 @@
-SOURCE	= ast.c memory.c hash.c
+SOURCE	= memory.c hash.c scope.c ast.c
 
 CC99		= gcc -std=c99
 CFLAGS += -O2 -Wall -Wextra -I.

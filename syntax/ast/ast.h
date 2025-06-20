@@ -3,6 +3,7 @@
 
   #include <memory.h>
   #include <hash.h>
+  #include <scope.h>
 
   #ifndef _H_AST_STACK_SIZE_
     #define _H_AST_STACK_SIZE_ 128
@@ -64,9 +65,7 @@
   ..      ( 
   ..        root : root node, loc : source code location, 
   ..        nodes/tnodes : memory pool for allocating internal/terminal nodes,
-  ..        symbols : hashtable stack for symbol table of diff scope,
-  ..        scope :  current scope [0, scopemax),
-  ..        scopemax : size of identifiers stack,
+  ..        scope : current scope,
   ..        flag : encode something when you encounter a symbol/rule, 
   ..          so it can trigger/neglect something later during parsing. 
   ..          Don't forget to switch off the encode.
@@ -89,8 +88,7 @@
     _AstLoc       loc;
     _AstPool *    nodes;
     _AstPool *    tnodes;
-    _HashTable ** symbols;
-    int           scope, scopemax;
+    _Scope *      scope;
     int           flag;
   } _Ast;
 
@@ -158,7 +156,7 @@
             _AstTNode * t = (_AstTNode *)dd->child[0];                          \
             /* fprintf(stderr, "[%s]",t->token); */                             \
             _HashNode * h =                                                     \
-  hash_insert ( ast->symbols[ast->scope], t->token, -1 );                       \
+  hash_insert ( ast->scope->symbols, t->token, -1 );                            \
             if( h )                                                             \
               h->symbol = type;                                                 \
             /* else { fprintf(stderr, "type exists"); }; */                     \
@@ -180,7 +178,7 @@
     */ 
     #define AST_TYPE(n, _TYPE_) {\
       const char * t = ((_AstTNode *) n)->token;                                \
-      _HashNode * h = hash_insert ( ast->symbols[ast->scope], t, -1 );          \
+      _HashNode * h = hash_insert ( ast->scope->symbols, t, -1 );               \
       if(h)                                                                     \
         h->symbol = _TYPE_;                                                     \
       /* else { fprintf(stderr, "type exists"); }; */                           \

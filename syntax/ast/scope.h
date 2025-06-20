@@ -3,14 +3,18 @@
 
   #include <hash.h>
 
-  typedef struct _Scope _Scope;
+  typedef struct _Scope {
+    int depth;
+    _HashTable * symbols;
+    struct _Scope * parent, * child;
+  } _Scope;
 
   /*
   .. API funcs
   .. (a) create a new scope inside 'parent' scope
   .. (b) pop() from the scope 'scope'
   */
-  extern _Scope * scope_new ( _Scope * parent );
+  extern _Scope * scope_push ( _Scope * parent );
   extern _Scope * scope_pop ( _Scope * scope );
 
 #endif

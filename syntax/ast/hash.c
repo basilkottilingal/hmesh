@@ -128,8 +128,28 @@ _HashTable * hash_table_init ( unsigned int N ) {
   return t;
 }
 
+/*
 void hash_deallocate_node ( _HashNode * node ) {
   ast_deallocate_to ( pool, node );
+}
+*/
+
+void hash_table_reset ( _HashTable * t ) {
+  /*
+  .. Cost : O ( n ) |  n = table size. 
+  .. fixme : It's not recommended for resetting symbols table when
+  .. you pop a scope. 
+  */
+  int n = t->n;
+  _HashNode ** table = t->table;
+  _HashNode * h;
+  while (n--) {
+    while ( ( h = *table ) ) {
+      *table = h->next;
+      ast_deallocate_to ( pool, h );
+    }
+    ++table;
+  }
 }
 
 /*
