@@ -19,10 +19,10 @@ void strpool_reset () {
   strindex = strpool;
 }
 
-#define STRING_APPEND(str, buff, ...)        \
-  do {                                       \
-    int n = sprintf(str,buff,##__VA_ARGS__); \
-    str += n;                                \
+#define STRING_APPEND(str, buff, ...)          \
+  do {                                         \
+    int _n_ = sprintf(str,buff,##__VA_ARGS__); \
+    str += _n_;                                \
   } while(0);
 
 typedef struct _Rule {
@@ -33,13 +33,17 @@ typedef struct _Rule {
 } _Rule;
 
 enum RuleType {
-  RULE_PARENT = 0,      /* Internal/root node  */
-  RULE_TOKEN = 1,       /* Token identifier    */
-  RULE_SOURCE_CODE = 2, /* { ... something.. } */
-  RULE_TRAVERSED = 4,   /* flag set during traversal */
-  RULE_HAVE_TYPEDEF_NAME = 8, 
-  RULE_HAVE_IDENTIFIER = 16
+  RULE_PARENT = 0,       /* Internal/root node  */
+  RULE_TOKEN = 1,        /* Token identifier    */
+  RULE_SOURCE_CODE = 2,  /* { ... something.. } */
+  RULE_NOT_PLACE_HOLDER = 4, /* A parent rule with atleast one token as a leaf node */
+  RULE_TRAVERSED = 8,    /* flag set during traversal */
+  RULE_HAVE_TYPEDEF_NAME = 16, 
+  RULE_HAVE_IDENTIFIER = 32
 };
+
+#define NOT_PLACE_HOLDER(f) ( (( (f) & 3 ) == RULE_TOKEN) ? RULE_NOT_PLACE_HOLDER \
+  : (( (f) & 3 ) == RULE_SOURCE_CODE) ? 0 : ( (f) & RULE_NOT_PLACE_HOLDER ) )
 
 /*
 .. HashTable for rule names, and
@@ -110,6 +114,44 @@ _Rule * rule_allocate (const char * name) {
  
 }
 
+static
+const char * endrule ( const char * parent, _Rule ** chain ) {
+  int n = 0, m = 0, k = 0;
+  _Rule * child = NULL;
+  while( ( child = chain[n++] ) ) {
+    if ( NOT_PLACE_HOLDER (child->flag) )
+      k++;
+    if ( ( child->flag & 3 ) == RULE_SOURCE_CODE )
+      m++;
+    else
+      m = 0;
+  }
+  
+  if ( m == 1 || k == 0 )
+    return NULL;
+
+  assert ( m == 0 || m == 2 );
+
+  char * pool = strpool;
+    
+  STRING_APPEND ( pool, "%s", m == 2 ? chain[n-3]->name : "{" );
+  if( m == 2 )
+    --pool;
+  STRING_APPEND ( pool, "\n      $$ = ast_node_new (ast, YYSYMBOL_%s, %d);", parent, k );
+  STRING_APPEND ( pool, "\n      ast_node_children($$, %d", k );
+  n = 0;
+  while( ( child = chain[n++] ) ) {
+    if ( NOT_PLACE_HOLDER (child->flag) )
+      STRING_APPEND ( pool, ", $%d", n ); 
+  }
+  STRING_APPEND ( pool, ");%s", m == 2 ? chain[n-2]->name + 1 : "\n    }");
+
+  if( m == 2 )
+    chain[n-3] = NULL;
+
+  return strpool;
+}
+
 extern
 void print () {
   for (int i=0; i<nrules; ++i) {
@@ -117,16 +159,19 @@ void print () {
     if(rule && rule->subrules) {
       _Rule *** subrule = rule->subrules, ** chain = NULL;
       
-      fprintf(stderr, "\n\n%s[%d]\n  :", rule->name, rule->flag); fflush(stderr);
+      printf("\n\n%s /*%d*/\n  :", rule->name, NOT_PLACE_HOLDER (rule->flag)); 
       int k = rule->n;
       while( (chain = *subrule++) ){
+        const char * end = endrule (rule->name, chain);
         int n = 0;
         k--;
         while( chain[n] ) {
-          fprintf(stderr, "  %s", chain[n]->name);
+          printf(" %s", chain[n]->name);
           ++n;
         }
-        fprintf(stderr, "\n  %c", k ? '|' : ';' );
+        if ( end )
+          printf(" %s", end);
+        printf("\n  %c", k ? '|' : ';' );
       }
     }
   }
@@ -142,6 +187,18 @@ struct RuleStack {
   int i, j;
 } stack [ 128 ] ;
 
+static inline
+void pop (int * level) {
+  _Rule * rule = stack [ *level ].rule,
+    * parent = stack [ *level ].parent;
+     
+  if ( parent ) 
+    parent->flag |= NOT_PLACE_HOLDER (rule->flag) | 
+      (rule->flag & (RULE_HAVE_TYPEDEF_NAME | RULE_HAVE_IDENTIFIER));
+
+  (*level)--;
+}
+
 static
 int push (int * level) {
   _Rule * rule = stack[*level].rule;
@@ -156,37 +213,30 @@ int push (int * level) {
 
   _Rule *** subrules = rule->subrules, * child;
   while ( subrules[*i] ) {
-    while ( child = subrules[*i][(*j)++] ) {
+    while ( (child = subrules[*i][(*j)++]) ) {
       /* 
       .. Skip source code like {..something..}, and nodes
       .. already traversed
       */
-      if( ( child->flag & 3) != RULE_SOURCE_CODE  && 
-          ( child->flag & RULE_TRAVERSED ) == 0  ) 
-      {
+      if( ( child->flag & 3) != RULE_SOURCE_CODE ) {
         stack[++(*level)] = 
           (struct RuleStack) {
           .parent = rule,
           .rule = child,
           .i = 0, .j = 0
         };
-        child->flag |= RULE_TRAVERSED;
-        return 1;
+        if ( child->flag & RULE_TRAVERSED )
+          pop (level);
+        else {
+          child->flag |= RULE_TRAVERSED;
+          return 1;
+        }
       }
-      else if (child->flag & RULE_TRAVERSED) {
-        rule->flag |= 
-          child->flag & (RULE_HAVE_TYPEDEF_NAME | RULE_HAVE_IDENTIFIER);
-      }
+      
     }
-    (*i)++;
-    *j = 0;
+    (*i)++, *j = 0;
   }
   return 0;
-}
-
-static inline
-void pop (int * level) {
-  (*level)--;
 }
 
 extern
@@ -225,16 +275,7 @@ void traverse () {
     while ( push (&level) ) {};
 
     /* Do something */ 
-    _Rule * rule = stack[level].rule, 
-      * parent = stack[level].parent; 
-    if(parent) {
-      parent->flag |= 
-        rule->flag & (RULE_HAVE_TYPEDEF_NAME | RULE_HAVE_IDENTIFIER);
-    }
-    fprintf(stderr, "\n%s[l %d][t %d][i %d]", 
-      rule->name, level, 
-      rule->flag & RULE_HAVE_TYPEDEF_NAME ? 1 : 0,
-      rule->flag & RULE_HAVE_IDENTIFIER ? 1 : 0);
+    _Rule * rule = stack[level].rule; 
   
     STRING_APPEND(pool,"\n  sym_%s", rule->name);
 
@@ -246,3 +287,73 @@ void traverse () {
   fprintf(stderr, "%s", symbols);
 
 }
+
+        //else {
+        //  if( !strcmp (id, "error") ) {
+        //    child[m++] = strindex;
+        //    sprintf( strindex, "{ /*$$ = ast_node_new (YYSYMBOL_YYerror, 0); */ }" ); 
+        //    strindex += strlen (strindex) + 1;
+        //  }
+        //}
+
+      /*
+    fprintf(stderr, "\n%s[l %d][t %d][i %d]", 
+      rule->name, level, 
+      rule->flag & RULE_HAVE_TYPEDEF_NAME ? 1 : 0,
+      rule->flag & RULE_HAVE_IDENTIFIER ? 1 : 0);
+      .. Define an end-rule section, say ERS, where you create an internal node 
+      .. for this rule, and connect it with it's children. 
+      child[m] = strindex;
+      sprintf( strindex, 
+          "{\n      $$ = ast_node_new (ast, YYSYMBOL_%s, %d);"
+          "\n      ast_node_children($$, %d",
+          parent, n, n );
+      strindex += strlen (strindex);
+      for(int i = 0; i < m; ++i) 
+        if (child[i][0] != '{' ) {
+          sprintf( strindex, ", $%d", i+1); 
+          strindex += strlen (strindex);
+        }
+      sprintf( strindex, ");\n    }"); 
+      strindex += strlen (strindex) + 1;
+      */
+
+
+        /* 
+      if( child[m-1][0] != '{' ) {  
+        .. If there is no existing end-rule section, then ERS 
+        .. is taken as the end rule section.
+        //subrules[k-1][m] = rule_allocate ( child[m] );
+        //m++;
+      }
+      else if ((m>2) && (child[m-2][0] == '{') ) {
+        if (child[m-3][0] != '{') {
+          .. If there are exactly two end-rule sections already
+          .. there, then insert ERS in between them.
+          .. It's designed such a way that ERS can be inserted 
+          .. before or after a pre-defined end-rule section.
+          .. How? Ex 1:  rule: ID {<PRE>} {      };
+          ..      Ex 2:  rule: ID {     } {<POST>};
+          ..      Ex 3:  rule: ID {<PRE>} {<POST>};
+          .. So things in PRE will preceed ERS and things
+          .. in POST will come after ERS
+          const char * temp = child[m];
+          child[m] = child[m-1]; 
+          child[m-1] = temp;
+          m++;
+          .. combine all the end-rules into a single one 
+          for (int k=m-2; k>=m-3; k--) {
+            int l = strlen (child[k]);
+            char * str = (char *) child[k];
+            str[l-1] = ' ';  
+          }
+          child[m-2]++, child[m-1]++;
+
+          sprintf(strindex, "%s%s%s", child[m-3], child[m-2], child[m-1]);
+          subrules[k-1][m-3]->name = ast_strdup ( strindex );
+          subrules[k-1][m-2] = NULL;
+          
+        }
+      }
+      .. In all other cases ERS won't be added. 
+      */

@@ -73,6 +73,13 @@ _Ast * ast_init(const char * source) {
 
 void ast_free ( _Ast * ast ) {
   _Scope * scope = ast->scope;
+
+  while ( (scope = scope->child) ) {
+    hash_table_free ( scope->symbols );
+  }
+
+  scope = ast->scope; 
+
   do {
     hash_table_free ( scope->symbols );  
   } while ( (scope = scope->parent) );
@@ -107,7 +114,7 @@ ast_tnode_new (_Ast * ast, int symbol, const char * token) {
 }
 
 _AstNode *
-ast_node_new (_Ast * ast, int symbol, int n) {
+ast_node_new ( _Ast * ast, int symbol, int n ) {
   _AstNode * node = ast_allocate_from (ast->nodes);
   node->symbol = symbol;
   node->parent = NULL;

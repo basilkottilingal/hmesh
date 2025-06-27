@@ -75,7 +75,7 @@ static inline const char *get_token(int c) {
 .. Return the next identifier token (rule name) or mid-rule/end-rule section.
 .. Return Null otherwise
 */
-const char * identifier (int * c) {
+_Rule * identifier (int * c) {
 
   /* 
   .. remove all whitespaces and comment 
@@ -97,36 +97,6 @@ const char * identifier (int * c) {
     }
   }
 
-  const char * id = strindex;
-
-  /*
-  .. an identifier (rule name)
-  */
-  if( is_token (*c) ) {
-    do {
-      *strindex++ = (char) *c;
-    } while ( (*c = getchar()) != EOF && is_token (*c) );
-    *strindex++ = '\0';
-    return id;
-  }
-
-  if ( *c == '{' ) {
-    /*
-    .. warning : no brace expected inside string/char const
-    */
-    int scope = 0;
-    do {
-      *strindex++ = *c;
-      if ( *c == '{' )
-        ++scope;
-      else if (*c == '}') 
-        --scope;
-    } while ( (*c = getchar()) != EOF && scope );
-    *strindex++ = '\0';
-    //*c = getchar();
-    return id;
-  }
-
   /*
   .. Single character lexer token inside single quote
   */
@@ -135,7 +105,35 @@ const char * identifier (int * c) {
     assert(token);
     assert(getchar() == '\'');
     *c = getchar();
-    return token;
+    return rule_allocate (token) ;
+  }
+
+  char * id = strpool;
+
+  if ( *c == '{' ) {
+    int scope = 0, toggle = 0;
+    do {
+      *id++ = *c;
+      if ( *c == '{' && !toggle )
+        ++scope;
+      else if (*c == '}' && !toggle ) 
+        --scope;
+      else if (*c == '"')
+        toggle = !toggle;
+    } while ( (*c = getchar()) != EOF && scope );
+    *id++ = '\0';
+    return rule_allocate (strpool) ;
+  }
+
+  /*
+  .. an identifier (rule name)
+  */
+  if( is_token (*c) ) {
+    do {
+      *id++ = (char) *c;
+    } while ( (*c = getchar()) != EOF && is_token (*c) );
+    *id++ = '\0';
+    return rule_allocate (strpool) ;
   }
 
   return NULL;
@@ -145,138 +143,39 @@ const char * identifier (int * c) {
 void read_rules ( void ) {
 
   _Rule * rule, * chain [32] = {NULL}, ** subrules [32] = {NULL}; 
-  const char * id = NULL, * child [32], * parent = NULL;
 
-  strpool_reset ();
   int separator = getchar();
 
-  while ( (parent = identifier ( &separator )) != NULL ) { 
-  
-    rule = rule_allocate (parent);
-    assert(rule && !rule->subrules);
-    rule->flag = RULE_PARENT;
-
-    printf("\n\n%s\n  :", parent); 
-
+  while ( (rule = identifier ( &separator )) ) { 
     assert( !identifier( &separator ) && separator == ':' );
-    strindex = strpool + strlen (parent) + 1;
+    assert( !rule->subrules );
+    rule->flag = RULE_PARENT;
  
     int  k = 0;
     do {
       separator = getchar();
-      int n = 0, m = 0;
-      for ( id = identifier( &separator ); id; id = identifier( &separator ) ) {
-        chain [m] = rule_allocate ( child [m] = id );
-        m++;
-
-        if ( id[0] != '{' )
-          n++; 
-
-        //else {
-        //  if( !strcmp (id, "error") ) {
-        //    child[m++] = strindex;
-        //    sprintf( strindex, "{ /*$$ = ast_node_new (YYSYMBOL_YYerror, 0); */ }" ); 
-        //    strindex += strlen (strindex) + 1;
-        //  }
-        //}
-      }
-      assert(n); // m>=n
+      int n = 0;
+      while ( ( chain[n++] = identifier( &separator )) ) { };
+      assert(n > 1);
 
       /* Create a new sub rule from chain */
-      subrules[k] = ast_allocate_general ( (m+2) * sizeof (_Rule *));
-      memcpy ( subrules[k], chain, m * sizeof (_Rule *) );
-      subrules[k][m] = subrules[k][m+1] = NULL;
+      subrules[k] = ast_allocate_general ( n * sizeof (_Rule *));
+      memcpy ( subrules[k], chain, n * sizeof (_Rule *) );
       ++k;
 
-      /*
-      .. Define an end-rule section, say ERS, where you create an internal node 
-      .. for this rule, and connect it with it's children. 
-      */
-      child[m] = strindex;
-      sprintf( strindex, 
-          "{\n      $$ = ast_node_new (ast, YYSYMBOL_%s, %d);"
-          "\n      ast_node_children($$, %d",
-          parent, n, n );
-      strindex += strlen (strindex);
-      for(int i = 0; i < m; ++i) 
-        if (child[i][0] != '{' ) {
-          sprintf( strindex, ", $%d", i+1); 
-          strindex += strlen (strindex);
-        }
-      sprintf( strindex, ");\n    }"); 
-      strindex += strlen (strindex) + 1;
-
-
-      if( child[m-1][0] != '{' ) {  
-        /* 
-        .. If there is no existing end-rule section, then ERS 
-        .. is taken as the end rule section.
-        */
-        subrules[k-1][m] = rule_allocate ( child[m] );
-        m++;
-      }
-      else if ((m>2) && (child[m-2][0] == '{') ) {
-        if (child[m-3][0] != '{') {
-          /* 
-          .. If there are exactly two end-rule sections already
-          .. there, then insert ERS in between them.
-          .. It's designed such a way that ERS can be inserted 
-          .. before or after a pre-defined end-rule section.
-          .. How? Ex 1:  rule: ID {<PRE>} {      };
-          ..      Ex 2:  rule: ID {     } {<POST>};
-          ..      Ex 3:  rule: ID {<PRE>} {<POST>};
-          .. So things in PRE will preceed ERS and things
-          .. in POST will come after ERS
-          */ 
-          const char * temp = child[m];
-          child[m] = child[m-1]; 
-          child[m-1] = temp;
-          m++;
-          /* 
-          .. combine all the end-rules into a single one 
-          */
-          for (int k=m-2; k>=m-3; k--) {
-            int l = strlen (child[k]);
-            char * str = (char *) child[k];
-            str[l-1] = ' ';  
-          }
-          child[m-2]++, child[m-1]++;
-
-          sprintf(strindex, "%s%s%s", child[m-3], child[m-2], child[m-1]);
-          //nrules -= 2;
-          subrules[k-1][m-3]->name = ast_strdup ( strindex );
-          subrules[k-1][m-2] = NULL;
-          
-        }
-      }
-      /*
-      .. In all other cases ERS won't be added. 
-      */
-     
-      /*
-      .. Reprint the rule with appropriate end-rule
-      */ 
-      for(int i=0; i < m; ++i)
-        printf(" %s", child[i]);
-      printf("\n  %c", separator);
-
       assert( separator == ';' || separator == '|'  );
-
 
     } while ( separator != ';' && separator != EOF ); 
 
     separator = getchar();  
-    strpool_reset ();
 
     /* Create a set of subrules for this rule 'rule' */
     rule->subrules = ast_allocate_general ( (k+1) * sizeof (_Rule **));
     memcpy (rule->subrules, subrules, k * sizeof (_Rule **));
     rule->n = k;
-    rule->subrules[k] = NULL;
   }
 
   assert ( separator == '%' && getchar() == '%' );
-  printf("\n\n%%%%");
 
 }
 
@@ -309,9 +208,10 @@ int main () {
   /*
   .. 
   */
-  //print ();
   traverse ();
+  print ();
 
+  printf("\n\n%%%%");
   while ( (c = getchar ()) != EOF ) 
     putchar (c); 
 
