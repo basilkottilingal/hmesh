@@ -5,9 +5,8 @@ CFLAGS  += -I./ast
 #CFLAGS += -L./ast -last
 
 # Generater parser.y ( with ast ) from grammar/parser.y ( simpler )
-parser.y: grammar/parser.y grammar/convert.c
-	cd grammar && make convert 
-	./grammar/convert < grammar/parser.y > parser.y
+parser.y: grammar/parser.y grammar/rules.h grammar/tree.c
+	cd grammar && make rules 
 
 # Generate parser source
 parser.c parser.h: parser.y

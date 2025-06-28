@@ -124,6 +124,9 @@ ast_node_new ( _Ast * ast, int symbol, int n ) {
 
 void
 ast_node_children (_AstNode * node, int n, ... ) {
+  /*
+  .. fixme : replace this function with something without variable args
+  */
   va_list args;      
   va_start(args, n);
   _AstNode * child = NULL;
@@ -206,6 +209,14 @@ ast_print (_Ast * ast, _AstNode * Root) {
       }
     }
   AstNodeEachEnd (stack) 
+}
+
+void ast_push_scope ( _Ast * ast ) {
+  ast->scope = scope_push ( ast->scope ); 
+} 
+
+void ast_pop_scope ( _Ast * ast ) {
+  ast->scope = scope_pop ( ast->scope );
 }
 
 /*

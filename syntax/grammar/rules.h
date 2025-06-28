@@ -60,9 +60,7 @@ static int nrules = 0;
 extern
 void init () {
   Table = hash_table_init (9); 
-  fprintf(stderr, "Table created "); 
   Rules = ast_allocate_general (512 * sizeof(_Rule *)); 
-  fprintf(stderr, "Rules pool allocated "); 
   nrules = 0;
   assert ( Table && Rules );
 }
@@ -82,12 +80,6 @@ _Rule * rule_new () {
 extern
 _Rule * rule_allocate (const char * name) {
 
-  /*
-  .. Mid/end section rules like {..something..}
-  .. NOTE : WARNING: Mid section rules are not 
-  .. recommended as they may confuse bison and produce 
-  .. unexpected behavior.
-  */
   if ( name[0] == '{' ) {
     _Rule * rule = rule_new() ;
     rule->name = ast_strdup (name);
@@ -96,15 +88,13 @@ _Rule * rule_allocate (const char * name) {
   }
 
   /* 
-  .. See if the rule name is already created 
+  .. See if the rule name already exists.
+  .. If not found, create a new rule with this name
   */
   _HashNode * h =  hash_lookup (Table, name);
   if(h)
     return Rules[h->symbol];
 
-  /*
-  .. Create a new rule name if not found
-  */
   h = hash_insert (Table, name, nrules);
   assert(h);
   _Rule * rule = rule_new() ;
@@ -131,7 +121,6 @@ const char * endrule ( const char * parent, _Rule ** chain ) {
     return NULL;
 
   assert ( m == 0 || m == 2 );
-
   char * pool = strpool;
     
   STRING_APPEND ( pool, "%s", m == 2 ? chain[n-3]->name : "{" );
@@ -149,7 +138,7 @@ const char * endrule ( const char * parent, _Rule ** chain ) {
   if( m == 2 )
     chain[n-3] = NULL;
 
-  return strpool;
+  return ast_strdup (strpool);
 }
 
 extern
@@ -159,19 +148,17 @@ void print () {
     if(rule && rule->subrules) {
       _Rule *** subrule = rule->subrules, ** chain = NULL;
       
-      printf("\n\n%s /*%d*/\n  :", rule->name, NOT_PLACE_HOLDER (rule->flag)); 
-      int k = rule->n;
+      printf("\n\n%s\n  :", rule->name);
       while( (chain = *subrule++) ){
         const char * end = endrule (rule->name, chain);
         int n = 0;
-        k--;
         while( chain[n] ) {
           printf(" %s", chain[n]->name);
           ++n;
         }
         if ( end )
           printf(" %s", end);
-        printf("\n  %c", k ? '|' : ';' );
+        printf("\n  %c", *subrule ? '|' : ';' );
       }
     }
   }
@@ -191,7 +178,10 @@ static inline
 void pop (int * level) {
   _Rule * rule = stack [ *level ].rule,
     * parent = stack [ *level ].parent;
-     
+    
+  /*
+  .. Reduction of properties,
+  */ 
   if ( parent ) 
     parent->flag |= NOT_PLACE_HOLDER (rule->flag) | 
       (rule->flag & (RULE_HAVE_TYPEDEF_NAME | RULE_HAVE_IDENTIFIER));
@@ -261,6 +251,13 @@ void traverse () {
   };
 
   char * symbols = strpool, * pool = strpool; 
+  fprintf(stderr, 
+    "/*"
+    "\n.. created by syntax/grammar/tree.c."
+    "\n.. symbols appear in the order they are " 
+    "appeared in the DFS search of grammar tree created "
+    "\n.. according to syntax/grammar/parser.y"
+    "\n*/");
   STRING_APPEND(pool,"\n\nenum ast_symbols {");
 
   /*
@@ -287,73 +284,3 @@ void traverse () {
   fprintf(stderr, "%s", symbols);
 
 }
-
-        //else {
-        //  if( !strcmp (id, "error") ) {
-        //    child[m++] = strindex;
-        //    sprintf( strindex, "{ /*$$ = ast_node_new (YYSYMBOL_YYerror, 0); */ }" ); 
-        //    strindex += strlen (strindex) + 1;
-        //  }
-        //}
-
-      /*
-    fprintf(stderr, "\n%s[l %d][t %d][i %d]", 
-      rule->name, level, 
-      rule->flag & RULE_HAVE_TYPEDEF_NAME ? 1 : 0,
-      rule->flag & RULE_HAVE_IDENTIFIER ? 1 : 0);
-      .. Define an end-rule section, say ERS, where you create an internal node 
-      .. for this rule, and connect it with it's children. 
-      child[m] = strindex;
-      sprintf( strindex, 
-          "{\n      $$ = ast_node_new (ast, YYSYMBOL_%s, %d);"
-          "\n      ast_node_children($$, %d",
-          parent, n, n );
-      strindex += strlen (strindex);
-      for(int i = 0; i < m; ++i) 
-        if (child[i][0] != '{' ) {
-          sprintf( strindex, ", $%d", i+1); 
-          strindex += strlen (strindex);
-        }
-      sprintf( strindex, ");\n    }"); 
-      strindex += strlen (strindex) + 1;
-      */
-
-
-        /* 
-      if( child[m-1][0] != '{' ) {  
-        .. If there is no existing end-rule section, then ERS 
-        .. is taken as the end rule section.
-        //subrules[k-1][m] = rule_allocate ( child[m] );
-        //m++;
-      }
-      else if ((m>2) && (child[m-2][0] == '{') ) {
-        if (child[m-3][0] != '{') {
-          .. If there are exactly two end-rule sections already
-          .. there, then insert ERS in between them.
-          .. It's designed such a way that ERS can be inserted 
-          .. before or after a pre-defined end-rule section.
-          .. How? Ex 1:  rule: ID {<PRE>} {      };
-          ..      Ex 2:  rule: ID {     } {<POST>};
-          ..      Ex 3:  rule: ID {<PRE>} {<POST>};
-          .. So things in PRE will preceed ERS and things
-          .. in POST will come after ERS
-          const char * temp = child[m];
-          child[m] = child[m-1]; 
-          child[m-1] = temp;
-          m++;
-          .. combine all the end-rules into a single one 
-          for (int k=m-2; k>=m-3; k--) {
-            int l = strlen (child[k]);
-            char * str = (char *) child[k];
-            str[l-1] = ' ';  
-          }
-          child[m-2]++, child[m-1]++;
-
-          sprintf(strindex, "%s%s%s", child[m-3], child[m-2], child[m-1]);
-          subrules[k-1][m-3]->name = ast_strdup ( strindex );
-          subrules[k-1][m-2] = NULL;
-          
-        }
-      }
-      .. In all other cases ERS won't be added. 
-      */

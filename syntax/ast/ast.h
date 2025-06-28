@@ -190,8 +190,8 @@
   .. (b) reset source location 
   .. (c) create a terminal node
   .. (d) create an internal node
-  .. (e) set type (common identifier/typedef/enum) for an identifier 
-  .. (f) get type of an identifier
+  .. (e) new scope
+  .. (f) pop scope
   .. (g) set children of an internal node.
   .. (h) print ast back to C code. Can be used to print a subtree of AST 
   */
@@ -199,8 +199,8 @@
   extern void       ast_reset_source ( _Ast * , const char * );
   extern _AstNode * ast_tnode_new ( _Ast *, int, const char * );
   extern _AstNode * ast_node_new ( _Ast *, int, int );
-  //extern void       ast_set_id_type ( _Ast *, const char *, int );
-  //extern int        ast_get_id_type ( _Ast *, const char * );
+  extern void       ast_push_scope ( _Ast * );
+  extern void       ast_pop_scope ( _Ast * );
   extern void       ast_node_children (_AstNode *, int, ... );
   extern void       ast_print (_Ast * ast, _AstNode * root);
   
