@@ -5,6 +5,8 @@
 
   typedef struct _Scope {
     int depth;
+    int cleared;
+    int id;
     _HashTable * symbols;
     struct _Scope * parent, * child;
   } _Scope;
@@ -15,6 +17,7 @@
   .. (b) pop() from the scope 'scope'
   */
   extern _Scope * scope_push ( _Scope * parent );
-  extern _Scope * scope_pop ( _Scope * scope );
+  extern _Scope * scope_pop ( _Scope * scope, int );
+  extern void     scope_clear ( _Scope * scope );
 
 #endif

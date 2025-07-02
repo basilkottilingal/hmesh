@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <assert.h>
 
 #include <scope.h>
 #include <hash.h>
@@ -29,13 +30,26 @@ _Scope * scope_push ( _Scope * parent ) {
   return scope;
 }
 
-_Scope * scope_pop ( _Scope * scope ) {
+_Scope * scope_pop ( _Scope * scope, int clear) {
   /*
   .. fixme : not ideal. resetting hashtable is costly.
   .. Also, if hashtable has resized, it is recommended to 
   .. to shrink to the original size
   */
-  hash_table_reset ( scope->symbols );
+  if (clear)
+    hash_table_reset ( scope->symbols );
+  scope->cleared = clear;
   return scope->parent;
 }
 
+void scope_clear ( _Scope * scope ) {
+  /*
+  .. Reset child scope's symbol table
+  */
+  _Scope * child = scope->child;
+  assert ( child );
+  if ( !child->cleared ) {
+    hash_table_reset ( child->symbols );
+    child->cleared = 1;
+  }
+}

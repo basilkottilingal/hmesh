@@ -67,6 +67,7 @@ _Ast * ast_init(const char * source) {
   ast->tnodes = ast_pool ( sizeof (_AstTNode) );
 
   ast->scope = scope_push ( NULL );
+  ast->scope_id = 0;
 
   return ast;
 }
@@ -212,11 +213,16 @@ ast_print (_Ast * ast, _AstNode * Root) {
 }
 
 void ast_push_scope ( _Ast * ast ) {
-  ast->scope = scope_push ( ast->scope ); 
+  ast->scope = scope_push ( ast->scope );
+  ast->scope->id = ast->scope_id = ast->scope_id + (ast->cleared ? 0 : 1); 
 } 
 
-void ast_pop_scope ( _Ast * ast ) {
-  ast->scope = scope_pop ( ast->scope );
+void ast_pop_scope ( _Ast * ast, int clear) {
+  ast->scope = scope_pop ( ast->scope, clear );
+}
+
+void ast_clear_scope ( _Ast * ast ) {
+  scope_clear ( ast->scope );
 }
 
 /*

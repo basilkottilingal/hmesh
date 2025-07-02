@@ -38,7 +38,7 @@ enum RuleType {
   RULE_SOURCE_CODE = 2,  /* { ... something.. } */
   RULE_NOT_PLACE_HOLDER = 4, /* A parent rule with atleast one token as a leaf node */
   RULE_TRAVERSED = 8,    /* flag set during traversal */
-  RULE_HAVE_TYPEDEF_NAME = 16, 
+  RULE_HAVE_type_name = 16, 
   RULE_HAVE_IDENTIFIER = 32
 };
 
@@ -54,7 +54,9 @@ _Rule ** Rules = NULL;
 static int nrules = 0;
 
 /*
-.. Initialize (a) hash table with 2^9 = 512 slots, and (b) memory pool. 
+.. Initialize 
+.. (a) hash table with 2^9 = 512 slots, and 
+.. (b) memory pool. 
 .. NOTE : 512 max rule names expected.
 */
 extern
@@ -141,23 +143,49 @@ const char * endrule ( const char * parent, _Rule ** chain ) {
   return ast_strdup (strpool);
 }
 
+static
+void check_type (int * a, int * b, _Rule ** chain) {
+  int n = 0;
+  _Rule * child = NULL;
+  *a = *b = -1;
+  while( ( child = chain[n++] ) ) {
+    if ( child->flag & (RULE_HAVE_type_name |RULE_HAVE_IDENTIFIER) ) {
+      if (*a == -1)
+        *a = *b = n-1;
+      if ( child->flag & RULE_HAVE_type_name )
+        *b = n;
+    }
+  };
+
+}
+
+#define print_check_point(_i_,_a_,_b_)\
+  (_i_ == _b_) ? "/*>>*/ " : (_i_ == _a_) ? "/*>*/ " : ""
+
 extern
 void print () {
+
+  int a,b;
+
   for (int i=0; i<nrules; ++i) {
     _Rule * rule = Rules[i];
     if(rule && rule->subrules) {
       _Rule *** subrule = rule->subrules, ** chain = NULL;
       
-      printf("\n\n%s\n  :", rule->name);
+      printf("\n\n%s /*%s%s*/\n  :", rule->name, 
+        rule->flag & RULE_HAVE_type_name ? "t" : "", 
+        rule->flag & RULE_HAVE_IDENTIFIER ? "i" : "");
       while( (chain = *subrule++) ){
         const char * end = endrule (rule->name, chain);
+        check_type (&a, &b, chain);
         int n = 0;
         while( chain[n] ) {
+          printf(" %s", print_check_point(n,a,b));
           printf(" %s", chain[n]->name);
           ++n;
         }
-        if ( end )
-          printf(" %s", end);
+        //if ( end )
+        //  printf(" %s", end);
         printf("\n  %c", *subrule ? '|' : ';' );
       }
     }
@@ -184,7 +212,7 @@ void pop (int * level) {
   */ 
   if ( parent ) 
     parent->flag |= NOT_PLACE_HOLDER (rule->flag) | 
-      (rule->flag & (RULE_HAVE_TYPEDEF_NAME | RULE_HAVE_IDENTIFIER));
+      (rule->flag & (RULE_HAVE_type_name | RULE_HAVE_IDENTIFIER));
 
   (*level)--;
 }
@@ -237,12 +265,9 @@ void traverse () {
     Rules[i]->flag &= ~RULE_TRAVERSED;
   }
 
-  _Rule * root = rule_allocate ("root"),
-    * TYPEDEF_NAME = rule_allocate ("TYPEDEF_NAME"),
-    * IDENTIFIER = rule_allocate ("IDENTIFIER");
-  TYPEDEF_NAME->flag |= RULE_HAVE_TYPEDEF_NAME;
-  IDENTIFIER->flag   |= RULE_HAVE_IDENTIFIER;
-  assert( root && root->subrules );
+  _Rule * root = rule_allocate ("root");
+  rule_allocate ("type_name")->flag |= RULE_HAVE_type_name;
+  rule_allocate ("IDENTIFIER")->flag |= RULE_HAVE_IDENTIFIER;
   
   stack [0] = (struct RuleStack) {
     .parent = NULL,
@@ -251,13 +276,6 @@ void traverse () {
   };
 
   char * symbols = strpool, * pool = strpool; 
-  fprintf(stderr, 
-    "/*"
-    "\n.. created by syntax/grammar/tree.c."
-    "\n.. symbols appear in the order they are " 
-    "appeared in the DFS search of grammar tree created "
-    "\n.. according to syntax/grammar/parser.y"
-    "\n*/");
   STRING_APPEND(pool,"\n\nenum ast_symbols {");
 
   /*
@@ -271,9 +289,8 @@ void traverse () {
     /* Go down till the max depth. */
     while ( push (&level) ) {};
 
-    /* Do something */ 
+    /* Do something with rule*/ 
     _Rule * rule = stack[level].rule; 
-  
     STRING_APPEND(pool,"\n  sym_%s", rule->name);
 
     /* Pop */

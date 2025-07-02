@@ -184,7 +184,6 @@ int main () {
 
   int c, p = 0, pp = 0;
 
-  
   while ( (c = getchar ()) != EOF ) {
     if( ( pp = '\n' && c == '%' ) &&  p == '%' ) {
       putchar(c);
@@ -206,12 +205,17 @@ int main () {
   read_rules ();
 
   /*
-  .. 
+  .. Traverse through the tree. DFS post-order (for reduction)
+  .. Print Grammar with appropriate end-rule section 
   */
   traverse ();
+  traverse ();
   print ();
-
   printf("\n\n%%%%");
+
+  /*
+  .. flush the rest of parser.y to ../parser.y
+  */
   while ( (c = getchar ()) != EOF ) 
     putchar (c); 
 

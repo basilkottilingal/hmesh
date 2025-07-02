@@ -81,6 +81,7 @@
     _AstNode node;
     char *   token;
     _AstLoc  loc;
+    int      scope_id;
   } _AstTNode ;
 
   typedef struct _Ast {
@@ -90,6 +91,7 @@
     _AstPool *    tnodes;
     _Scope *      scope;
     int           flag;
+    int           scope_id;
   } _Ast;
 
   /*
@@ -191,16 +193,18 @@
   .. (c) create a terminal node
   .. (d) create an internal node
   .. (e) new scope
-  .. (f) pop scope
-  .. (g) set children of an internal node.
-  .. (h) print ast back to C code. Can be used to print a subtree of AST 
+  .. (f) pop scope ( may 'clear' the symbol table )
+  .. (g) clear current scope's child
+  .. (h) set children of an internal node.
+  .. (i) print ast back to C code. Can be used to print a subtree of AST 
   */
   extern _Ast *     ast_init ( const char * );
   extern void       ast_reset_source ( _Ast * , const char * );
   extern _AstNode * ast_tnode_new ( _Ast *, int, const char * );
   extern _AstNode * ast_node_new ( _Ast *, int, int );
   extern void       ast_push_scope ( _Ast * );
-  extern void       ast_pop_scope ( _Ast * );
+  extern void       ast_pop_scope ( _Ast *, int clear);
+  extern void       ast_clear_scope ( _Ast * );
   extern void       ast_node_children (_AstNode *, int, ... );
   extern void       ast_print (_Ast * ast, _AstNode * root);
   

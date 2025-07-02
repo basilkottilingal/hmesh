@@ -67,6 +67,7 @@ WS  [ \t\v\n\f]
 
   #include <ast.h>
   #include "parser.h"
+  #include "symbols.h"
 
   /* 
   .. The semantic type, YYSTYPE,  (which is 'int' by default),
