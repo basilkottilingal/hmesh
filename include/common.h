@@ -1,5 +1,13 @@
 /**
-..  TODO:
+..  TODO: 
+replace _Flag with int
+replace _Name to name
+replace NameFunc to name_func
+remove headers which are non C99 std
+reduce number of stdarg usages
+check mem alloc/dealloc of attributes
+tab before each line in between #ifndef #endif
+c extern
 */
 
 #ifndef _HEDGE_MESH_COMMON
@@ -15,15 +23,6 @@
 #include <errno.h>
 
 #include <stdint.h>
-
-/* 
-.. '_Flag' : used for unsigned numbers in the range [0,256), 
-..  (a) counting numbers < 256, 
-..  (b) error flags, 
-..  etc.
-*/
-typedef uint8_t _Flag;
-#define HMESH_FLAG_MAX UINT8_MAX
 
 /* 
 .. An "Array" is used to store dynamic data. You can create, 
