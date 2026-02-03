@@ -38,8 +38,12 @@ enum RuleType {
   RULE_SOURCE_CODE = 2,  /* { ... something.. } */
   RULE_NOT_PLACE_HOLDER = 4, /* A parent rule with atleast one token as a leaf node */
   RULE_TRAVERSED = 8,    /* flag set during traversal */
-  RULE_HAVE_type_name = 16, 
-  RULE_HAVE_IDENTIFIER = 32
+  RULE_HAVE_type_specifier = 16, 
+  RULE_HAVE_new_identifier = 32,
+  RULE_MAY_START_WITH_type_specifier = 64,
+  RULE_MAY_START_WITH_new_identifier = 128,
+  RULE_SHOULD_END_WITH_SYMBOL_LOOKUP = 256,
+  RULE_SHOULD_END_WITH_EXPECT_IDENTIFIER = 512
 };
 
 #define NOT_PLACE_HOLDER(f) ( (( (f) & 3 ) == RULE_TOKEN) ? RULE_NOT_PLACE_HOLDER \
@@ -143,24 +147,13 @@ const char * endrule ( const char * parent, _Rule ** chain ) {
   return ast_strdup (strpool);
 }
 
-static
-void check_type (int * a, int * b, _Rule ** chain) {
-  int n = 0;
-  _Rule * child = NULL;
-  *a = *b = -1;
-  while( ( child = chain[n++] ) ) {
-    if ( child->flag & (RULE_HAVE_type_name |RULE_HAVE_IDENTIFIER) ) {
-      if (*a == -1)
-        *a = *b = n-1;
-      if ( child->flag & RULE_HAVE_type_name )
-        *b = n;
-    }
-  };
-
+#define context_switch(_chain_,_i_) \
+if (_i_) {\
+  int f0 = _chain_[_i_-1]->flag, f1 = _chain_[_i_]->flag;\
+  if ( f1 & RULE_MAY_START_WITH_type_specifier ) \
+    printf("/*%s*/ ", \
+      f0 & (RULE_HAVE_new_identifier | RULE_HAVE_type_specifier) ? "!" : "_"); \
 }
-
-#define print_check_point(_i_,_a_,_b_)\
-  (_i_ == _b_) ? "/*>>*/ " : (_i_ == _a_) ? "/*>*/ " : ""
 
 extern
 void print () {
@@ -172,18 +165,23 @@ void print () {
     if(rule && rule->subrules) {
       _Rule *** subrule = rule->subrules, ** chain = NULL;
       
-      printf("\n\n%s /*%s%s*/\n  :", rule->name, 
-        rule->flag & RULE_HAVE_type_name ? "t" : "", 
-        rule->flag & RULE_HAVE_IDENTIFIER ? "i" : "");
+      printf("\n\n%s /*%s%s- %s%s*/\n  :", rule->name, 
+        rule->flag & RULE_HAVE_type_specifier ? "t" : "", 
+        rule->flag & RULE_HAVE_new_identifier ? "i" : "",
+        rule->flag & RULE_MAY_START_WITH_type_specifier ? "t" : "", 
+        rule->flag & RULE_MAY_START_WITH_new_identifier ? "i" : "");
       while( (chain = *subrule++) ){
         const char * end = endrule (rule->name, chain);
-        check_type (&a, &b, chain);
         int n = 0;
         while( chain[n] ) {
-          printf(" %s", print_check_point(n,a,b));
+          //printf(" %s", print_check_point(n,a,b));
+          //context_switch (chain, n);
           printf(" %s", chain[n]->name);
           ++n;
         }
+        if (rule->flag & RULE_SHOULD_END_WITH_SYMBOL_LOOKUP )
+          printf(" /* ? */");
+        //printf(" expect_identifier");
         //if ( end )
         //  printf(" %s", end);
         printf("\n  %c", *subrule ? '|' : ';' );
@@ -191,7 +189,17 @@ void print () {
     }
   }
 }
-  
+ 
+_Rule ** insert ( _Rule *** subrule, int * j ) {
+  _Rule ** chain = *subrule;
+  int k = 0, m = (*j)++;
+  while ( chain[k++] ) {};
+  _Rule ** new_chain = *subrule = 
+    ast_allocate_general( (k+1) * sizeof (_Rule *));
+  memcpy (new_chain, chain, m*sizeof(_Rule *));
+  memcpy (&new_chain[m+1], &chain[m+1], (k - m)*sizeof (_Rule *));
+  return &new_chain[m];
+}
   
 /*
 .. traverse() : DFS search, max rule tree depth is 128
@@ -202,17 +210,49 @@ struct RuleStack {
   int i, j;
 } stack [ 128 ] ;
 
+static int traversal_number = 0;
+
 static inline
 void pop (int * level) {
-  _Rule * rule = stack [ *level ].rule,
-    * parent = stack [ *level ].parent;
+  int l = *level, j = l ? (stack[l-1].j - 1) : 0, i = l ? stack[l-1].i : 0;
+  _Rule * rule = stack [l].rule, * parent = stack [l].parent,
+    * prev = (parent && j) ? parent->subrules[i][j-1] : NULL,
+    * next = parent ? parent->subrules[i][j+1] :  NULL;
     
   /*
   .. Reduction of properties,
-  */ 
-  if ( parent ) 
-    parent->flag |= NOT_PLACE_HOLDER (rule->flag) | 
-      (rule->flag & (RULE_HAVE_type_name | RULE_HAVE_IDENTIFIER));
+  */
+  switch ( traversal_number ) {
+    case 0 :
+    case 1 :
+      if ( parent ) { 
+        parent->flag |= NOT_PLACE_HOLDER (rule->flag) |
+          ( rule->flag & RULE_HAVE_type_specifier );
+        if ( strcmp (parent->name, "type_name") )
+          parent->flag |=  rule->flag & RULE_HAVE_new_identifier ;
+        if ( !j ) 
+          /* Applies only if 'rule' is the first in a chain */
+          parent->flag |= (rule->flag & 
+            (RULE_MAY_START_WITH_type_specifier | RULE_MAY_START_WITH_new_identifier) );
+      }
+      break;
+    case 2 :
+      if ( !prev )
+        break; 
+      int f0 = prev->flag, f1 = rule->flag;
+      if ( !( (f1 & RULE_MAY_START_WITH_type_specifier) &&
+            strcmp("type_specifier", prev->name ) ) )
+        if ( f0 & (RULE_HAVE_new_identifier | RULE_HAVE_type_specifier) )
+          prev->flag |= RULE_SHOULD_END_WITH_SYMBOL_LOOKUP;
+      break;
+    case 3:
+      if ( parent && !next ) {
+        /*
+        .. add end-rule
+        */
+      }
+      break;
+  }
 
   (*level)--;
 }
@@ -261,22 +301,27 @@ extern
 void traverse () {
   int level = 0;
   memset ( stack, 0, 128 * sizeof (struct RuleStack));
-  for (int i=0; i<nrules; ++i) {
+  for (int i=0; i<nrules; ++i)
     Rules[i]->flag &= ~RULE_TRAVERSED;
-  }
-
-  _Rule * root = rule_allocate ("root");
-  rule_allocate ("type_name")->flag |= RULE_HAVE_type_name;
-  rule_allocate ("IDENTIFIER")->flag |= RULE_HAVE_IDENTIFIER;
   
+  _Rule * root = rule_allocate ("root");
   stack [0] = (struct RuleStack) {
     .parent = NULL,
     .rule = root,
     .i = 0, .j = 0
   };
 
-  char * symbols = strpool, * pool = strpool; 
-  STRING_APPEND(pool,"\n\nenum ast_symbols {");
+  char * symbols = strpool, * pool = strpool;
+  (void) symbols;
+  (void) pool; 
+    
+  if ( !traversal_number ) { 
+    rule_allocate ("type_specifier")->flag |= 
+      ( RULE_HAVE_type_specifier | RULE_MAY_START_WITH_type_specifier );
+    rule_allocate ("new_identifier")->flag |= 
+      ( RULE_HAVE_new_identifier | RULE_MAY_START_WITH_new_identifier );
+    STRING_APPEND(pool,"\n\nenum ast_symbols {");
+  }
 
   /*
   .. DFS, Post Order.
@@ -290,14 +335,19 @@ void traverse () {
     while ( push (&level) ) {};
 
     /* Do something with rule*/ 
-    _Rule * rule = stack[level].rule; 
-    STRING_APPEND(pool,"\n  sym_%s", rule->name);
+    _Rule * rule = stack[level].rule;
+    (void) rule;
+    if ( !traversal_number )  
+      STRING_APPEND(pool,"\n  sym_%s", rule->name);
 
     /* Pop */
     pop( &level );
   }
 
-  STRING_APPEND(pool,"\n}");
-  fprintf(stderr, "%s", symbols);
+  if ( !traversal_number ) { 
+    STRING_APPEND(pool,"\n}");
+    fprintf(stderr, "%s", symbols);
+  }
 
+  traversal_number++;
 }

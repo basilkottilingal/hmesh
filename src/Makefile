@@ -14,7 +14,7 @@ $(OBJDIR)/%.o: %.c
 OBJECTS = $(patsubst %.c, $(OBJDIR)/%.o, $(SOURCE))
 
 libhmesh.a: $(OBJECTS) Makefile
-	ar -cr $@ $^
+	ar -cr $@ $(OBJECTS)
 
 all: libhmesh.a
 

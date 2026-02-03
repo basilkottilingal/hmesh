@@ -113,493 +113,515 @@
 %start  root
 %%
 
-primary_expression /*ti*/
-  : /*>>*/  IDENTIFIER
-  |  constant
-  |  string
-  |  LPARENTHESIS /*>*/  expression /*>>*/  RPARENTHESIS
-  | /*>*/  generic_selection
+new_identifier /*i- i*/
+  : IDENTIFIER /* ? */
   ;
 
-constant /**/
-  :  I_CONSTANT
-  |  F_CONSTANT
-  |  ENUMERATION_CONSTANT
+ambiguous_identifier /*- */
+  : IDENTIFIER
+  | ENUMERATION_CONSTANT
+  | TYPEDEF_NAME
   ;
 
-string /**/
-  :  STRING_LITERAL
-  |  FUNC_NAME
+primary_expression /*t- */
+  : IDENTIFIER
+  | constant
+  | string
+  | LPARENTHESIS expression RPARENTHESIS
+  | generic_selection
   ;
 
-expression /*ti*/
-  : /*>*/  assignment_expression
-  | /*>*/  expression  COMMA  assignment_expression
+constant /*- */
+  : I_CONSTANT
+  | F_CONSTANT
+  | ENUMERATION_CONSTANT
   ;
 
-generic_selection /*ti*/
-  :  GENERIC  LPARENTHESIS /*>*/  assignment_expression  COMMA  generic_assoc_list /*>>*/  RPARENTHESIS
+string /*- */
+  : STRING_LITERAL
+  | FUNC_NAME
   ;
 
-enumeration_constant /*i*/
-  : /*>>*/  IDENTIFIER
+expression /*t- */
+  : assignment_expression /* ? */
+  | expression COMMA assignment_expression /* ? */
   ;
 
-assignment_expression /*ti*/
-  : /*>*/  conditional_expression
-  | /*>*/  unary_expression  assignment_operator  assignment_expression
+generic_selection /*t- */
+  : GENERIC LPARENTHESIS assignment_expression COMMA generic_assoc_list RPARENTHESIS
   ;
 
-generic_assoc_list /*ti*/
-  : /*>*/  generic_association
-  | /*>*/  generic_assoc_list  COMMA  generic_association
+enumeration_constant /*i- i*/
+  : new_identifier /* ? */
   ;
 
-generic_association /*ti*/
-  : /*>*/  type_name  COLON  assignment_expression
-  |  DEFAULT  COLON /*>*/  assignment_expression
+assignment_expression /*t- */
+  : conditional_expression /* ? */
+  | unary_expression assignment_operator assignment_expression /* ? */
   ;
 
-type_name /*ti*/
-  : /*>*/  specifier_qualifier_list  abstract_declarator
-  | /*>*/  specifier_qualifier_list
+generic_assoc_list /*t- t*/
+  : generic_association /* ? */
+  | generic_assoc_list COMMA generic_association /* ? */
   ;
 
-postfix_expression /*ti*/
-  : /*>*/  primary_expression
-  | /*>*/  postfix_expression  LBRACKET  expression /*>>*/  RBRACKET
-  | /*>*/  postfix_expression /*>>*/  LPARENTHESIS  RPARENTHESIS
-  | /*>*/  postfix_expression  LPARENTHESIS  argument_expression_list /*>>*/  RPARENTHESIS
-  | /*>*/  postfix_expression /*>>*/  DOT  IDENTIFIER
-  | /*>*/  postfix_expression /*>>*/  PTR_OP  IDENTIFIER
-  | /*>*/  postfix_expression /*>>*/  INC_OP
-  | /*>*/  postfix_expression /*>>*/  DEC_OP
-  |  LPARENTHESIS /*>*/  type_name  RPARENTHESIS  LBRACE  initializer_list /*>>*/  RBRACE
-  |  LPARENTHESIS /*>*/  type_name  RPARENTHESIS  LBRACE  initializer_list /*>>*/  COMMA  RBRACE
+generic_association /*t- t*/
+  : type_name COLON assignment_expression
+  | DEFAULT COLON assignment_expression
   ;
 
-argument_expression_list /*ti*/
-  : /*>*/  assignment_expression
-  | /*>*/  argument_expression_list  COMMA  assignment_expression
+type_name /*t- t*/
+  : specifier_qualifier_list abstract_declarator /* ? */
+  | specifier_qualifier_list /* ? */
   ;
 
-initializer_list /*ti*/
-  : /*>*/  designation  initializer
-  | /*>*/  initializer
-  | /*>*/  initializer_list  COMMA  designation  initializer
-  | /*>*/  initializer_list  COMMA  initializer
+postfix_expression /*t- */
+  : primary_expression /* ? */
+  | postfix_expression LBRACKET expression RBRACKET /* ? */
+  | postfix_expression LPARENTHESIS RPARENTHESIS /* ? */
+  | postfix_expression LPARENTHESIS argument_expression_list RPARENTHESIS /* ? */
+  | postfix_expression DOT IDENTIFIER /* ? */
+  | postfix_expression PTR_OP IDENTIFIER /* ? */
+  | postfix_expression INC_OP /* ? */
+  | postfix_expression DEC_OP /* ? */
+  | LPARENTHESIS type_name RPARENTHESIS LBRACE initializer_list RBRACE /* ? */
+  | LPARENTHESIS type_name RPARENTHESIS LBRACE initializer_list COMMA RBRACE /* ? */
   ;
 
-unary_expression /*ti*/
-  : /*>*/  postfix_expression
-  |  INC_OP /*>*/  unary_expression
-  |  DEC_OP /*>*/  unary_expression
-  |  unary_operator /*>*/  cast_expression
-  |  SIZEOF /*>*/  unary_expression
-  |  SIZEOF  LPARENTHESIS /*>*/  type_name /*>>*/  RPARENTHESIS
-  |  ALIGNOF  LPARENTHESIS /*>*/  type_name /*>>*/  RPARENTHESIS
+argument_expression_list /*t- */
+  : assignment_expression /* ? */
+  | argument_expression_list COMMA assignment_expression /* ? */
   ;
 
-unary_operator /**/
-  :  AMPERSAND
-  |  STAR
-  |  PLUS
-  |  MINUS
-  |  TILDE
-  |  NOT
+initializer_list /*t- */
+  : designation initializer /* ? */
+  | initializer /* ? */
+  | initializer_list COMMA designation initializer /* ? */
+  | initializer_list COMMA initializer /* ? */
   ;
 
-cast_expression /*ti*/
-  : /*>*/  unary_expression
-  |  LPARENTHESIS /*>*/  type_name  RPARENTHESIS  cast_expression
+unary_expression /*t- */
+  : postfix_expression /* ? */
+  | INC_OP unary_expression /* ? */
+  | DEC_OP unary_expression /* ? */
+  | unary_operator cast_expression /* ? */
+  | SIZEOF unary_expression /* ? */
+  | SIZEOF LPARENTHESIS type_name RPARENTHESIS /* ? */
+  | ALIGNOF LPARENTHESIS type_name RPARENTHESIS /* ? */
   ;
 
-multiplicative_expression /*ti*/
-  : /*>*/  cast_expression
-  | /*>*/  multiplicative_expression  STAR  cast_expression
-  | /*>*/  multiplicative_expression  SLASH  cast_expression
-  | /*>*/  multiplicative_expression  PERCENT  cast_expression
+unary_operator /*- */
+  : AMPERSAND
+  | STAR
+  | PLUS
+  | MINUS
+  | TILDE
+  | NOT
   ;
 
-additive_expression /*ti*/
-  : /*>*/  multiplicative_expression
-  | /*>*/  additive_expression  PLUS  multiplicative_expression
-  | /*>*/  additive_expression  MINUS  multiplicative_expression
+cast_expression /*t- */
+  : unary_expression
+  | LPARENTHESIS type_name RPARENTHESIS cast_expression
   ;
 
-shift_expression /*ti*/
-  : /*>*/  additive_expression
-  | /*>*/  shift_expression  LEFT_OP  additive_expression
-  | /*>*/  shift_expression  RIGHT_OP  additive_expression
+multiplicative_expression /*t- */
+  : cast_expression /* ? */
+  | multiplicative_expression STAR cast_expression /* ? */
+  | multiplicative_expression SLASH cast_expression /* ? */
+  | multiplicative_expression PERCENT cast_expression /* ? */
   ;
 
-relational_expression /*ti*/
-  : /*>*/  shift_expression
-  | /*>*/  relational_expression  L_T  shift_expression
-  | /*>*/  relational_expression  G_T  shift_expression
-  | /*>*/  relational_expression  LE_OP  shift_expression
-  | /*>*/  relational_expression  GE_OP  shift_expression
+additive_expression /*t- */
+  : multiplicative_expression /* ? */
+  | additive_expression PLUS multiplicative_expression /* ? */
+  | additive_expression MINUS multiplicative_expression /* ? */
   ;
 
-equality_expression /*ti*/
-  : /*>*/  relational_expression
-  | /*>*/  equality_expression  EQ_OP  relational_expression
-  | /*>*/  equality_expression  NE_OP  relational_expression
+shift_expression /*t- */
+  : additive_expression /* ? */
+  | shift_expression LEFT_OP additive_expression /* ? */
+  | shift_expression RIGHT_OP additive_expression /* ? */
   ;
 
-and_expression /*ti*/
-  : /*>*/  equality_expression
-  | /*>*/  and_expression  AMPERSAND  equality_expression
+relational_expression /*t- */
+  : shift_expression /* ? */
+  | relational_expression L_T shift_expression /* ? */
+  | relational_expression G_T shift_expression /* ? */
+  | relational_expression LE_OP shift_expression /* ? */
+  | relational_expression GE_OP shift_expression /* ? */
   ;
 
-exclusive_or_expression /*ti*/
-  : /*>*/  and_expression
-  | /*>*/  exclusive_or_expression  CARET  and_expression
+equality_expression /*t- */
+  : relational_expression /* ? */
+  | equality_expression EQ_OP relational_expression /* ? */
+  | equality_expression NE_OP relational_expression /* ? */
   ;
 
-inclusive_or_expression /*ti*/
-  : /*>*/  exclusive_or_expression
-  | /*>*/  inclusive_or_expression  PIPE  exclusive_or_expression
+and_expression /*t- */
+  : equality_expression /* ? */
+  | and_expression AMPERSAND equality_expression /* ? */
   ;
 
-logical_and_expression /*ti*/
-  : /*>*/  inclusive_or_expression
-  | /*>*/  logical_and_expression  AND_OP  inclusive_or_expression
+exclusive_or_expression /*t- */
+  : and_expression /* ? */
+  | exclusive_or_expression CARET and_expression /* ? */
   ;
 
-logical_or_expression /*ti*/
-  : /*>*/  logical_and_expression
-  | /*>*/  logical_or_expression  OR_OP  logical_and_expression
+inclusive_or_expression /*t- */
+  : exclusive_or_expression /* ? */
+  | inclusive_or_expression PIPE exclusive_or_expression /* ? */
   ;
 
-conditional_expression /*ti*/
-  : /*>*/  logical_or_expression
-  | /*>*/  logical_or_expression  QUESTION  expression  COLON  conditional_expression
+logical_and_expression /*t- */
+  : inclusive_or_expression /* ? */
+  | logical_and_expression AND_OP inclusive_or_expression /* ? */
   ;
 
-assignment_operator /**/
-  :  EQUAL
-  |  MUL_ASSIGN
-  |  DIV_ASSIGN
-  |  MOD_ASSIGN
-  |  ADD_ASSIGN
-  |  SUB_ASSIGN
-  |  LEFT_ASSIGN
-  |  RIGHT_ASSIGN
-  |  AND_ASSIGN
-  |  XOR_ASSIGN
-  |  OR_ASSIGN
+logical_or_expression /*t- */
+  : logical_and_expression /* ? */
+  | logical_or_expression OR_OP logical_and_expression /* ? */
   ;
 
-constant_expression /*ti*/
-  : /*>*/  conditional_expression
+conditional_expression /*t- */
+  : logical_or_expression
+  | logical_or_expression QUESTION expression COLON conditional_expression
   ;
 
-declaration /*ti*/
-  : /*>*/  declaration_specifiers /*>>*/  SEMICOLON
-  | /*>*/  declaration_specifiers  init_declarator_list /*>>*/  SEMICOLON
-  | /*>*/  static_assert_declaration
+assignment_operator /*- */
+  : EQUAL
+  | MUL_ASSIGN
+  | DIV_ASSIGN
+  | MOD_ASSIGN
+  | ADD_ASSIGN
+  | SUB_ASSIGN
+  | LEFT_ASSIGN
+  | RIGHT_ASSIGN
+  | AND_ASSIGN
+  | XOR_ASSIGN
+  | OR_ASSIGN
   ;
 
-declaration_specifiers /*ti*/
-  :  storage_class_specifier /*>*/  declaration_specifiers
-  |  storage_class_specifier
-  | /*>*/  type_specifier  declaration_specifiers
-  | /*>*/  type_specifier
-  |  type_qualifier /*>*/  declaration_specifiers
-  |  type_qualifier
-  |  function_specifier /*>*/  declaration_specifiers
-  |  function_specifier
-  | /*>*/  alignment_specifier  declaration_specifiers
-  | /*>*/  alignment_specifier
+constant_expression /*t- */
+  : conditional_expression /* ? */
   ;
 
-init_declarator_list /*ti*/
-  : /*>*/  init_declarator
-  | /*>*/  init_declarator_list  COMMA  init_declarator
+declaration /*ti- t*/
+  : declaration_specifiers SEMICOLON /* ? */
+  | declaration_specifiers init_declarator_list SEMICOLON /* ? */
+  | static_assert_declaration /* ? */
   ;
 
-static_assert_declaration /*ti*/
-  :  STATIC_ASSERT  LPARENTHESIS /*>*/  constant_expression /*>>*/  COMMA  STRING_LITERAL  RPARENTHESIS  SEMICOLON
+declaration_specifiers /*ti- t*/
+  : storage_class_specifier declaration_specifiers /* ? */
+  | storage_class_specifier /* ? */
+  | type_specifier declaration_specifiers /* ? */
+  | type_specifier /* ? */
+  | type_qualifier declaration_specifiers /* ? */
+  | type_qualifier /* ? */
+  | function_specifier declaration_specifiers /* ? */
+  | function_specifier /* ? */
+  | alignment_specifier declaration_specifiers /* ? */
+  | alignment_specifier /* ? */
   ;
 
-storage_class_specifier /**/
-  :  TYPEDEF
-  |  EXTERN
-  |  STATIC
-  |  THREAD_LOCAL
-  |  AUTO
-  |  REGISTER
+init_declarator_list /*ti- i*/
+  : init_declarator /* ? */
+  | init_declarator_list COMMA init_declarator /* ? */
   ;
 
-type_specifier /*ti*/
-  :  VOID
-  |  CHAR
-  |  SHORT
-  |  INT
-  |  LONG
-  |  FLOAT
-  |  DOUBLE
-  |  SIGNED
-  |  UNSIGNED
-  |  BOOL
-  |  COMPLEX
-  |  IMAGINARY
-  | /*>*/  atomic_type_specifier
-  | /*>*/  struct_or_union_specifier
-  | /*>*/  enum_specifier
-  |  TYPEDEF_NAME
+static_assert_declaration /*t- */
+  : STATIC_ASSERT LPARENTHESIS constant_expression COMMA STRING_LITERAL RPARENTHESIS SEMICOLON
   ;
 
-type_qualifier /**/
-  :  CONST
-  |  RESTRICT
-  |  VOLATILE
-  |  ATOMIC
+storage_class_specifier /*- */
+  : TYPEDEF
+  | EXTERN
+  | STATIC
+  | THREAD_LOCAL
+  | AUTO
+  | REGISTER
   ;
 
-function_specifier /**/
-  :  INLINE
-  |  NORETURN
+type_specifier /*ti- t*/
+  : data_type expect_identifier /* ? */
   ;
 
-alignment_specifier /*ti*/
-  :  ALIGNAS  LPARENTHESIS /*>*/  type_name /*>>*/  RPARENTHESIS
-  |  ALIGNAS  LPARENTHESIS /*>*/  constant_expression /*>>*/  RPARENTHESIS
+type_qualifier /*- */
+  : CONST
+  | RESTRICT
+  | VOLATILE
+  | ATOMIC
   ;
 
-init_declarator /*ti*/
-  : /*>*/  declarator  EQUAL  initializer
-  | /*>*/  declarator
+function_specifier /*- */
+  : INLINE
+  | NORETURN
   ;
 
-declarator /*ti*/
-  :  pointer /*>*/  direct_declarator
-  | /*>*/  direct_declarator
+alignment_specifier /*t- */
+  : ALIGNAS LPARENTHESIS type_name RPARENTHESIS
+  | ALIGNAS LPARENTHESIS constant_expression RPARENTHESIS
   ;
 
-initializer /*ti*/
-  :  LBRACE /*>*/  initializer_list /*>>*/  RBRACE
-  |  LBRACE /*>*/  initializer_list /*>>*/  COMMA  RBRACE
-  | /*>*/  assignment_expression
+init_declarator /*ti- i*/
+  : declarator EQUAL initializer
+  | declarator
   ;
 
-atomic_type_specifier /*ti*/
-  :  ATOMIC  LPARENTHESIS /*>*/  type_name /*>>*/  RPARENTHESIS
+declarator /*ti- i*/
+  : pointer direct_declarator /* ? */
+  | direct_declarator /* ? */
   ;
 
-struct_or_union_specifier /*ti*/
-  :  struct_or_union  LBRACE /*>*/  struct_declaration_list /*>>*/  RBRACE
-  |  struct_or_union /*>*/  IDENTIFIER  LBRACE  struct_declaration_list /*>>*/  RBRACE
-  |  struct_or_union /*>>*/  IDENTIFIER
+initializer /*t- */
+  : LBRACE initializer_list RBRACE
+  | LBRACE initializer_list COMMA RBRACE
+  | assignment_expression
   ;
 
-enum_specifier /*ti*/
-  :  ENUM  LBRACE /*>*/  enumerator_list /*>>*/  RBRACE
-  |  ENUM  LBRACE /*>*/  enumerator_list /*>>*/  COMMA  RBRACE
-  |  ENUM /*>*/  IDENTIFIER  LBRACE  enumerator_list /*>>*/  RBRACE
-  |  ENUM /*>*/  IDENTIFIER  LBRACE  enumerator_list /*>>*/  COMMA  RBRACE
-  |  ENUM /*>>*/  IDENTIFIER
+expect_type /*- */
+  : { ast->flag = LOOK_SYMBOL_TABLE; }
   ;
 
-struct_or_union /**/
-  :  STRUCT
-  |  UNION
+expect_identifier /*- */
+  : { ast->flag = EXPECT_IDENTIFIER; }
   ;
 
-struct_declaration_list /*ti*/
-  : /*>*/  struct_declaration
-  | /*>*/  struct_declaration_list  struct_declaration
+data_type /*ti- */
+  : VOID /* ? */
+  | CHAR /* ? */
+  | SHORT /* ? */
+  | INT /* ? */
+  | LONG /* ? */
+  | FLOAT /* ? */
+  | DOUBLE /* ? */
+  | SIGNED /* ? */
+  | UNSIGNED /* ? */
+  | BOOL /* ? */
+  | COMPLEX /* ? */
+  | IMAGINARY /* ? */
+  | atomic_type_specifier /* ? */
+  | struct_or_union_specifier /* ? */
+  | enum_specifier /* ? */
+  | TYPEDEF_NAME /* ? */
   ;
 
-struct_declaration /*ti*/
-  : /*>*/  specifier_qualifier_list /*>>*/  SEMICOLON
-  | /*>*/  specifier_qualifier_list  struct_declarator_list /*>>*/  SEMICOLON
-  | /*>*/  static_assert_declaration
+atomic_type_specifier /*t- */
+  : ATOMIC LPARENTHESIS type_name RPARENTHESIS
   ;
 
-specifier_qualifier_list /*ti*/
-  : /*>*/  type_specifier  specifier_qualifier_list
-  | /*>*/  type_specifier
-  |  type_qualifier /*>*/  specifier_qualifier_list
-  |  type_qualifier
+struct_or_union_specifier /*ti- */
+  : struct_or_union LBRACE struct_declaration_list RBRACE
+  | struct_or_union new_identifier LBRACE struct_declaration_list RBRACE
+  | struct_or_union new_identifier
   ;
 
-struct_declarator_list /*ti*/
-  : /*>*/  struct_declarator
-  | /*>*/  struct_declarator_list  COMMA  struct_declarator
+enum_specifier /*ti- */
+  : ENUM LBRACE enumerator_list RBRACE
+  | ENUM LBRACE enumerator_list COMMA RBRACE
+  | ENUM new_identifier LBRACE enumerator_list RBRACE
+  | ENUM new_identifier LBRACE enumerator_list COMMA RBRACE
+  | ENUM new_identifier
   ;
 
-struct_declarator /*ti*/
-  :  COLON /*>*/  constant_expression
-  | /*>*/  declarator  COLON  constant_expression
-  | /*>*/  declarator
+struct_or_union /*- */
+  : STRUCT
+  | UNION
   ;
 
-enumerator_list /*ti*/
-  : /*>*/  enumerator
-  | /*>*/  enumerator_list  COMMA  enumerator
+struct_declaration_list /*ti- t*/
+  : struct_declaration /* ? */
+  | struct_declaration_list struct_declaration /* ? */
   ;
 
-enumerator /*ti*/
-  : /*>*/  enumeration_constant  EQUAL  constant_expression
-  | /*>>*/  enumeration_constant
+struct_declaration /*ti- t*/
+  : specifier_qualifier_list SEMICOLON
+  | specifier_qualifier_list struct_declarator_list SEMICOLON
+  | static_assert_declaration
   ;
 
-pointer /**/
-  :  STAR  type_qualifier_list  pointer
-  |  STAR  type_qualifier_list
-  |  STAR  pointer
-  |  STAR
+specifier_qualifier_list /*ti- t*/
+  : type_specifier specifier_qualifier_list /* ? */
+  | type_specifier /* ? */
+  | type_qualifier specifier_qualifier_list /* ? */
+  | type_qualifier /* ? */
   ;
 
-direct_declarator /*ti*/
-  : /*>>*/  IDENTIFIER
-  |  LPARENTHESIS /*>*/  declarator /*>>*/  RPARENTHESIS
-  | /*>*/  direct_declarator /*>>*/  LBRACKET  RBRACKET
-  | /*>*/  direct_declarator /*>>*/  LBRACKET  STAR  RBRACKET
-  | /*>*/  direct_declarator  LBRACKET  STATIC  type_qualifier_list  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_declarator  LBRACKET  STATIC  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_declarator /*>>*/  LBRACKET  type_qualifier_list  STAR  RBRACKET
-  | /*>*/  direct_declarator  LBRACKET  type_qualifier_list  STATIC  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_declarator  LBRACKET  type_qualifier_list  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_declarator /*>>*/  LBRACKET  type_qualifier_list  RBRACKET
-  | /*>*/  direct_declarator  LBRACKET  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_declarator  LPARENTHESIS  parameter_type_list /*>>*/  RPARENTHESIS
-  | /*>*/  direct_declarator /*>>*/  LPARENTHESIS  RPARENTHESIS
-  | /*>*/  direct_declarator /*>>*/  LPARENTHESIS  identifier_list  RPARENTHESIS
+struct_declarator_list /*ti- i*/
+  : struct_declarator /* ? */
+  | struct_declarator_list COMMA struct_declarator /* ? */
   ;
 
-type_qualifier_list /**/
-  :  type_qualifier
-  |  type_qualifier_list  type_qualifier
+struct_declarator /*ti- i*/
+  : COLON constant_expression
+  | declarator COLON constant_expression
+  | declarator
   ;
 
-parameter_type_list /*ti*/
-  : /*>*/  parameter_list /*>>*/  COMMA  ELLIPSIS
-  | /*>*/  parameter_list
+enumerator_list /*ti- i*/
+  : enumerator /* ? */
+  | enumerator_list COMMA enumerator /* ? */
   ;
 
-identifier_list /*i*/
-  : /*>>*/  IDENTIFIER
-  | /*>>*/  identifier_list  COMMA  IDENTIFIER
+enumerator /*ti- i*/
+  : enumeration_constant EQUAL constant_expression
+  | enumeration_constant
   ;
 
-parameter_list /*ti*/
-  : /*>*/  parameter_declaration
-  | /*>*/  parameter_list  COMMA  parameter_declaration
+pointer /*- */
+  : STAR type_qualifier_list pointer
+  | STAR type_qualifier_list
+  | STAR pointer
+  | STAR
   ;
 
-parameter_declaration /*ti*/
-  : /*>*/  declaration_specifiers  declarator
-  | /*>*/  declaration_specifiers  abstract_declarator
-  | /*>*/  declaration_specifiers
+direct_declarator /*ti- i*/
+  : new_identifier /* ? */
+  | LPARENTHESIS declarator RPARENTHESIS /* ? */
+  | direct_declarator LBRACKET RBRACKET /* ? */
+  | direct_declarator LBRACKET STAR RBRACKET /* ? */
+  | direct_declarator LBRACKET STATIC type_qualifier_list assignment_expression RBRACKET /* ? */
+  | direct_declarator LBRACKET STATIC assignment_expression RBRACKET /* ? */
+  | direct_declarator LBRACKET type_qualifier_list STAR RBRACKET /* ? */
+  | direct_declarator LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET /* ? */
+  | direct_declarator LBRACKET type_qualifier_list assignment_expression RBRACKET /* ? */
+  | direct_declarator LBRACKET type_qualifier_list RBRACKET /* ? */
+  | direct_declarator LBRACKET assignment_expression RBRACKET /* ? */
+  | direct_declarator LPARENTHESIS parameter_type_list RPARENTHESIS /* ? */
+  | direct_declarator LPARENTHESIS RPARENTHESIS /* ? */
+  | direct_declarator LPARENTHESIS identifier_list RPARENTHESIS /* ? */
   ;
 
-abstract_declarator /*ti*/
-  :  pointer /*>*/  direct_abstract_declarator
-  |  pointer
-  | /*>*/  direct_abstract_declarator
+type_qualifier_list /*- */
+  : type_qualifier
+  | type_qualifier_list type_qualifier
   ;
 
-direct_abstract_declarator /*ti*/
-  :  LPARENTHESIS /*>*/  abstract_declarator /*>>*/  RPARENTHESIS
-  |  LBRACKET  RBRACKET
-  |  LBRACKET  STAR  RBRACKET
-  |  LBRACKET  STATIC  type_qualifier_list /*>*/  assignment_expression /*>>*/  RBRACKET
-  |  LBRACKET  STATIC /*>*/  assignment_expression /*>>*/  RBRACKET
-  |  LBRACKET  type_qualifier_list  STATIC /*>*/  assignment_expression /*>>*/  RBRACKET
-  |  LBRACKET  type_qualifier_list /*>*/  assignment_expression /*>>*/  RBRACKET
-  |  LBRACKET  type_qualifier_list  RBRACKET
-  |  LBRACKET /*>*/  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_abstract_declarator /*>>*/  LBRACKET  RBRACKET
-  | /*>*/  direct_abstract_declarator /*>>*/  LBRACKET  STAR  RBRACKET
-  | /*>*/  direct_abstract_declarator  LBRACKET  STATIC  type_qualifier_list  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_abstract_declarator  LBRACKET  STATIC  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_abstract_declarator  LBRACKET  type_qualifier_list  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_abstract_declarator  LBRACKET  type_qualifier_list  STATIC  assignment_expression /*>>*/  RBRACKET
-  | /*>*/  direct_abstract_declarator /*>>*/  LBRACKET  type_qualifier_list  RBRACKET
-  | /*>*/  direct_abstract_declarator  LBRACKET  assignment_expression /*>>*/  RBRACKET
-  |  LPARENTHESIS  RPARENTHESIS
-  |  LPARENTHESIS /*>*/  parameter_type_list /*>>*/  RPARENTHESIS
-  | /*>*/  direct_abstract_declarator /*>>*/  LPARENTHESIS  RPARENTHESIS
-  | /*>*/  direct_abstract_declarator  LPARENTHESIS  parameter_type_list /*>>*/  RPARENTHESIS
+parameter_type_list /*ti- t*/
+  : parameter_list COMMA ELLIPSIS /* ? */
+  | parameter_list /* ? */
   ;
 
-designation /*ti*/
-  : /*>*/  designator_list /*>>*/  EQUAL
+identifier_list /*i- i*/
+  : new_identifier /* ? */
+  | identifier_list COMMA new_identifier /* ? */
   ;
 
-designator_list /*ti*/
-  : /*>*/  designator
-  | /*>*/  designator_list  designator
+parameter_list /*ti- t*/
+  : parameter_declaration /* ? */
+  | parameter_list COMMA parameter_declaration /* ? */
   ;
 
-designator /*ti*/
-  :  LBRACKET /*>*/  constant_expression /*>>*/  RBRACKET
-  |  DOT /*>>*/  IDENTIFIER
+parameter_declaration /*ti- t*/
+  : declaration_specifiers declarator
+  | declaration_specifiers abstract_declarator
+  | declaration_specifiers
   ;
 
-statement /*ti*/
-  : /*>*/  labeled_statement
-  | /*>*/  compound_statement
-  | /*>*/  expression_statement
-  | /*>*/  selection_statement
-  | /*>*/  iteration_statement
-  | /*>*/  jump_statement
+abstract_declarator /*ti- */
+  : pointer direct_abstract_declarator /* ? */
+  | pointer /* ? */
+  | direct_abstract_declarator /* ? */
   ;
 
-labeled_statement /*ti*/
-  : /*>*/  IDENTIFIER  COLON  statement
-  |  CASE /*>*/  constant_expression  COLON  statement
-  |  DEFAULT  COLON /*>*/  statement
+direct_abstract_declarator /*ti- */
+  : LPARENTHESIS abstract_declarator RPARENTHESIS /* ? */
+  | LBRACKET RBRACKET /* ? */
+  | LBRACKET STAR RBRACKET /* ? */
+  | LBRACKET STATIC type_qualifier_list assignment_expression RBRACKET /* ? */
+  | LBRACKET STATIC assignment_expression RBRACKET /* ? */
+  | LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET /* ? */
+  | LBRACKET type_qualifier_list assignment_expression RBRACKET /* ? */
+  | LBRACKET type_qualifier_list RBRACKET /* ? */
+  | LBRACKET assignment_expression RBRACKET /* ? */
+  | direct_abstract_declarator LBRACKET RBRACKET /* ? */
+  | direct_abstract_declarator LBRACKET STAR RBRACKET /* ? */
+  | direct_abstract_declarator LBRACKET STATIC type_qualifier_list assignment_expression RBRACKET /* ? */
+  | direct_abstract_declarator LBRACKET STATIC assignment_expression RBRACKET /* ? */
+  | direct_abstract_declarator LBRACKET type_qualifier_list assignment_expression RBRACKET /* ? */
+  | direct_abstract_declarator LBRACKET type_qualifier_list STATIC assignment_expression RBRACKET /* ? */
+  | direct_abstract_declarator LBRACKET type_qualifier_list RBRACKET /* ? */
+  | direct_abstract_declarator LBRACKET assignment_expression RBRACKET /* ? */
+  | LPARENTHESIS RPARENTHESIS /* ? */
+  | LPARENTHESIS parameter_type_list RPARENTHESIS /* ? */
+  | direct_abstract_declarator LPARENTHESIS RPARENTHESIS /* ? */
+  | direct_abstract_declarator LPARENTHESIS parameter_type_list RPARENTHESIS /* ? */
   ;
 
-compound_statement /*ti*/
-  :  LBRACE  RBRACE
-  |  LBRACE /*>*/  block_item_list /*>>*/  RBRACE
+designation /*t- */
+  : designator_list EQUAL /* ? */
   ;
 
-expression_statement /*ti*/
-  :  SEMICOLON
-  | /*>*/  expression /*>>*/  SEMICOLON
+designator_list /*t- */
+  : designator /* ? */
+  | designator_list designator /* ? */
   ;
 
-selection_statement /*ti*/
-  :  IF  LPARENTHESIS /*>*/  expression  RPARENTHESIS  statement  ELSE  statement
-  |  IF  LPARENTHESIS /*>*/  expression  RPARENTHESIS  statement
-  |  SWITCH  LPARENTHESIS /*>*/  expression  RPARENTHESIS  statement
+designator /*t- */
+  : LBRACKET constant_expression RBRACKET
+  | DOT IDENTIFIER
   ;
 
-iteration_statement /*ti*/
-  :  WHILE  LPARENTHESIS /*>*/  expression  RPARENTHESIS  statement
-  |  DO /*>*/  statement  WHILE  LPARENTHESIS  expression /*>>*/  RPARENTHESIS  SEMICOLON
-  |  FOR  LPARENTHESIS /*>*/  expression_statement  expression_statement  RPARENTHESIS  statement
-  |  FOR  LPARENTHESIS /*>*/  expression_statement  expression_statement  expression  RPARENTHESIS  statement
-  |  FOR  LPARENTHESIS /*>*/  declaration  expression_statement  RPARENTHESIS  statement
-  |  FOR  LPARENTHESIS /*>*/  declaration  expression_statement  expression  RPARENTHESIS  statement
+statement /*ti- */
+  : labeled_statement /* ? */
+  | compound_statement /* ? */
+  | expression_statement /* ? */
+  | selection_statement /* ? */
+  | iteration_statement /* ? */
+  | jump_statement /* ? */
   ;
 
-jump_statement /*ti*/
-  :  GOTO /*>>*/  IDENTIFIER  SEMICOLON
-  |  CONTINUE  SEMICOLON
-  |  BREAK  SEMICOLON
-  |  RETURN  SEMICOLON
-  |  RETURN /*>*/  expression /*>>*/  SEMICOLON
+labeled_statement /*ti- */
+  : ambiguous_identifier COLON statement
+  | CASE constant_expression COLON statement
+  | DEFAULT COLON statement
   ;
 
-block_item_list /*ti*/
-  : /*>*/  block_item
-  | /*>*/  block_item_list  block_item
+compound_statement /*ti- */
+  : LBRACE RBRACE
+  | LBRACE block_item_list RBRACE
   ;
 
-block_item /*ti*/
-  : /*>*/  declaration
-  | /*>*/  statement
+expression_statement /*t- */
+  : SEMICOLON /* ? */
+  | expression SEMICOLON /* ? */
   ;
 
-root /*ti*/
-  : /*>*/  translation_unit /*>>*/  { 
+selection_statement /*ti- */
+  : IF LPARENTHESIS expression RPARENTHESIS statement ELSE statement
+  | IF LPARENTHESIS expression RPARENTHESIS statement
+  | SWITCH LPARENTHESIS expression RPARENTHESIS statement
+  ;
+
+iteration_statement /*ti- */
+  : WHILE LPARENTHESIS expression RPARENTHESIS statement
+  | DO statement WHILE LPARENTHESIS expression RPARENTHESIS SEMICOLON
+  | FOR LPARENTHESIS expression_statement expression_statement RPARENTHESIS statement
+  | FOR LPARENTHESIS expression_statement expression_statement expression RPARENTHESIS statement
+  | FOR LPARENTHESIS declaration expression_statement RPARENTHESIS statement
+  | FOR LPARENTHESIS declaration expression_statement expression RPARENTHESIS statement
+  ;
+
+jump_statement /*t- */
+  : GOTO IDENTIFIER SEMICOLON
+  | CONTINUE SEMICOLON
+  | BREAK SEMICOLON
+  | RETURN SEMICOLON
+  | RETURN expression SEMICOLON
+  ;
+
+block_item_list /*ti- t*/
+  : block_item /* ? */
+  | block_item_list block_item /* ? */
+  ;
+
+block_item /*ti- t*/
+  : declaration
+  | statement
+  ;
+
+root /*ti- t*/
+  : translation_unit { 
       $$ = &ast->root;
       $$->symbol = YYSYMBOL_root;
       $$->child[0] = $1;
@@ -607,24 +629,24 @@ root /*ti*/
     }
   ;
 
-translation_unit /*ti*/
-  : /*>*/  external_declaration
-  | /*>*/  translation_unit  external_declaration
+translation_unit /*ti- t*/
+  : external_declaration
+  | translation_unit external_declaration
   ;
 
-external_declaration /*ti*/
-  : /*>*/  function_definition
-  | /*>*/  declaration
+external_declaration /*ti- t*/
+  : function_definition
+  | declaration
   ;
 
-function_definition /*ti*/
-  : /*>*/  declaration_specifiers  declarator  declaration_list  compound_statement
-  | /*>*/  declaration_specifiers  declarator  compound_statement
+function_definition /*ti- t*/
+  : declaration_specifiers declarator declaration_list compound_statement
+  | declaration_specifiers declarator compound_statement
   ;
 
-declaration_list /*ti*/
-  : /*>*/  declaration
-  | /*>*/  declaration_list  declaration
+declaration_list /*ti- t*/
+  : declaration /* ? */
+  | declaration_list declaration /* ? */
   ;
 
 %%

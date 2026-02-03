@@ -113,6 +113,16 @@
 %start  root
 %%
 
+new_identifier   
+  : IDENTIFIER
+  ;
+
+ambiguous_identifier
+  : IDENTIFIER
+  | ENUMERATION_CONSTANT
+  | TYPEDEF_NAME
+  ;
+
 primary_expression
   : IDENTIFIER
   | constant
@@ -128,7 +138,7 @@ constant
   ;
 
 enumeration_constant    /* before it has been defined as such */
-  : IDENTIFIER          {} { AST_TYPE ($1, ENUMERATION_CONSTANT); }
+  : new_identifier 
   ;
 
 string
@@ -285,10 +295,7 @@ constant_expression
 
 declaration
   : declaration_specifiers ';' 
-  | declaration_specifiers init_declarator_list ';'  {} {
-      /* check if the declaration is typedef */
-      AST_DECLARATION ($1, $2); 
-    }
+  | declaration_specifiers init_declarator_list ';' 
   | static_assert_declaration
   ;
 
@@ -324,7 +331,19 @@ storage_class_specifier
   | REGISTER
   ;
 
+expect_type
+  : { ast->flag = LOOK_SYMBOL_TABLE; }
+  ;
+
+expect_identifier
+  : { ast->flag = EXPECT_IDENTIFIER; }
+  ;
+
 type_specifier
+  : data_type expect_identifier
+  ;
+
+data_type
   : VOID
   | CHAR
   | SHORT
@@ -345,9 +364,8 @@ type_specifier
 
 struct_or_union_specifier
   : struct_or_union '{' struct_declaration_list '}'
-  | struct_or_union IDENTIFIER '{' struct_declaration_list '}' {}
-    { AST_TYPE ($2, IDENTIFIER); }
-  | struct_or_union IDENTIFIER {} { AST_TYPE ($2, IDENTIFIER); }
+  | struct_or_union new_identifier '{' struct_declaration_list '}'
+  | struct_or_union new_identifier
   ;
 
 struct_or_union
@@ -387,9 +405,9 @@ struct_declarator
 enum_specifier
   : ENUM '{' enumerator_list '}'
   | ENUM '{' enumerator_list ',' '}'
-  | ENUM IDENTIFIER '{' enumerator_list '}'
-  | ENUM IDENTIFIER '{' enumerator_list ',' '}'
-  | ENUM IDENTIFIER
+  | ENUM new_identifier '{' enumerator_list '}'
+  | ENUM new_identifier '{' enumerator_list ',' '}'
+  | ENUM new_identifier
   ;
 
 enumerator_list
@@ -429,7 +447,7 @@ declarator
   ;
 
 direct_declarator
-  : IDENTIFIER
+  : new_identifier
   | '(' declarator ')'
   | direct_declarator '[' ']'
   | direct_declarator '[' '*' ']'
@@ -475,8 +493,8 @@ parameter_declaration
   ;
 
 identifier_list
-  : IDENTIFIER
-  | identifier_list ',' IDENTIFIER
+  : new_identifier 
+  | identifier_list ',' new_identifier
   ;
 
 type_name
@@ -555,7 +573,7 @@ statement
   ;
 
 labeled_statement
-  : IDENTIFIER ':' statement
+  : ambiguous_identifier ':' statement
   | CASE constant_expression ':' statement
   | DEFAULT ':' statement
   ;

@@ -44,7 +44,12 @@
 
 %option noyywrap bison-bridge nounput
 
-/* some regular expression (regex) that you come across in C */
+/* 
+.. These are called 'patterns' in flex. They can be used inside a { } 
+.. in the regex patterns corresponding to tokens/rules (refer further below). 
+.. These helps flex to define equivalence classes, 
+.. optimize memory during NFA, DFA construction, etc. 
+*/
 O   [0-7]
 D   [0-9]
 NZ  [1-9]

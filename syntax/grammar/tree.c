@@ -208,8 +208,8 @@ int main () {
   .. Traverse through the tree. DFS post-order (for reduction)
   .. Print Grammar with appropriate end-rule section 
   */
-  traverse ();
-  traverse ();
+  for (int i=0; i<3; ++i)
+    traverse ();
   print ();
   printf("\n\n%%%%");
 
