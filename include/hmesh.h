@@ -21,8 +21,8 @@
   read https://github.com/exo-lang/exo
 */
 
-#ifndef _HEDGE_MESH
-#define _HEDGE_MESH
+#ifndef _HEDGE_MESH_
+#define _HEDGE_MESH_
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,61 +35,76 @@ extern "C" {
   #define HMESH_MAX_NVARS   64
   #define HMESH_MAX_VARNAME 31
 
-  /* Access attribute or scalars of cells .
-  .. The macros are global. Use macros carefully,
-  .. when using outside hmesh.c. 
-  .. Numbers like iattr, node.iblock, iscalar, ivertex, iedge, node.index 
-  .. should be in valid range*/
+  /*
+  .. Access attribute or scalars of cells. The macros are global. Use these
+  .. macros carefully, while using outside hmesh.c. Numbers like iattr,
+  .. node.iblock, iscalar, ivertex, iedge, node.index should be in valid range
+  */
 
-  /* get 'iblk'-th block of 'iattr'-th attribute */
-  #define HMESH_ATTR(_c_, _iattr_, _iblk_)   \
+  /*  
+  .. get 'iblk'-th block of 'iattr'-th attribute
+  */
+  #define HMESH_ATTR(_c_, _iattr_, _iblk_)                                    \
     ( (_c_->mem[_iattr_])[_iblk_] )
 
-  /* get 'iblk'-th block of a scalar */
-  #define HMESH_REAL(_c_, _s_, _iblk_)       \
+  /*
+  .. get 'iblk'-th block of a scalar
+  */
+  #define HMESH_REAL(_c_, _s_, _iblk_)                                        \
     ( (_Real *)(HMESH_ATTR(_c_, _s_, _iblk_)) )
 
-  /* Get scalar value of a node*/
-  #define HMESH_SCALAR(_c_, _s_, _hnode_)            \
+  /*
+  .. Get scalar value of a node
+  */
+  #define HMESH_SCALAR(_c_, _s_, _hnode_)                                     \
     ( HMESH_REAL(_c_, _s_, _hnode_.iblock)[_hnode_.index] )
 
-  /* get subnodes like vertex of an edge, edge of a triangle, etc */
-  #define HMESH_SUBNODE(_c_,_node_, _isub_)      \
+  /*
+  .. get subnodes like vertex of an edge, edge of a triangle, etc
+  */
+  #define HMESH_SUBNODE(_c_,_node_, _isub_)                                   \
     ( ((_Node) HMESH_ATTR(_c_, 2 + _isub_, _node_.iblock))[_node_.index] )
 
-  /* get i-th vertex */
-  #define HMESH_IVERTEX(_edges_,_edge_,_iv_) \
+  /*
+  .. get i-th vertex
+  */
+  #define HMESH_IVERTEX(_edges_,_edge_,_iv_)                                  \
     HMESH_SUBNODE(_edges_, _edge_, _iv_)
 
-  /* get i-th edge */
-  #define HMESH_IEDGE(_triangles_,_triangle_,_ie_) \
+  /*
+  .. get i-th edge
+  */
+  #define HMESH_IEDGE(_triangles_,_triangle_,_ie_)                            \
     HMESH_SUBNODE(_triangles_, _triangle_,_ie_)
   
-  /* '_HmeshArray' : a list of memory blocks.
-  .. It can be used to store nodes, or attributes of nodes
-  .. like scalars etc.
+  /*
+  .. HmeshArray : a list of memory blocks. It can be used to store nodes, or
+  .. attributes of nodes like scalars etc.
   */
-  typedef struct {
+  typedef struct
+  {
 
-    /*'name' : name of the attribute ,
-    .. in case this is an attribute to a node. 
-    .. Warning: Name of attribute limited to 31 characters!*/
+    /*
+    .. 'name' : name of the attribute , in case this is an attribute to a node.
+    .. Warning: Name of attribute limited to 31 characters!
+    */
     char name[32];
 
-    /* 'iblock' is the number corresponding to
-    .. each block in the 'pool'. 'max' is the size of
-    .. iblock array, and also address array
+    /*
+    .. 'iblock' is the number corresponding to each block in the 'pool'. 'max'
+    .. is the size of iblock array, and also address array
     */
-    _Index * iblock, max, obj_size;
+    Index * iblock,
+            max,
+            obj_size;
 
-    /* to keep track of indices for which 
-    .. address[index] are in_use and free_list.
-    .. you need to free the memblock before freeing 
-    .. the index
+    /*
+    .. To keep track of indices for which address[index] are in_use and
+    .. free_list. you need to free the memblock before freeing the index
     */
-    _IndexStack stack;
+    IndexStack stack;
 
-  } _HmeshArray;
+  } HmeshArray;
  
 
   /* Mapping of indices.. 
