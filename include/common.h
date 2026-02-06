@@ -31,7 +31,7 @@ extern "C" {
   .. (c) Copy 'size' bytes of 'data' to the array 'a' 
   .. (d) Shrink 'a->p' to 'a->len' bytes
   */
-  extern Array * array_new();
+  extern Array * array_new    ( );
   extern void    array_free   (Array * a);
   extern void    array_append (Array * a, void * data, size_t size);
   extern void    array_shrink (Array * a);

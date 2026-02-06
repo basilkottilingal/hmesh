@@ -80,28 +80,21 @@ extern "C" {
   /*
   .. HmeshArray : a list of memory blocks. It can be used to store nodes, or
   .. attributes of nodes like scalars etc.
+  .. 'name' : name of the attribute , in case this is an attribute to a node.
+  .. Warning: Name of attribute limited to 31 characters!
+  .. 'iblock' is the number corresponding to each block in the 'pool'. 'max'
+  .. is the size of iblock array, and also address array
+  .. To keep track of indices for which address[index] are in_use and
+  .. free_list. you need to free the memblock before freeing the index
   */
   typedef struct
   {
 
-    /*
-    .. 'name' : name of the attribute , in case this is an attribute to a node.
-    .. Warning: Name of attribute limited to 31 characters!
-    */
     char name[32];
-
-    /*
-    .. 'iblock' is the number corresponding to each block in the 'pool'. 'max'
-    .. is the size of iblock array, and also address array
-    */
     Index * iblock,
             max,
             obj_size;
 
-    /*
-    .. To keep track of indices for which address[index] are in_use and
-    .. free_list. you need to free the memblock before freeing the index
-    */
     IndexStack stack;
 
   } HmeshArray;
