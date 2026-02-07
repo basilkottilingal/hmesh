@@ -31,6 +31,12 @@ extern "C" {
   #include <common.h>
   #include <tree-pool.h>
 
+  /*
+  .. Some limits imposed in hmesh
+  .. (a) Maximum 2^16 Blocks. Usually RAM will run much before that.
+  .. (b) Maximum of 64 variables/attributes per manifold
+  .. (c) Maximum of 32 characters including '\0' for variable name. 
+  */
   #define HMESH_MAX_NBLOCKS UINT16_MAX
   #define HMESH_MAX_NVARS   64
   #define HMESH_MAX_VARNAME 31
@@ -39,41 +45,24 @@ extern "C" {
   .. Access attribute or scalars of cells. The macros are global. Use these
   .. macros carefully, while using outside hmesh.c. Numbers like iattr,
   .. node.iblock, iscalar, ivertex, iedge, node.index should be in valid range
+  .. HMESH_ATTR    : get 'iblk'-th block of 'iattr'-th attribute
+  .. HMESH_REAL    : get 'iblk'-th block of a scalar
+  .. HMESH_SCALAR  : Get scalar value of a node
+  .. HMESH_SUBNODE : get subnodes like vertex of an edge/edge of a triangle/etc
+  .. HMESH_IVERTEX : get i-th vertex
+  .. HMESH_IEDGE   : get i-th edge
   */
 
-  /*  
-  .. get 'iblk'-th block of 'iattr'-th attribute
-  */
   #define HMESH_ATTR(_c_, _iattr_, _iblk_)                                    \
     ( (_c_->mem[_iattr_])[_iblk_] )
-
-  /*
-  .. get 'iblk'-th block of a scalar
-  */
   #define HMESH_REAL(_c_, _s_, _iblk_)                                        \
     ( (_Real *)(HMESH_ATTR(_c_, _s_, _iblk_)) )
-
-  /*
-  .. Get scalar value of a node
-  */
   #define HMESH_SCALAR(_c_, _s_, _hnode_)                                     \
     ( HMESH_REAL(_c_, _s_, _hnode_.iblock)[_hnode_.index] )
-
-  /*
-  .. get subnodes like vertex of an edge, edge of a triangle, etc
-  */
   #define HMESH_SUBNODE(_c_,_node_, _isub_)                                   \
     ( ((_Node) HMESH_ATTR(_c_, 2 + _isub_, _node_.iblock))[_node_.index] )
-
-  /*
-  .. get i-th vertex
-  */
   #define HMESH_IVERTEX(_edges_,_edge_,_iv_)                                  \
     HMESH_SUBNODE(_edges_, _edge_, _iv_)
-
-  /*
-  .. get i-th edge
-  */
   #define HMESH_IEDGE(_triangles_,_triangle_,_ie_)                            \
     HMESH_SUBNODE(_triangles_, _triangle_,_ie_)
   
@@ -115,99 +104,80 @@ extern "C" {
   }_Node;
 
   /* cells of mesh : vertices/edges/triangle/tetrahedrons 
+  .. Stack of indices in use for scalars, blocks
+  .. attributes including 'prev', 'next', scalars etc
+  .. address of blocks of each attribute 
+  .. 'info' : head, free head, no: of nodes in use, .. no: of nodes free.
+  .. 'max'  : blocks in [0,max) are (maybe) in use 
+  .. 'maxs' : scalars in [0,maxs) are (maybe) in use 
+  .. dimension.
+  .. iscalars in [min, max) are in_use for scalars  
   */
   typedef struct _HmeshCells {
-    /* Stack of indices in use for scalars, blocks */
-    _IndexStack scalars, * blocks;
+    IndexStack scalars, * blocks;
+    void **  attr, *** mem;
+    Index * info, max, maxs;
+    int d, min;
+  } HmeshCells;
 
-    /* attributes including 'prev', 'next', scalars etc */
-    void ** attr;
 
-    /* address of blocks of each attribute */
-    void *** mem;
-
-    /* 'info' : head, free head, no: of nodes in use, 
-    .. no: of nodes free.
-    .. 'max' : blocks in [0,max) are (maybe) in use 
-    .. 'maxs' : scalars in [0,maxs) are (maybe) in use 
-    */
-    _Index * info, max, maxs;
-
-    /* dimension.
-    .. iscalars in [min, max) are in_use for scalars  
-    */
-    _Flag d, min;
-  } _HmeshCells;
-
-  extern
-  _HmeshCells * HmeshCells(_Flag d, _Flag D);
-
-  extern
-  _Flag HmeshCellsDestroy(_HmeshCells *);
-  
-  extern
-  _HmeshArray * HmeshScalarNew(_HmeshCells *, char *);
-  
-  extern
-  _Flag HmeshScalarRemove(_HmeshCells *, char *);
-
-  /* _Manifold: Mesh or a discretized manifold */
-  typedef struct {
-
-    /* 'd' : dimension of manifold in [0,3]. They can be,
-    .. 0: Collection of disconnected Points
-    .. 1: Discretized curves in 2-D or 3-D
-    .. 2: Discretized 3-D sufaces. 
-    .. 3: Volume mesh in 3-D.
-    */
-    _Flag d;
-
-    /* 'D' : Dimension of space. For us, 'D' in [2,3].
-    .. NOTE: It's always (d <= D)
-    */
-    _Flag D;
-  
-    /* set of manifold cells like 
-    .. points, edges, triangles, volumes 
-    .. NOTE: They can be empty, 
-    .. Ex: a curve, which is a 1-D manifold in 3D 
-    .. Eulerian space will have empty face list ('triangles').
-    */
-    _HmeshCells * p, * e, * t, * v; 
-
-  }_Hmesh;
-
-  /* API to create a mesh.
-  .. Warning! it creates a mesh
-  .. with no points, edges, ..*/
-  extern
-  _Hmesh * Hmesh(_Flag d, _Flag D);
-  
-  extern
-  _Flag HmeshDestroy(_Hmesh *);
-
-  /* Every time you manipulate with HmeshArray, you send 
-  .. the pointer of 2D array of block address. 
+  /* _Manifold: Mesh or a discretized manifold 
+  .. 
+  .. 'd' : dimension of manifold in [0,3]. They can be,
+  .. 0: Collection of disconnected Points
+  .. 1: Discretized curves in 2-D or 3-D
+  .. 2: Discretized 3-D sufaces. 
+  .. 3: Volume mesh in 3-D.
+  ..
+  .. 'D' : Dimension of space. For us, 'D' in [2,3].
+  .. NOTE: It's always (d <= D)
+  .. set of manifold cells like 
+  .. points, edges, triangles, volumes 
+  .. NOTE: They can be empty, 
+  .. Ex: a curve, which is a 1-D manifold in 3D 
+  .. Eulerian space will have empty face list ('triangles').
+  ..
+  .. 'p' ,'e', 't', 'v'  are sets of pointes, edges, triangles
+  .. and volume cells 
   */
-  extern
-  _HmeshArray * HmeshArray(char * name, size_t size, void ***);
+  typedef struct {
+    int d;
+    int D;
+    HmeshCells * p, * e, * t, * v; 
 
-  extern
-  _Flag HmeshArrayDestroy(_HmeshArray *, void ***);
+  } Hmesh;
+
+  /*
+  .. API to create a mesh.
+  .. (*) hmesh_cells () : Create cells of dim 'd' in Eulerain space R^D
+  .. (*) hmesh_cells_destroy () : destroy HmeshCells
+  .. (*) hmesh_scalar_new () :  add a scalar attribute (Real i.e float/double)
+  .. to HmeshCells
+  .. (*) hmesh_scalar_remove () :  remove a scalar attribute
+  .. (*) hmesh () : to create a mesh of manidold dim 'd' in Eulerian space R^D
+  .. Warning! it creates a mesh with no points, edges, ..
+  .. (*) hmesh_destroy () : destroy a mesh
+  .. (*) hmesh_array () : create HmeshArray
+  .. (*) hmesh_array_remove () : remove HmeshArray
+  .. Every time you manipulate with HmeshArray, you send 
+  .. the pointer of 2D array of block address. 
+  .. (*) add a node to the set of cells
+  .. (*) remove a node from the set of cells
+  */
+  extern HmeshCells * hmesh_cells         ( int d, int D );
+  extern int          hmesh_cells_destroy ( HmeshCells * );
+  extern HmeshArray * hmesh_scalar_new    ( HmeshCells *, char * );
+  extern int          hmesh_scalar_remove ( HmeshCells *, char * );
+  extern Hmesh *      hmesh               ( int d, int D);
+  extern int          hmesh_destroy       ( Hmesh *);
+  extern HmeshArray * hmesh_array ( char * name, size_t size, void *** );
+  extern int          hmesh_array_destroy ( HmeshArray *, void *** );
+  extern Node         hmesh_node_new      ( HmeshCells *);
+  extern int          hmesh_node_remove   ( HmeshCells *, Node);
 
   /* Make these 2 function local */
-  extern
-  void * HmeshArrayAdd(_HmeshArray *, _Index, void ***);
-
-  extern
-  _Flag HmeshArrayRemove(_HmeshArray *, _Index, void ***);
-
-  /* add a node or remove a node to the set of cells */
-  extern
-  _Node HmeshNodeNew(_HmeshCells *);
-
-  extern
-  _Flag HmeshNodeRemove(_HmeshCells *, _Node);
+  extern void *       hmesh_array_add ( HmeshArray *, Index, void *** );
+  extern int          hmesh_array_remove ( HmeshArray *, Index, void ***);
 
 #ifdef __cplusplus
 }
