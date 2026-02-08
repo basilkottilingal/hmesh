@@ -1,0 +1,11 @@
+
+look for non-space after a comma and insert a space
+/,[^ ]
+looking for non-space before '(' and insert a space.
+/[^ ](
+looking for long lines, longer than 80 characters (including '\n'). Split the line appropriately
+/.\{79,}
+looking for '{' (starting scopes) followed by some nonspace. Scope beginning '{' are expected to be a new line with proper indendations
+/^.*[^ ].*{
+looking for trailing spaces and remove it
+/[ \t]\+$

@@ -78,7 +78,7 @@ extern "C" {
   */
   typedef struct
   {
-    char name[32];
+    char name[HMESH_MAX_VARNAME + 1];
     Index * iblock, max, obj_size;
     IndexStack stack;
   } HmeshArray;

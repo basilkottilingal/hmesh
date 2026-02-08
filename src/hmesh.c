@@ -3,9 +3,9 @@
 #include <hmesh.h>
 #include <ctype.h>
 
-/* Add a block @ iblock-th position.
+/* 
+.. "hmesh_array_add" : Add a block @ iblock-th position.
 .. Return memory address of the block, if successful
-static
 */
 void * hmesh_array_add (HmeshArray * a, Index iblock, void *** mem)
 {
@@ -18,41 +18,40 @@ void * hmesh_array_add (HmeshArray * a, Index iblock, void *** mem)
     return NULL;
   }
 
-  /* get a block from tree pool */
+  /*
+  .. Allocate memory for the block using tpool. The address is stored in
+  .. (*mem)[iblock] for faster access. a->iblock[iblock] is updated (used
+  .. only for deallocation. 
+  */
   Index block = hmesh_tpool_allocate_general (a->obj_size);
   void * m = hmesh_tpool_address (block);
-
   if (!m)
   {
     hmesh_error ("hmesh_array_add () : memory pooling failed");
     index_stack_deallocate (stack, iblock);
     return NULL;
   }
-
   if (a->stack.max > a->max)
   {
     a->max = a->stack.max;
     a->iblock = (Index *) realloc (a->iblock, a->max * sizeof (Index));
     *mem = (void **) realloc (*mem, a->max * sizeof (void *));
   }
-  /* Starting address of block is stored for easy access */
   (*mem)[iblock] = m;
-  /* This information is used for deallocation of this block */
   a->iblock[iblock] = block;
 
   return m;
 }
 
-/* deallocate an existing block @ iblock-th position
-.. Return HMESH_NO_ERROR if successful
-static
+/*
+.. "hmesh_array_remove" : deallocate an existing block @ iblock-th position
 */
 int hmesh_array_remove (HmeshArray * a, Index iblock, void *** mem)
 {
 
   if ( !((iblock < a->max) ? (*mem)[iblock] : NULL) )
   {
-    hmesh_error ("HmeshArrayRemove () : cannot locate memblock");
+    hmesh_error ("hmesh_array_remove () : cannot locate memblock");
     return HMESH_ERROR;
   }
 
@@ -62,18 +61,24 @@ int hmesh_array_remove (HmeshArray * a, Index iblock, void *** mem)
     (*mem)[iblock] = NULL;
     status |= index_stack_deallocate (&a->stack, iblock);
   }
-
   if (status)
-    hmesh_error ("HmeshArrayRemove() : deallocation error");
+    hmesh_error ("hmesh_array_remove () : deallocation error");
 
   return status;
 }
 
-/* Create a new attribute */
+/*
+.. "hmesh_array" : Create a new attribute. "name" is the name of the attribute,
+.. "size" is the size of datatype in bytes. Note : only {1,2,4,8} are allowed.
+.. (*mem) is for the array of memory blocks for the attribute.
+*/
 HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
 {
-  /* returns  new attribute. No blocks allocated yet.*/
-
+  if (!name || !name[0] || strlen (name) > HMESH_MAX_VARNAME )
+  {
+    hmesh_error ("HmeshArray () : Attribute name require [1,32) chars");
+    return NULL;
+  }
   HmeshArray * a = (HmeshArray *) malloc (sizeof (HmeshArray));
   a->obj_size = size;
   a->stack    = index_stack (HMESH_MAX_NBLOCKS, 8, NULL);
@@ -84,30 +89,18 @@ HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
     *mem = (void **) malloc (a->max * sizeof (void *));
   }
 
-    /* if "name" of attribute is empty.
-    .. NOTE : For scalars 'name' is necessary */
-    /* Set attribute name.
-    .. Length of name is restricted to 32 including '\0'
-    .. fixme : make sure naming follows C naming rules */
-  if (!name ? 1 : !name[0])
-  {
-    hmesh_error ("HmeshArray () : Warning! No name specified");
-    a->name[0] = '\0';
-  }
-  else
-  {
-    int s = 0;
-    char * c = name;
-    while (*c && s<31)
-      a->name[s++] = *c++;
-    a->name[s] = '\0';
-  }
+  int s = 0;
+  char * c = name;
+  while (*c && s < HMESH_MAX_VARNAME)
+    a->name[s++] = *c++;
+  a->name[s] = '\0';
 
   return a;
 }
 
-/* Destroy an attribute object.
-.. return HMESH_NO_ERROR if successful
+/*
+.. "hmesh_array_destroy ()" : Destroy attribute object "a",
+.. and deallocate all of it's blocks stored in "*mem[]"
 */
 int hmesh_array_destroy (HmeshArray * a, void *** mem)
 {
@@ -115,7 +108,6 @@ int hmesh_array_destroy (HmeshArray * a, void *** mem)
     return HMESH_ERROR;
 
   int status = HMESH_NO_ERROR;
-  /* Remove all blocks in use */
   IndexInfo * info = a->stack.info;
   for (int i = 0; i < a->stack.n; ++i)
   {
@@ -124,8 +116,6 @@ int hmesh_array_destroy (HmeshArray * a, void *** mem)
     {
       if ( hmesh_array_remove (a, iblock, mem) )
       {
-        /* In case of any unsuccessful freeing, you may
-        .. expect memory related "unexpected behaviour"*/
         status = HMESH_ERROR;
         hmesh_error ("hmesh_array_destroy () : cannot free memblock");
       }
@@ -148,7 +138,7 @@ int hmesh_array_destroy (HmeshArray * a, void *** mem)
 }
 
 /*
-.. Add 1 block to all the attributes of cells
+.. "hmesh_cells_expand () " Add 1 block to all the attributes of "cells"
 */
 static
 int hmesh_cells_expand (HmeshCells * cells)
@@ -220,8 +210,7 @@ HmeshCells * hmesh_cells (int d, int D)
 
   cells->attr = NULL;
   IndexStack * scalars = &cells->scalars;
-  *scalars = index_stack (HMESH_MAX_NVARS,5, &cells->attr);
-
+  *scalars = index_stack (HMESH_MAX_NVARS, 5, &cells->attr);
 
   /* Default attributes */
   int * nattr = &cells->min;
