@@ -1,6 +1,6 @@
-  
-#ifndef _HEDGE_MESH_COMMON_
-#define _HEDGE_MESH_COMMON_
+#ifndef _HMESH_COMMON_
+#define _HMESH_COMMON_
+
 #ifdef __cplusplus
 extern "C" {
 #endif

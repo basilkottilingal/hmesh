@@ -21,8 +21,8 @@
   read https://github.com/exo-lang/exo
 */
 
-#ifndef _HEDGE_MESH_
-#define _HEDGE_MESH_
+#ifndef _HMESH_
+#define _HMESH_
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,32 +78,18 @@ extern "C" {
   */
   typedef struct
   {
-
     char name[32];
-    Index * iblock,
-            max,
-            obj_size;
-
+    Index * iblock, max, obj_size;
     IndexStack stack;
-
   } HmeshArray;
- 
 
-  /* Mapping of indices.. 
-  .. Ex: (a) Half-edge mapping H = (V0, V1) . 
-  ..     (b) Triangle mapping  T = (H0, H1, H2); 
-  */
-  /* identify mapped index by block and index. 
-  struct _HmeshMap {
-    _HmeshArray * iblock, * index;
-  };
-  */
+  typedef struct
+  {
+    Index index, iblock;
+  } Node;
 
-  typedef struct {
-    _Index index, iblock;
-  }_Node;
-
-  /* cells of mesh : vertices/edges/triangle/tetrahedrons 
+  /*
+  .. cells of mesh : vertices/edges/triangle/tetrahedrons 
   .. Stack of indices in use for scalars, blocks
   .. attributes including 'prev', 'next', scalars etc
   .. address of blocks of each attribute 
@@ -113,15 +99,16 @@ extern "C" {
   .. dimension.
   .. iscalars in [min, max) are in_use for scalars  
   */
-  typedef struct _HmeshCells {
+  typedef struct 
+  {
     IndexStack scalars, * blocks;
     void **  attr, *** mem;
     Index * info, max, maxs;
     int d, min;
   } HmeshCells;
 
-
-  /* _Manifold: Mesh or a discretized manifold 
+  /*
+  .. Hmesh: Mesh or a discretized manifold 
   .. 
   .. 'd' : dimension of manifold in [0,3]. They can be,
   .. 0: Collection of disconnected Points
@@ -140,15 +127,14 @@ extern "C" {
   .. 'p' ,'e', 't', 'v'  are sets of pointes, edges, triangles
   .. and volume cells 
   */
-  typedef struct {
-    int d;
-    int D;
+  typedef struct
+  {
+    int d, D;
     HmeshCells * p, * e, * t, * v; 
-
   } Hmesh;
 
   /*
-  .. API to create a mesh.
+  .. APIs
   .. (*) hmesh_cells () : Create cells of dim 'd' in Eulerain space R^D
   .. (*) hmesh_cells_destroy () : destroy HmeshCells
   .. (*) hmesh_scalar_new () :  add a scalar attribute (Real i.e float/double)
