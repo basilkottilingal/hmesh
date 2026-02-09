@@ -1,4 +1,5 @@
-SOURCE	= common.c mempool.c tree-pool.c hmesh.c
+#SOURCE	= common.c mempool.c tree-pool.c hmesh.c
+SOURCE	= common.c tree-pool.c hmesh.c
 PARENT := $(CURDIR)/..
 INCDIR	= $(PARENT)/include
 OBJDIR	= $(PARENT)/obj

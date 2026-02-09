@@ -1,9 +1,5 @@
 #include <common.h>
 
-/*
-.. Function definitions related to Array
-*/
-
 Array * array_new ()
 {
   Array * a = (Array *) malloc (sizeof (Array));
@@ -39,28 +35,20 @@ void array_shrink (Array * a)
 }
 
 /*
-.. definition related to error handling.
-.. Error is stored as char array in 'HMESH_ERROR_MSG_BUFFER_'.
+.. Definition related to error handling. Error is stored as char array in
+.. 'HMESH_ERROR_MSG_BUFFER'
 */
+static int   HMESH_ERROR_STATUS     = 0;
+static Array HMESH_ERROR_MSG_BUFFER = { .p = NULL, .len = 0, .max = 0 };
 
-static
-Array HMESH_ERROR_MSG_BUFFER = {.p = NULL, .len = 0, .max = 0};
-
-static
-int HMESH_ERROR_STATUS = 0;
-
-char * hmesh_error_get ()
-{
-  return (char *) HMESH_ERROR_MSG_BUFFER.p;
-}
-
+/*
+.. Append error msg. Warning: error msg will be truncated to 100 chars
+*/
 void hmesh_error (const char * err, ...)
 {
-
   char errmsg[100];
   va_list args;
   va_start (args, err);
-  /* Warning: error msg will be truncated to 100 chars */
   vsnprintf (errmsg, 100, err, args);
   va_end (args);
 
@@ -74,7 +62,6 @@ void hmesh_error (const char * err, ...)
     char e[] = "\n=======Error=======\n";
     array_append (b, e, 21);
   }
-  /* Copy error to buffer. Excluding the '\0' */
   array_append (b, errmsg, strlen (errmsg));
   array_append (b, end, 2);
 }
@@ -82,9 +69,6 @@ void hmesh_error (const char * err, ...)
 static
 void hmesh_error_free ()
 {
-  /* Empty all error message.
-  .. Set as HMESH_NO_ERROR.
-  */
   HMESH_ERROR_STATUS = HMESH_NO_ERROR;
   Array * b = &HMESH_ERROR_MSG_BUFFER;
   b->len = b->max = 0;
@@ -93,25 +77,11 @@ void hmesh_error_free ()
   b->p = NULL;
 }
 
-void hmesh_error_flush (int fd)
+void hmesh_error_flush ( )
 {
-  Array * b = &HMESH_ERROR_MSG_BUFFER;
-  if (!b->p)
+  char * msg = (char *) HMESH_ERROR_MSG_BUFFER.p;
+  if (!msg)
     return;
-  fd = fd < 2 ? 2 : fd;
-  if ( fcntl (fd, F_GETFD) == -1 || errno == EBADF )
-  {
-    fprintf (stderr, "Error : 'fd' not available for output");
-    fflush (stderr);
-    return;
-  }
-  if ( !write (fd, (char *) b->p, b->len) )
-  {
-    fprintf (stderr,
-      "Error : Couldn't write msg to 'fd'");
-    fflush (stderr);
-    return;
-  }
+  fprintf (stderr, "%s", msg);
   hmesh_error_free ();
 }
-

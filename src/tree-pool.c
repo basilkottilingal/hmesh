@@ -2,9 +2,8 @@
 #include <tree-pool.h>
 
 /*
-.. MAP_ANONYMOUS not found in few compilers.
-.. This file is expected to be compiled 
-.. successfully in linux/MacOS. (NOT VERIFIED)
+.. MAP_ANONYMOUS not found in few compilers. This file is expected to be
+.. compiled successfully in linux/MacOS. (NOT VERIFIED)
 */
 #if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
 #define MAP_ANONYMOUS MAP_ANON
@@ -16,36 +15,36 @@
 #include <string.h>
 #include <stdint.h>
 
-/* 
-.. Use the hmesh_tallocate() function to allocate memory chunksi of size of
+/*
+.. Use the hmesh_tallocate () function to allocate memory chunksi of size of
 .. { 8 x PAGE_SIZE, 4 x PAGE_SIZE, 2 x PAGE_SIZE, 1 x PAGE_SIZE }
 */
- 
+
 /*
-.. HmeshTpool : collection of tree pools
+.. "HmeshTpool" : collection of tree pools
 .. 'trees' : collection of pools
 .. 'ntree's : number of trees in use
-.. 'free_list' : Free blocks of each level 
+.. 'free_list' : Free blocks of each level
 */
 typedef struct HmeshTpool
 {
   HmeshTpool * trees;
-  int ntrees; 
-  FreeTBlock * free_list [HMESH_TREE_POOL_DEPTH + 1]; 
+  int ntrees;
+  FreeTBlock * free_list [HMESH_TREE_POOL_DEPTH + 1];
 } HmeshTpool;
 
 /*
 .. For the moment, let's fix the BLOCK_SIZE = no: of nodes per block to 4096.
-.. So the the size of chunks fall in 4096 * \{1,2,4,8\}, guaranteeing the
-.. minimum of the chunk size is a PAGE_SIZE = 4096 Bytes.
-.. We try to allocate 8MB of chunk (by default).
+.. So the size of chunks fall in 4096 * \{ 1, 2, 4, 8\}, guaranteeing the
+.. minimum of the chunk size is a PAGE_SIZE = 4096 Bytes. We try to allocate
+.. 8MB of chunk (by default).
 */
 #define HMESH_TREE_POOL_SIZE 1<<23
 static  HmeshTpool HMESH_TREE_POOLS = {0};
 const   size_t HMESH_TREE_POOL_NODES = (1 << (HMESH_TREE_POOL_DEPTH+1)) - 1;
 const   size_t HMESH_TREE_BLOCK_SIZE = HMESH_PAGE_SIZE;
 
-size_t HmeshTpoolBlockSize()
+size_t HmeshTpoolBlockSize ()
 {
   return HMESH_TREE_BLOCK_SIZE;
 }
@@ -59,13 +58,13 @@ HmeshTpool * hmesh_tpool_tree (int itree)
 static inline
 void * hmesh_tpool_address_is (void * start, Index inode, int depth)
 {
-  Index 
-    h     = 1<<depth,
+  Index
+    h     = 1 << depth,
     H     = 1 << HMESH_TREE_POOL_DEPTH,
     D     = 1 << (HMESH_TREE_POOL_DEPTH - depth),
     index = inode & HMESH_TREE_POOL_NODES,
     iroot = inode >> (HMESH_TREE_POOL_DEPTH + 1);
-  return (void *) ((char *) start + 
+  return (void *) ( (char *) start +
     (iroot*H + (index - h + 1)*D) * HMESH_TREE_BLOCK_SIZE);
 }
 
@@ -73,39 +72,39 @@ void * hmesh_tpool_address (Index block)
 {
   Index
     itree = block >> 13,
-    inode = block & 8191; 
-  
-  if ( !(itree < HMESH_TREE_POOLS.ntrees && inode < 4096) )
+    inode = block & 8191;
+
+  if ( ! (itree < HMESH_TREE_POOLS.ntrees && inode < 4096) )
     return NULL;
-   
-  return HmeshTpoolAddressIs(HMESH_TREE_POOLS.trees[itree].root,
+
+  return hmesh_tpool_address_is (HMESH_TREE_POOLS.trees[itree].root,
     inode, HMESH_TREE_POOLS.trees[itree].flags[inode] & 7);
 }
 
 static inline
 Index hmesh_tpool_parent (Index inode)
 {
-  return (( (inode & HMESH_TREE_POOL_NODES) - 1) >> 1) |
-    (inode & ~HMESH_TREE_POOL_NODES);    
+  return ( ( (inode & HMESH_TREE_POOL_NODES) - 1) >> 1) |
+    (inode & ~HMESH_TREE_POOL_NODES);
 }
 
-static inline 
+static inline
 Index hmesh_tpool_child (Index inode, Index ichild)
 {
-  /*assert(ichild <2)*/
+  /*assert (ichild <2)*/
   return (inode & ~HMESH_TREE_POOL_NODES) |
-    (((inode & HMESH_TREE_POOL_NODES) << 1) + ichild + 1);    
+    (((inode & HMESH_TREE_POOL_NODES) << 1) + ichild + 1);
 }
 
 static inline
 void hmesh_tpool_pop (FreeTBlock * fb, int depth)
 {
   /* remove a free block from free list */
-  if( fb->prev )
+  if ( fb->prev )
     fb->prev->next = fb->next;
   else
     HMESH_TREE_POOLS.free_list [depth] = fb->next;
-  if( fb->next )
+  if ( fb->next )
     fb->next->prev = fb->prev;
 }
 
@@ -113,19 +112,19 @@ static inline
 void hmesh_tpool_push (FreeTBlock * fb, int depth)
 {
   fb->prev = NULL;
-  fb->next = HMESH_TREE_POOLS.free_list[depth]; 
-  if(fb->next)
+  fb->next = HMESH_TREE_POOLS.free_list[depth];
+  if (fb->next)
     fb->next->prev = fb;
   /* add the free block at the free list head*/
   HMESH_TREE_POOLS.free_list[depth] = fb;
 }
 
-static 
-Index  HmeshTpoolDivide (FreeTBlock * _fb, int level, int depth) 
+static
+Index  HmeshTpoolDivide (FreeTBlock * _fb, int level, int depth)
 {
   /* Divide a freeblock till 'depth' */
   hmesh_tpool_pop (_fb, level);
-          
+
   Index
     block = _fb->block,
     inode = block & 8191,
@@ -133,7 +132,7 @@ Index  HmeshTpoolDivide (FreeTBlock * _fb, int level, int depth)
 
   if (itree >= HMESH_TREE_POOLS.ntrees || inode >= 4096)
   {
-    hmesh_error ("HmeshTpoolDeallocate() : out of bound");
+    hmesh_error ("hmesh_tpool_deallocate () : out of bound");
     return UINT16_MAX;
   }
 
@@ -145,8 +144,8 @@ Index  HmeshTpoolDivide (FreeTBlock * _fb, int level, int depth)
     .. Keep on dividing the chunk till the size is of desirable size
     */
     Index
-      left  = hmesh_tpool_child (inode,0),
-      right = hmesh_tpool_child (inode,1);
+      left  = hmesh_tpool_child (inode, 0),
+      right = hmesh_tpool_child (inode, 1);
 
     /*flags[left]  = level;        In use */
     flags[right] = level | 128;                              /* In free list */
@@ -155,13 +154,13 @@ Index  HmeshTpoolDivide (FreeTBlock * _fb, int level, int depth)
       hmesh_tpool_address_is (tree->root, right, level);
     *fb = (_FreeTBlock) { .block = right | (itree << 13) };
     /* pushing right half as a free block @ free list head*/
-    HmeshTpoolPush(fb, level);
+    hmesh_tpool_push (fb, level);
 
     flags[inode] = (level - 1) | 64;  /* inode is divided and no more a leaf */
-  
+
     inode = left;                                        /* Go to left child */
   }
-          
+
   flags[inode] = depth;
   return inode | (itree << 13);
 }
@@ -178,10 +177,10 @@ int hmesh_tpool_deallocate (Index block)
 
   if (itree >= HMESH_TREE_POOLS.ntrees || inode >= 4096)
   {
-    hmesh_error ("HmeshTpoolDeallocate() : out of bound");
+    hmesh_error ("hmesh_tpool_deallocate () : out of bound");
     return HMESH_ERROR;
   }
-  
+
   HmeshTpool * tree = & HMESH_TREE_POOLS.trees [itree];
 
   /*
@@ -193,63 +192,61 @@ int hmesh_tpool_deallocate (Index block)
 
   if ( flags[inode] & (128|64) )
   {
-    hmesh_error ("HmeshTpoolDeallocate() : "
+    hmesh_error ("hmesh_tpool_deallocate () : "
       "tree pool node cannot be deallocated");
     return HMESH_ERROR;
   }
 
-    /* Coalesce with 'buddy'/'sibling' if possible */
-      /* Merge inode and sibling */
-      /* Remove sibling out of free list */
-      /* Mark inode as free and add it to the free list*/
-      /* push to free list head */
+  /*
+  .. While deallocating a block coalesce with 'buddy'/'sibling' if possible
+  */
   do
   {
-    Index sibling = inode + ((inode & 1) ? 1 : -1); 
+    Index sibling = inode + ((inode & 1) ? 1 : -1);
     if ( (128 & flags[sibling]) && depth )
     {
       flags [sibling] = flags[inode] = (depth | 64);
-      FreeTBlock * fb = (_FreeTBlock *) 
+      FreeTBlock * fb = (_FreeTBlock *)
         hmesh_tpool_address_is ( tree->root, sibling, depth);
-      assert((fb->block & 8191) == sibling);
+      assert ((fb->block & 8191) == sibling);
       hmesh_tpool_pop (fb, depth);
       inode = hmesh_tpool_parent (inode);
     }
     else
     {
-      flags[inode] |= 128; 
-      FreeTBlock * fb = (_FreeTBlock *) 
+      flags[inode] |= 128;
+      FreeTBlock * fb = (_FreeTBlock *)
         hmesh_tpool_address_is ( tree->root, inode, depth);
       *fb = (FreeTBlock) { .block = inode | (itree << 13) };
       hmesh_tpool_push (fb, depth);
       break;
     }
-  } while(depth--);
+  } while (depth--);
 
   return HMESH_NO_ERROR;
 }
 
-/* Creating a memory block using mmap().
-.. This function will be called when you
-.. ask to allocate the first time,
-.. or you run out of the current block */
+/*
+.. Creating a memory block using mmap (). This function will be called when you
+.. ask to allocate the first time, or you run out of the current block
+*/
 static
 void * hmesh_tpool_add ()
 {
   if (HMESH_TREE_POOLS.ntrees == 8)
   {
-    hmesh_error ("HmeshTpoolAdd() : _Index insufficient for "
+    hmesh_error ("hmesh_tpool_add () : _Index insufficient for "
       "block index. Rewrite using uin32_t");
     return NULL;
   }
   /*
   .. Create a new tree pool and add it to the list of pool
-  .. HMESH_TREE_POOLS.root[ntrees++] = mmap(..)
+  .. HMESH_TREE_POOLS.root[ntrees++] = mmap (..)
   .. 1 X PAGE_SIZE is used to stored flagsrmation on tree_pool,
   .. 2047 X PAGE_SIZE is free to use (if successful).
   */
 
-  /* 'psize' : or pool size = 8MB 
+  /* 'psize' : or pool size = 8MB
   .. 'rsize' : root size or the largest chunk that
   .. pool can allocate. rsize = 8 x PAGE_SIZE bytes.
   .. 'limit' : is the bare minimum tree pool size.
@@ -257,20 +254,22 @@ void * hmesh_tpool_add ()
   */
   size_t psize = HMESH_TREE_POOL_SIZE,
     rsize = (1<<HMESH_TREE_POOL_DEPTH) * HMESH_TREE_BLOCK_SIZE,
-    limit = 2 * rsize, maxnodes = 1<<(HMESH_TREE_POOL_DEPTH+1);
- 
-  int itree = HMESH_TREE_POOLS.ntrees, 
+    limit = 2 * rsize, maxnodes = 1 << (HMESH_TREE_POOL_DEPTH+1);
+
+  int itree = HMESH_TREE_POOLS.ntrees,
     depth = HMESH_TREE_POOL_DEPTH;
 
   while (psize >= limit)
   {
     /* Trying to pool memory directly from OS rather than
-    .. using malloc(). */
+    .. using malloc (). */
     void * mem = mmap (NULL, psize, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (mem == MAP_FAILED)
     {
-      hmesh_error ("HmeshTpoolAdd() : Warning! mmap() failed for %zd bytes");
+      /*
+      .. "hmesh_tpool_add () : Warning! mmap () failed for %zd bytes");
+      */
       psize = psize >> 1;
       continue;
     }
@@ -278,29 +277,29 @@ void * hmesh_tpool_add ()
     /* Created a pool of size 'psize'. */
     HmeshTpool * pool = & HMESH_TREE_POOLS;
     ++(pool->ntrees);
-    pool->trees = (_HmeshTpool *) realloc 
-        ( pool->trees, (pool->ntrees) * sizeof(HmeshTpool) );
+    pool->trees = realloc
+        ( pool->trees, (pool->ntrees) * sizeof (HmeshTpool) );
     HmeshTpool * tree = pool->trees + itree;
-    *tree = (_HmeshTpool) 
-      { 
-        .root  = mem, 
-        .flags = (_Flag *) mem, 
-        .size  = psize
-      };
+    *tree = (HmeshTpool)
+    {
+      .root  = mem,
+      .flags = (_Flag *) mem,
+      .size  = psize
+    };
 
     /* Let's use a part of the pool [0, PAGE_SIZE)
     .. to store the tree nodes flags*/
 
     /* Update the flags on the nodes */
-    size_t rchunks = psize / rsize; assert(rchunks);
+    size_t rchunks = psize / rsize; assert (rchunks);
     uint8_t * flags = tree->flags;
     FreeTBlock _0b;
-    for(int j = rchunks - 1; j >= 0; --j)
+    for (int j = rchunks - 1; j >= 0; --j)
     {
       Index inode = j * maxnodes;
-      /* 
-      .. Adding chunk to free_list @ root (level = 0) 
-      .. Encode level and the flag that node is not in use 
+      /*
+      .. Adding chunk to free_list @ root (level = 0)
+      .. Encode level and the flag that node is not in use
       .. _Flag NODE_IS_FREE = 128, NODE_IS_NOT_LEAF = 64;
       */
 
@@ -318,12 +317,12 @@ void * hmesh_tpool_add ()
       */
       do
       {
-        for(_Index i = 0; i< (1<<level); ++i) 
-          flags[inode++] = level | 64; 
-      } while(++level <= depth);
+        for (_Index i = 0; i< (1<<level); ++i)
+          flags[inode++] = level | 64;
+      } while (++level <= depth);
       /* to round off [2^(N+1)-1] to [2^(N+1)] */
       ++inode;
-      assert(inode % maxnodes == 0);
+      assert (inode % maxnodes == 0);
     }
 
     /*
@@ -333,27 +332,27 @@ void * hmesh_tpool_add ()
     Index flagsNode = hmesh_tpool_divide (&_0b, 0, depth);
     assert ( flagsNode == ((itree << 13) | ((1<<depth) - 1)) );
 
-    return mem;    
+    return mem;
   }
-      
-  hmesh_error ("HmeshTpoolAdd() : failed to create a tree_pool");
-  return NULL; 
+
+  hmesh_error ("hmesh_tpool_add () : failed to create a tree_pool");
+  return NULL;
 }
 
-/* 
-.. fixme : make this an internal routine. 
+/*
+.. fixme : make this an internal routine.
 */
 Index hmesh_tpool_allocate (int depth)
 {
   if (depth > HMESH_TREE_POOL_DEPTH)
   {
-    hmesh_error ("HmeshTpoolAllocate() : depth out of bound");
+    hmesh_error ("hmesh_tpool_allocate () : depth out of bound");
     return UINT16_MAX;
   }
 
   int twice = 2;
       /* Cannot find free block @ this level; try larger chunks */
-      /* In case level < depth, divide till depth  
+      /* In case level < depth, divide till depth
     .. In case there is no free blocks @ all levels, create a new pool
     */
   while (twice--)
@@ -368,19 +367,19 @@ Index hmesh_tpool_allocate (int depth)
 
     if (twice)
     {
-      void * mem = hmesh_tpool_add();
+      void * mem = hmesh_tpool_add ();
       if (!mem) break;
     }
   }
-        
-  hmesh_error ("HmeshTpoolAllocate() : no availability");
+
+  hmesh_error ("hmesh_tpool_allocate () : no availability");
   return UINT16_MAX;
 }
 
 /* This is the API to allocate a memory block of size
 .. [obj_size X PAGE_SIZE].
-.. NOTE : as of now obj_size in 1,2,4,8 can be
-.. handled. 
+.. NOTE : as of now obj_size in 1, 2, 4, 8 can be
+.. handled.
 */
 Index hmesh_tpool_allocate_general (size_t obj_size)
 {
@@ -388,7 +387,7 @@ Index hmesh_tpool_allocate_general (size_t obj_size)
   int level = 0;
   while (n)
   {
-    if(r) 
+    if (r)
       break;
     r = n & 1;
     n = n >> 1;
@@ -396,21 +395,21 @@ Index hmesh_tpool_allocate_general (size_t obj_size)
   }
   if ( (n && r) || (!obj_size))
   {
-    hmesh_error ("HmeshTpoolAllocateGeneral() : "
-      "obj_size should be [1,2,..,2^HPOOL_DEPTH]");
+    hmesh_error ("hmesh_tpool_allocate_general () : "
+      "obj_size should be [1, 2, .., 2^HPOOL_DEPTH]");
     return UINT16_MAX;
   }
   --level;
   if ( level > HMESH_TREE_POOL_DEPTH )
   {
-    hmesh_error ("HmeshTpoolAllocateGeneral() : out of bound");
+    hmesh_error ("hmesh_tpool_allocate_general () : out of bound");
     return UINT16_MAX;
   }
-  return 
+  return
     hmesh_tpool_allocate (HMESH_TREE_POOL_DEPTH - level);
 }
 
-/* 
+/*
 .. Allocate a page of size 4096 bytes
 */
 Index hmesh_tpool_allocate_page ()
@@ -419,8 +418,9 @@ Index hmesh_tpool_allocate_page ()
 }
 
 /*
-.. Expected to be called at teh end of
-.. pgm, after this you don't expect a tree allocate
+.. "hmesh_tpool_destroy ()" : cleans all tree pool allocated. Expected
+.. to be called at teh end of pgm, after this you don't expect a tree
+.. allocate
 */
 void hmesh_tpool_destroy ()
 {
@@ -429,8 +429,7 @@ void hmesh_tpool_destroy ()
   while (itree--)
   {
     /* fixme: add error msg */
-    munmap(tree->root, tree->size);
+    munmap (tree->root, tree->size);
     ++tree;
   }
 }
-

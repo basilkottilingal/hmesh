@@ -78,7 +78,7 @@ extern "C" {
   */
   typedef struct
   {
-    char name[HMESH_MAX_VARNAME + 1];
+    char name [HMESH_MAX_VARNAME + 1];
     Index * iblock, max, obj_size;
     IndexStack stack;
   } HmeshArray;
@@ -89,15 +89,15 @@ extern "C" {
   } Node;
 
   /*
-  .. cells of mesh : vertices/edges/triangle/tetrahedrons 
-  .. Stack of indices in use for scalars, blocks
-  .. attributes including 'prev', 'next', scalars etc
-  .. address of blocks of each attribute 
+  .. "HmeshCells" : list of k-cells of a mesh ( k in {0,1,2,3} respectively
+  .. for vertices/edges/triangle/tetrahedrons ). The list is stored as an array
+  .. of indices, or rather as a linked list of indices. There may be stacks of
+  .. arrays (also called as Structure of Arrays or SoA) with each array corres-
+  .. ponding to an attribute of the cells.
   .. 'info' : head, free head, no: of nodes in use, .. no: of nodes free.
   .. 'max'  : blocks in [0,max) are (maybe) in use 
   .. 'maxs' : scalars in [0,maxs) are (maybe) in use 
-  .. dimension.
-  .. iscalars in [min, max) are in_use for scalars  
+  .. 'd'    : dimension of cell. Possible values {0,1,2,3}
   */
   typedef struct 
   {
@@ -125,7 +125,7 @@ extern "C" {
   .. Eulerian space will have empty face list ('triangles').
   ..
   .. 'p' ,'e', 't', 'v'  are sets of pointes, edges, triangles
-  .. and volume cells 
+  .. and (tetrahedral) volume cells 
   */
   typedef struct
   {

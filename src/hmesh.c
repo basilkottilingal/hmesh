@@ -34,8 +34,8 @@ void * hmesh_array_add (HmeshArray * a, Index iblock, void *** mem)
   if (a->stack.max > a->max)
   {
     a->max = a->stack.max;
-    a->iblock = (Index *) realloc (a->iblock, a->max * sizeof (Index));
-    *mem = (void **) realloc (*mem, a->max * sizeof (void *));
+    a->iblock = realloc (a->iblock, a->max * sizeof (Index));
+    *mem = realloc (*mem, a->max * sizeof (void *));
   }
   (*mem)[iblock] = m;
   a->iblock[iblock] = block;
@@ -79,14 +79,14 @@ HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
     hmesh_error ("HmeshArray () : Attribute name require [1,32) chars");
     return NULL;
   }
-  HmeshArray * a = (HmeshArray *) malloc (sizeof (HmeshArray));
+  HmeshArray * a = malloc (sizeof (HmeshArray));
   a->obj_size = size;
   a->stack    = index_stack (HMESH_MAX_NBLOCKS, 8, NULL);
   a->max      = a->stack.max;
   if (a->max)
   {
-    a->iblock = (Index *) malloc (a->max * sizeof (Index));
-    *mem = (void **) malloc (a->max * sizeof (void *));
+    a->iblock = malloc (a->max * sizeof (Index));
+    *mem = malloc (a->max * sizeof (void *));
   }
 
   int s = 0;
@@ -181,7 +181,7 @@ int hmesh_cells_expand (HmeshCells * cells)
   if (cells->max < cells->blocks->max)
   {
     cells->max = cells->blocks->max;
-    cells->info = (Index *)
+    cells->info = 
       realloc (cells->info, 4 * cells->max * sizeof (Index));
   }
 
@@ -203,7 +203,7 @@ int hmesh_cells_expand (HmeshCells * cells)
 */
 HmeshCells * hmesh_cells (int d, int D)
 {
-  HmeshCells * cells = (HmeshCells *) malloc  (sizeof (HmeshCells));
+  HmeshCells * cells = malloc  (sizeof (HmeshCells));
 
   if ( (!cells) || (d>3) || (d>D) )
     return NULL;
@@ -217,7 +217,7 @@ HmeshCells * hmesh_cells (int d, int D)
   *nattr = 2 + (d ? (d + 3) : D);
   for (int iattr = 0; iattr < *nattr; ++iattr)
     index_stack_allocate (scalars, iattr);
-  cells->mem = (void ***) malloc (scalars->max * sizeof (void **));
+  cells->mem = malloc (scalars->max * sizeof (void **));
 
   /* warning: do warning reallocs carefully*/
   void *** mem = cells->mem,
@@ -355,7 +355,7 @@ HmeshArray * hmesh_scalar_new (HmeshCells * cells, char * name)
 
   if (stack->max > cells->maxs)
   {
-    cells->mem = (void ***)
+    cells->mem =
       realloc (cells->mem, stack->max * sizeof (void**));
     cells->maxs = stack->max;
   }
@@ -510,6 +510,10 @@ int hmesh_destroy (Hmesh * h)
   return err;
 }
 
+/*
+.. "hmesh (int d, int D)" creates a mesh in Eulerina space R^D.
+.. NOTE : volume meshes are not yet implemented
+*/
 Hmesh * hmesh (int d, int D)
 {
   if ( (d > D) || (D > 3) || (!D) )
@@ -517,15 +521,13 @@ Hmesh * hmesh (int d, int D)
     hmesh_error ("hmesh () :  Incompatible dim. d%d, D%D", d, D);
     return NULL;
   }
-
-  /* volume meshes are not yet implemented */
   if (d == 3)
   {
     hmesh_error ("hmesh () :  Volume meshes not available");
     return NULL;
   }
 
-  Hmesh * h = (Hmesh *) malloc (sizeof (Hmesh));
+  Hmesh * h = malloc (sizeof (Hmesh));
 
   /* setting dimension of mesh */
   h->d = d;
