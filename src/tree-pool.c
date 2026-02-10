@@ -26,12 +26,12 @@
 .. 'ntree's : number of trees in use
 .. 'free_list' : Free blocks of each level
 */
-typedef struct HmeshTpool
+typedef struct
 {
   HmeshTpool * trees;
   int ntrees;
   FreeTBlock * free_list [HMESH_TREE_POOL_DEPTH + 1];
-} HmeshTpool;
+} HmeshTpools;
 
 /*
 .. For the moment, let's fix the BLOCK_SIZE = no: of nodes per block to 4096.
@@ -40,7 +40,7 @@ typedef struct HmeshTpool
 .. 8MB of chunk (by default).
 */
 #define HMESH_TREE_POOL_SIZE 1<<23
-static  HmeshTpool HMESH_TREE_POOLS = {0};
+static  HmeshTpools HMESH_TREE_POOLS = {0};
 const   size_t HMESH_TREE_POOL_NODES = (1 << (HMESH_TREE_POOL_DEPTH+1)) - 1;
 const   size_t HMESH_TREE_BLOCK_SIZE = HMESH_PAGE_SIZE;
 
@@ -120,7 +120,7 @@ void hmesh_tpool_push (FreeTBlock * fb, int depth)
 }
 
 static
-Index  HmeshTpoolDivide (FreeTBlock * _fb, int level, int depth)
+Index  hmesh_tpool_divide (FreeTBlock * _fb, int level, int depth)
 {
   /* Divide a freeblock till 'depth' */
   hmesh_tpool_pop (_fb, level);
@@ -150,9 +150,9 @@ Index  HmeshTpoolDivide (FreeTBlock * _fb, int level, int depth)
     /*flags[left]  = level;        In use */
     flags[right] = level | 128;                              /* In free list */
 
-    FreeTBlock * fb = (_FreeTBlock *)
+    FreeTBlock * fb = (FreeTBlock *)
       hmesh_tpool_address_is (tree->root, right, level);
-    *fb = (_FreeTBlock) { .block = right | (itree << 13) };
+    *fb = (FreeTBlock) { .block = right | (itree << 13) };
     /* pushing right half as a free block @ free list head*/
     hmesh_tpool_push (fb, level);
 
@@ -206,7 +206,7 @@ int hmesh_tpool_deallocate (Index block)
     if ( (128 & flags[sibling]) && depth )
     {
       flags [sibling] = flags[inode] = (depth | 64);
-      FreeTBlock * fb = (_FreeTBlock *)
+      FreeTBlock * fb = (FreeTBlock *)
         hmesh_tpool_address_is ( tree->root, sibling, depth);
       assert ((fb->block & 8191) == sibling);
       hmesh_tpool_pop (fb, depth);
@@ -215,7 +215,7 @@ int hmesh_tpool_deallocate (Index block)
     else
     {
       flags[inode] |= 128;
-      FreeTBlock * fb = (_FreeTBlock *)
+      FreeTBlock * fb = (FreeTBlock *)
         hmesh_tpool_address_is ( tree->root, inode, depth);
       *fb = (FreeTBlock) { .block = inode | (itree << 13) };
       hmesh_tpool_push (fb, depth);
@@ -235,7 +235,7 @@ void * hmesh_tpool_add ()
 {
   if (HMESH_TREE_POOLS.ntrees == 8)
   {
-    hmesh_error ("hmesh_tpool_add () : _Index insufficient for "
+    hmesh_error ("hmesh_tpool_add () : Index insufficient for "
       "block index. Rewrite using uin32_t");
     return NULL;
   }
@@ -275,7 +275,7 @@ void * hmesh_tpool_add ()
     }
 
     /* Created a pool of size 'psize'. */
-    HmeshTpool * pool = & HMESH_TREE_POOLS;
+    HmeshTpools * pool = & HMESH_TREE_POOLS;
     ++(pool->ntrees);
     pool->trees = realloc
         ( pool->trees, (pool->ntrees) * sizeof (HmeshTpool) );
@@ -283,7 +283,7 @@ void * hmesh_tpool_add ()
     *tree = (HmeshTpool)
     {
       .root  = mem,
-      .flags = (_Flag *) mem,
+      .flags = (uint8_t *) mem,
       .size  = psize
     };
 
@@ -317,7 +317,7 @@ void * hmesh_tpool_add ()
       */
       do
       {
-        for (_Index i = 0; i< (1<<level); ++i)
+        for (Index i = 0; i< (1<<level); ++i)
           flags[inode++] = level | 64;
       } while (++level <= depth);
       /* to round off [2^(N+1)-1] to [2^(N+1)] */

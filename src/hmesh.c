@@ -461,7 +461,7 @@ Node hmesh_node_new (HmeshCells * cells)
 /*
 .. Add a node to the 'cells'
 */
-int hmesh_node_remove (HmeshCells * cells, _Node node)
+int hmesh_node_remove (HmeshCells * cells, Node node)
 {
   Index iblock = node.iblock, index = node.index,
     * prev = (Index *) HMESH_ATTR (cells, 0, iblock),
@@ -470,7 +470,7 @@ int hmesh_node_remove (HmeshCells * cells, _Node node)
   /* Error : Index is already a free index, or the reserved index '0'
   .. or out of bound */
   if ( (prev[index] == UINT16_MAX) || (!index) ||
-      (index >= HmeshTpoolBlockSize ()) )
+      (index >= hmesh_tpool_block_size ()) )
     return HMESH_ERROR;
 
   /* remove 'index' from used list */
