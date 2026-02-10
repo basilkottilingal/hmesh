@@ -44,7 +44,7 @@ static  HmeshTpools HMESH_TREE_POOLS = {0};
 const   size_t HMESH_TREE_POOL_NODES = (1 << (HMESH_TREE_POOL_DEPTH+1)) - 1;
 const   size_t HMESH_TREE_BLOCK_SIZE = HMESH_PAGE_SIZE;
 
-size_t HmeshTpoolBlockSize ()
+size_t hmesh_tpool_block_size ()
 {
   return HMESH_TREE_BLOCK_SIZE;
 }

@@ -14,7 +14,7 @@ void array_free (Array * a)
   free (a);
 }
 
-void array_ppend (Array * a, void * data, size_t size)
+void array_append (Array * a, void * data, size_t size)
 {
   if (a->len + size >= a->max)
   {

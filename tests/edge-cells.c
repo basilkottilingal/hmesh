@@ -4,41 +4,43 @@
 
 int main() {
 
-  _HmeshCells * edges = HmeshCells(1,3);
+  HmeshCells * edges = hmesh_cells (1,3);
 
-  HmeshScalarNew(edges, "s");
-  HmeshScalarNew(edges, "0"); //Error : naming should follow C naming rules
-  HmeshScalarNew(edges, "v");
-  HmeshScalarNew(edges, "s"); //Error : 's' already exits
-  HmeshScalarNew(edges, "veryLongScalarNameIsNotAllowedFoScalarName"); //Error : long name
+  hmesh_scalar_new (edges, "s");
+  hmesh_scalar_new (edges, "0"); //Error : naming should follow C naming rules
+  hmesh_scalar_new (edges, "v");
+  hmesh_scalar_new (edges, "s"); //Error : 's' already exits
+  hmesh_scalar_new (edges, "veryLongScalarNameIsNotAllowedFoScalarName"); //Error : long name
 
-  HmeshErrorFlush(2);
+  hmesh_error_flush ();
 
-  HmeshScalarRemove(edges, "s");
-  HmeshScalarNew(edges, "s");
-  HmeshScalarRemove(edges, "z"); //error : 'z' doesn't exist
+  hmesh_scalar_remove (edges, "s");
+  hmesh_scalar_new (edges, "s");
+  hmesh_scalar_remove (edges, "z"); //error : 'z' doesn't exist
 
-  HmeshErrorFlush(2);
+  hmesh_error_flush ();
 
-  fprintf(stdout, "\nList of attr");  
-  for(int i=0; i<edges->min; ++i) {
-    _HmeshArray * attr = (_HmeshArray *) edges->attr[i];
+  fprintf (stdout, "\nList of attr");  
+  for (int i=0; i<edges->min; ++i)
+  {
+    HmeshArray * attr = (HmeshArray *) edges->attr[i];
+    assert (attr);
+    fprintf (stdout, "\n\t%s", attr->name);
+  }
+  fprintf (stdout, "\nList of scalar attr");  
+  for (int i = edges->min; i<edges->scalars.n; ++i)
+  {
+    Index iscalar = edges->scalars.info[i].in_use;
+    HmeshArray * attr = (HmeshArray *) edges->attr[iscalar];
     assert(attr);
     fprintf(stdout, "\n\t%s", attr->name);
   }
-  fprintf(stdout, "\nList of scalar attr");  
-  for(int i = edges->min; i<edges->scalars.n; ++i) {
-    _Index iscalar = edges->scalars.info[i].in_use;
-    _HmeshArray * attr = (_HmeshArray *) edges->attr[iscalar];
-    assert(attr);
-    fprintf(stdout, "\n\t%s", attr->name);
-  }
 
-  HmeshCellsDestroy(edges);
+  hmesh_cells_destroy (edges);
 
-  HmeshTpoolDestroy();
+  hmesh_tpool_destroy();
 
-  HmeshErrorFlush(2);
+  hmesh_error_flush ();
 
   return 0;
 }

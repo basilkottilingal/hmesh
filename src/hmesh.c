@@ -74,7 +74,7 @@ int hmesh_array_remove (HmeshArray * a, Index iblock, void *** mem)
 */
 HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
 {
-  if (!name || !name[0] || strlen (name) > HMESH_MAX_VARNAME )
+  if (!name || (name[0] == '\0')|| (strlen (name) > HMESH_MAX_VARNAME) )
   {
     hmesh_error ("HmeshArray () : Attribute name require [1,32) chars");
     return NULL;
@@ -312,7 +312,7 @@ HmeshArray * hmesh_scalar_new (HmeshCells * cells, char * name)
     return NULL;
   }
 
-  if (strlen (name) > 31)
+  if (strlen (name) > HMESH_MAX_VARNAME)
   {
     hmesh_error ("hmesh_scalar_new () : very long name");
     return NULL;

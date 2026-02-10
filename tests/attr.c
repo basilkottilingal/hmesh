@@ -47,13 +47,9 @@ int main()
   hmesh_array_destroy (att2, &mem3);
   hmesh_error_flush ();
 
-
   char aname[200] = "this_is_a_very_long_attribute_name_"
     "which_can_be_potentially_trunked_without_warning_and_can_cause_problem";
-  mem2 = NULL;
   att = hmesh_array (aname, 1, &mem2);
-  if (strcmp (aname, att->name))
-    hmesh_error ("atttribute name trunked to '%s'", att->name);
   hmesh_array_destroy (att, &mem2);
   hmesh_error_flush ();
 

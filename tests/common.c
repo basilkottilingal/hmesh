@@ -1,9 +1,8 @@
 #include <common.h>
 
 int main() {
-  HmeshError("error checking");
-  HmeshError("Checking");
-  HmeshErrorFlush(2);
-
+  hmesh_error("error checking");
+  hmesh_error("Checking");
+  hmesh_error_flush();
   return 0;
 }
