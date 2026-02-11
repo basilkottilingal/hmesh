@@ -76,7 +76,7 @@ HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
 {
   if (!name || (name[0] == '\0')|| (strlen (name) > HMESH_MAX_VARNAME) )
   {
-    hmesh_error ("HmeshArray () : Attribute name require [1,32) chars");
+    hmesh_error ("hmesh_array () : Attribute name require [1,32) chars");
     return NULL;
   }
   HmeshArray * a = malloc (sizeof (HmeshArray));
@@ -151,13 +151,13 @@ int hmesh_cells_expand (HmeshCells * cells)
     HmeshArray * attr = (HmeshArray *) cells->attr[iattr];
     if ( !attr )
     {
-      hmesh_error ("HmeshCellsExpand () : attr[%d] not found", iattr);
+      hmesh_error ("hmesh_cells_expand () : attr[%d] not found", iattr);
       return HMESH_ERROR;
     }
     void * m = hmesh_array_add (attr, iblock, &cells->mem[iattr]);
     if ( !m )
     {
-      hmesh_error ("HmeshCellsExpand () : cannot add block to "
+      hmesh_error ("hmesh_cells_expand () : cannot add block to "
         "attr '%s'", attr->name);
       return HMESH_ERROR;
     }
@@ -265,7 +265,7 @@ HmeshCells * hmesh_cells (int d, int D)
   for (Index iattr = 0; iattr < *nattr; ++iattr)
   {
     if ( attr[iattr] == NULL )
-      hmesh_error ("HmeshCells () : attribute missing");
+      hmesh_error ("hmesh_cells () : attribute missing");
   }
 
   /* Expand all attributes array by 1 block */
