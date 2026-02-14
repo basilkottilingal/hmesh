@@ -2,29 +2,31 @@
 #include <tree-pool.h>
 #include <hmesh.h>
 
-int main() {
+int main()
+{
 
-  _HmeshCells * vertices = HmeshCells(0,3);
+  HmeshCells * vertices = hmesh_cells (0,3);
 
-  fflush(stdout);
+  fflush (stdout);
   /* Insert a 'node' (vertex) to vertices */
-  for(_Index i=0; i<HmeshTpoolBlockSize(); ++i) {
-    _Node v = HmeshNodeNew(vertices);
-    fprintf(stdout, "+[%d:%d]", v.iblock, v.index);
-    if(i%8 == 7) {
-      if(!HmeshNodeRemove(vertices,v)) 
-        fprintf(stdout, "-[%d:%d]", v.iblock, v.index);
+  for (Index i=0; i<hmesh_tpool_block_size (); ++i)
+  {
+    Node v = hmesh_node_new (vertices);
+    fprintf (stdout, "+[%d:%d]", v.iblock, v.index);
+    if (i%8 == 7)
+    {
+      if ( !hmesh_node_remove (vertices, v)) 
+        fprintf (stdout, "-[%d:%d]", v.iblock, v.index);
       else
-        fprintf(stdout, "-failed");
+        fprintf (stdout, "-failed");
     }
   }
 
-  HmeshCellsDestroy(vertices);
+  hmesh_cells_destroy (vertices);
  
-  HmeshTpoolDestroy();
+  hmesh_tpool_destroy ();
 
-  HmeshErrorFlush(2);
- 
+  hmesh_error_flush ();
 
   return 0;
 }

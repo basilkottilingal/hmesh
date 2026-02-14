@@ -56,11 +56,11 @@ extern "C" {
   #define HMESH_ATTR(_c_, _iattr_, _iblk_)                                    \
     ( (_c_->mem[_iattr_])[_iblk_] )
   #define HMESH_REAL(_c_, _s_, _iblk_)                                        \
-    ( (_Real *)(HMESH_ATTR(_c_, _s_, _iblk_)) )
+    ( (Real *)(HMESH_ATTR(_c_, _s_, _iblk_)) )
   #define HMESH_SCALAR(_c_, _s_, _hnode_)                                     \
     ( HMESH_REAL(_c_, _s_, _hnode_.iblock)[_hnode_.index] )
   #define HMESH_SUBNODE(_c_,_node_, _isub_)                                   \
-    ( ((_Node) HMESH_ATTR(_c_, 2 + _isub_, _node_.iblock))[_node_.index] )
+    ( ((Node) HMESH_ATTR(_c_, 2 + _isub_, _node_.iblock))[_node_.index] )
   #define HMESH_IVERTEX(_edges_,_edge_,_iv_)                                  \
     HMESH_SUBNODE(_edges_, _edge_, _iv_)
   #define HMESH_IEDGE(_triangles_,_triangle_,_ie_)                            \

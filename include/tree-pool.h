@@ -82,5 +82,9 @@ extern "C" {
   extern void   hmesh_tpool_destroy          ( );
   extern HmeshTpool * hmesh_tpool_tree       ( int itree );
   extern size_t hmesh_tpool_block_size       ( );
+
+#ifdef __cplusplus
+}
+#endif
   
 #endif
