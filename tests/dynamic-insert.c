@@ -49,6 +49,10 @@ void TpoolStatus()
 
 int main()
 {
+
+  #define PR(str) printf (str); fflush (stdout);
+  PR("start");
+
   srand(time(0));
 
   HmeshCells * vertices = hmesh_cells (0,3);
@@ -61,21 +65,27 @@ int main()
     int inode = 0;
     for (size_t j=0; j<8; ++j)
     {
+PR ("[+");
       Node node = hmesh_node_new (vertices);
       nodes[inode++] = node;
       Index x = 2, y = 3, z = 4;
       HMESH_SCALAR (vertices, x, node) = 1.0;
       HMESH_SCALAR (vertices, y, node) = 1.0;
       HMESH_SCALAR (vertices, z, node) = 1.0;
+PR ("]");
     }
     hmesh_node_remove (vertices, nodes[rand()%8]);
+PR ("[-]");
     if ( !(i%32) )
       TpoolStatus();
   }
+PR("\ndone");
 
   hmesh_cells_destroy (vertices);
+PR("\ncells destroyed");
  
   hmesh_tpool_destroy();
+PR("\npool destroyed");
 
   hmesh_error_flush ();
  

@@ -30,9 +30,9 @@ void TpoolStatus()
       for(Index index = (1<<level) - 1; index < (1<<(level+1)) - 1; ++index)
       {
         Index inode = start + index; 
-        char state =  flags[inode] & 128 ? 'f' :  /* free : free to use */
+        char state =  flags[inode] & 128 ? 'f' :  /* free     : free to use */
                       flags[inode] & 64  ? 'r' :  /* reserved : not a leaf Node*/
-                      '_' ; /* in use : currently in use */
+                      '_' ;                       /* in use   : currently in use */
         fprintf(stdout, "%c", state); 
         for (int is=0; is<(1<<(3-level))-1;++is)
           fprintf(stdout,"%c", state == '_' ? '_' : ' '); 

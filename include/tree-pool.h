@@ -41,12 +41,12 @@ extern "C" {
   /* 
   .. Linked list of free blocks.
   .. 'prev' & 'next' : to form a linked list of empty blocks.
-  .. 'block' : Store information of itree, inode.
+  .. 'blockID' : Store information of itree, inode.
   */
   typedef struct FreeTBlock
   {
     struct FreeTBlock * prev, * next;
-    Index block; 
+    Index blockID; 
   } FreeTBlock;
   
   /* 
@@ -77,8 +77,8 @@ extern "C" {
   extern Index  hmesh_tpool_allocate         ( int depth ); 
   extern Index  hmesh_tpool_allocate_general ( size_t obj_size ); 
   extern Index  hmesh_tpool_allocate_page    ( );
-  extern void * hmesh_tpool_address          ( Index block );
-  extern int    hmesh_tpool_deallocate       ( Index block );
+  extern void * hmesh_tpool_address          ( Index blockID );
+  extern int    hmesh_tpool_deallocate       ( Index blockID );
   extern void   hmesh_tpool_destroy          ( );
   extern HmeshTpool * hmesh_tpool_tree       ( int itree );
   extern size_t hmesh_tpool_block_size       ( );

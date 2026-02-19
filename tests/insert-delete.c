@@ -4,7 +4,6 @@
 
 int main()
 {
-
   HmeshCells * vertices = hmesh_cells (0,3);
 
   fflush (stdout);

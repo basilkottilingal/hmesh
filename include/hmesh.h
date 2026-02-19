@@ -69,9 +69,9 @@ extern "C" {
   /*
   .. HmeshArray : a list of memory blocks. It can be used to store nodes, or
   .. attributes of nodes like scalars etc.
-  .. 'name' : name of the attribute , in case this is an attribute to a node.
+  .. 'name' : name of the attribute, in case this is an attribute to a node.
   .. Warning: Name of attribute limited to 31 characters!
-  .. 'iblock' is the number corresponding to each block in the 'pool'. 'max'
+  .. 'blockID' is the number corresponding to each block in the 'pool'. 'max'
   .. is the size of iblock array, and also address array
   .. To keep track of indices for which address[index] are in_use and
   .. free_list. you need to free the memblock before freeing the index
@@ -79,7 +79,7 @@ extern "C" {
   typedef struct
   {
     char name [HMESH_MAX_VARNAME + 1];
-    Index * iblock, max, obj_size;
+    Index * blockID, max, obj_size;
     IndexStack stack;
   } HmeshArray;
 
@@ -89,11 +89,11 @@ extern "C" {
   } Node;
 
   /*
-  .. "HmeshCells" : list of k-cells of a mesh ( k in {0,1,2,3} respectively
-  .. for vertices/edges/triangle/tetrahedrons ). The list is stored as an array
-  .. of indices, or rather as a linked list of indices. There may be stacks of
-  .. arrays (also called as Structure of Arrays or SoA) with each array corres-
-  .. ponding to an attribute of the cells.
+  .. "HmeshCells" : list of k-cells/k-simplices of a mesh ( k in {0,1,2,3}
+  .. respectively for vertices/edges/triangle/tetrahedrons ). The list is
+  .. stored as an array of indices, or rather as a linked list of indices.
+  .. There may be stacks of arrays (also called as Structure of Arrays or SoA)
+  .. with each array corresponding to an attribute of the cells.
   .. 'info' : head, free head, no: of nodes in use, .. no: of nodes free.
   .. 'max'  : blocks in [0,max) are (maybe) in use 
   .. 'maxs' : scalars in [0,maxs) are (maybe) in use 

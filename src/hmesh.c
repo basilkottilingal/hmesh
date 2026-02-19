@@ -20,11 +20,11 @@ void * hmesh_array_add (HmeshArray * a, Index iblock, void *** mem)
 
   /*
   .. Allocate memory for the block using tpool. The address is stored in
-  .. (*mem)[iblock] for faster access. a->iblock[iblock] is updated (used
+  .. (*mem)[iblock] for faster access. a->blockID[iblock] is updated (used
   .. only for deallocation. 
   */
-  Index block = hmesh_tpool_allocate_general (a->obj_size);
-  void * m = hmesh_tpool_address (block);
+  Index blockID = hmesh_tpool_allocate_general (a->obj_size);
+  void * m = hmesh_tpool_address (blockID);
   if (!m)
   {
     hmesh_error ("hmesh_array_add () : memory pooling failed");
@@ -34,11 +34,11 @@ void * hmesh_array_add (HmeshArray * a, Index iblock, void *** mem)
   if (a->stack.max > a->max)
   {
     a->max = a->stack.max;
-    a->iblock = realloc (a->iblock, a->max * sizeof (Index));
+    a->blockID = realloc (a->blockID, a->max * sizeof (Index));
     *mem = realloc (*mem, a->max * sizeof (void *));
   }
   (*mem)[iblock] = m;
-  a->iblock[iblock] = block;
+  a->blockID[iblock] = blockID;
 
   return m;
 }
@@ -55,7 +55,7 @@ int hmesh_array_remove (HmeshArray * a, Index iblock, void *** mem)
     return HMESH_ERROR;
   }
 
-  Index status = hmesh_tpool_deallocate (a->iblock[iblock]);
+  Index status = hmesh_tpool_deallocate (a->blockID[iblock]);
   if (!status)
   {
     (*mem)[iblock] = NULL;
@@ -85,7 +85,7 @@ HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
   a->max      = a->stack.max;
   if (a->max)
   {
-    a->iblock = malloc (a->max * sizeof (Index));
+    a->blockID = malloc (a->max * sizeof (Index));
     *mem = malloc (a->max * sizeof (void *));
   }
 

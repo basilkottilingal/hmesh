@@ -68,11 +68,11 @@ void * hmesh_tpool_address_is (void * start, Index inode, int depth)
     (iroot*H + (index - h + 1)*D) * HMESH_TREE_BLOCK_SIZE);
 }
 
-void * hmesh_tpool_address (Index block)
+void * hmesh_tpool_address (Index blockID)
 {
   Index
-    itree = block >> 13,
-    inode = block & 8191;
+    itree = blockID >> 13,
+    inode = blockID & 8191;
 
   if ( ! (itree < HMESH_TREE_POOLS.ntrees && inode < 4096) )
     return NULL;
@@ -126,9 +126,9 @@ Index  hmesh_tpool_divide (FreeTBlock * _fb, int level, int depth)
   hmesh_tpool_pop (_fb, level);
 
   Index
-    block = _fb->block,
-    inode = block & 8191,
-    itree = block >> 13;
+    blockID = _fb->blockID,
+    inode = blockID & 8191,
+    itree = blockID >> 13;
 
   if (itree >= HMESH_TREE_POOLS.ntrees || inode >= 4096)
   {
@@ -152,7 +152,7 @@ Index  hmesh_tpool_divide (FreeTBlock * _fb, int level, int depth)
 
     FreeTBlock * fb = (FreeTBlock *)
       hmesh_tpool_address_is (tree->root, right, level);
-    *fb = (FreeTBlock) { .block = right | (itree << 13) };
+    *fb = (FreeTBlock) { .blockID = right | (itree << 13) };
     /* pushing right half as a free block @ free list head*/
     hmesh_tpool_push (fb, level);
 
@@ -166,14 +166,14 @@ Index  hmesh_tpool_divide (FreeTBlock * _fb, int level, int depth)
 }
 
 /* assumes max depth < 8 */
-int hmesh_tpool_deallocate (Index block)
+int hmesh_tpool_deallocate (Index blockID)
 {
 
   /*
   .. last 13 bits are reserved to store node index,
   .. and the rest are used to store tree no (itree)
   */
-  Index itree = block >> 13, inode = block & 8191;
+  Index itree = blockID >> 13, inode = blockID & 8191;
 
   if (itree >= HMESH_TREE_POOLS.ntrees || inode >= 4096)
   {
@@ -208,7 +208,7 @@ int hmesh_tpool_deallocate (Index block)
       flags [sibling] = flags[inode] = (depth | 64);
       FreeTBlock * fb = (FreeTBlock *)
         hmesh_tpool_address_is ( tree->root, sibling, depth);
-      assert ((fb->block & 8191) == sibling);
+      assert ((fb->blockID & 8191) == sibling);
       hmesh_tpool_pop (fb, depth);
       inode = hmesh_tpool_parent (inode);
     }
@@ -217,7 +217,7 @@ int hmesh_tpool_deallocate (Index block)
       flags[inode] |= 128;
       FreeTBlock * fb = (FreeTBlock *)
         hmesh_tpool_address_is ( tree->root, inode, depth);
-      *fb = (FreeTBlock) { .block = inode | (itree << 13) };
+      *fb = (FreeTBlock) { .blockID = inode | (itree << 13) };
       hmesh_tpool_push (fb, depth);
       break;
     }
@@ -306,7 +306,7 @@ void * hmesh_tpool_add ()
       FreeTBlock * fb = !j ? & _0b :
         (FreeTBlock *) hmesh_tpool_address_is (mem, inode, 0);
 
-      *fb = (FreeTBlock) { .block = (itree << 13) | inode };
+      *fb = (FreeTBlock) { .blockID = (itree << 13) | inode };
       /* pushing @ free head of free_list[0]*/
       hmesh_tpool_push (fb, 0);
       flags [inode++] = 128;
