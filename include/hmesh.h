@@ -94,16 +94,17 @@ extern "C" {
   .. stored as an array of indices, or rather as a linked list of indices.
   .. There may be stacks of arrays (also called as Structure of Arrays or SoA)
   .. with each array corresponding to an attribute of the cells.
-  .. 'info' : head, free head, no: of nodes in use, .. no: of nodes free.
+  .. 'info' : number of indices in use
   .. 'max'  : blocks in [0,max) are (maybe) in use 
-  .. 'maxs' : scalars in [0,maxs) are (maybe) in use 
+  .. 'maxs' : scalars in [0,maxs) are (maybe) in use
+  .. 'tail' : tail block where you insert new nodes.
   .. 'd'    : dimension of cell. Possible values {0,1,2,3}
   */
   typedef struct 
   {
     IndexStack scalars, * blocks;
     void **  attr, *** mem;
-    Index * info, max, maxs;
+    Index * info, max, maxs, tail;
     int d, min;
   } HmeshCells;
 

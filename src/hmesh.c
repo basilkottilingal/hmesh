@@ -37,8 +37,8 @@ void * hmesh_array_add (HmeshArray * a, Index iblock, void *** mem)
     a->blockID = realloc (a->blockID, a->max * sizeof (Index));
     *mem = realloc (*mem, a->max * sizeof (void *));
   }
-  (*mem)[iblock] = m;
-  a->blockID[iblock] = blockID;
+  (*mem) [iblock] = m;
+  a->blockID [iblock] = blockID;
 
   return m;
 }
@@ -83,17 +83,12 @@ HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
   a->obj_size = size;
   a->stack    = index_stack (HMESH_MAX_NBLOCKS, 8, NULL);
   a->max      = a->stack.max;
+  strcpy (a->name, name);
   if (a->max)
   {
     a->blockID = malloc (a->max * sizeof (Index));
     *mem = malloc (a->max * sizeof (void *));
   }
-
-  int s = 0;
-  char * c = name;
-  while (*c && s < HMESH_MAX_VARNAME)
-    a->name[s++] = *c++;
-  a->name[s] = '\0';
 
   return a;
 }
@@ -161,39 +156,28 @@ int hmesh_cells_expand (HmeshCells * cells)
         "attr '%s'", attr->name);
       return HMESH_ERROR;
     }
-    if (!iattr)
+    if (iattr < 2)
     {
-      Index * prev = (Index *) m;
-      prev[0] = 0;
-    }
-    else if (iattr == 1)
-    {
-      /* Free index list. Index '0' is reserved node*/
-      Index * next = (Index *) m, bsize = hmesh_tpool_block_size ();
-      for (Index index = 1; index < bsize-1; ++index)
-        next[index] = index + 1;
-      next[bsize-1] = 0;
-      /* Head of used list*/
-      next[0] = 0;
+      /*
+      .. 'map'  : iattr = 0 : indirection map
+      .. 'imap' : iattr = 1 : inverse of indirection map
+      */
+      Index * map = (Index *) m, index = 0,
+        bsize = hmesh_tpool_block_size ();
+      while (index < bsize)
+        *map++ = index++;
     }
   }
 
   if (cells->max < cells->blocks->max)
   {
     cells->max = cells->blocks->max;
-    cells->info = 
-      realloc (cells->info, 4 * cells->max * sizeof (Index));
+    cells->info = realloc (cells->info, cells->max * sizeof (Index));
   }
 
-  Index * info = cells->info + (4*iblock),
-    bsize = hmesh_tpool_block_size ();
-
-  /* head of in-use and free-list linked list respectively*/
-  info[0] = 0;
-  info[1] = 1;
-  /* number of nodes in-use and free */
-  info[2] = 0;
-  info[3] = bsize - 1;
+  /* number of nodes in use & the block in which you insert */
+  cells->info [iblock] = 0;
+  cells->tail = iblock;
 
   return HMESH_NO_ERROR;
 }
@@ -227,10 +211,10 @@ HmeshCells * hmesh_cells (int d, int D)
 
   /* 'prev' and 'next' is used to keep double linked
   .. list of nodes */
-  HmeshArray * prev =
-    hmesh_array ("prev_nodes", sizeof (Index), &mem[0]);
-  attr[0] = prev;
-  attr[1] = hmesh_array ("next_nodes", sizeof (Index), &mem[1]);
+  attr[0] =
+    hmesh_array ("indirection_map", sizeof (Index), &mem[0]);
+  attr[1] =
+    hmesh_array ("inverse_indirection_map", sizeof (Index), &mem[1]);
 
   cells->blocks = prev ? &prev->stack : NULL;
   cells->d = d;
@@ -240,14 +224,34 @@ HmeshCells * hmesh_cells (int d, int D)
   if (d)
   {
     char v[] = "v0";
-    /* sub cells. triangles/edges/vertices */
+    /*
+    .. Graph of sub cells: For each k > 0, a k-cell (simplex) is an
+    .. ordered tuple of (k-1)-cells.
+    ..
+    .. Refer the table below :
+    ..----------------------------------------------------------------
+    .. n | n-simplex         | Num of k-faces ( ∀ k ∈ [0,n) 0 <= k<n) |
+    ..   |                   |  0-face |  1-face | 2-face | 3-face    |
+    ..----------------------------------------------------------------
+    .. 0 | 0-simplex / point |         |         |        |           |
+    ..   |   point           |  1      |         |        |           |
+    .. 1 | 1-simplex /       |         |         |        |           |
+    ..   |   line segment    |  2      |   1     |        |           |
+    .. 2 | 2-simplex /       |         |         |        |           |
+    ..   |    triangle       |  3      |   3     |   1    |           |
+    .. 3 | 3-simplex /       |         |         |        |           |
+    ..   |    tetrahedron    |  4      |   4     |   6    |     1     |
+    ..----------------------------------------------------------------
+    */
     v[0] = (d == 3) ? 't' : (d == 2) ? 'e' : 'v';
     for (int iattr = 2; iattr < 2 + (d+1); ++iattr)
     {
       attr[iattr] = hmesh_array (v, sizeof (Node), &mem[iattr]);
       v[1]++;
     }
-    /* in half-edge meshes, we keep 'next' & 'twin' */
+    /*
+    .. in half-edge meshes, we keep 'next' & 'twin'
+    */
     attr[d + 3] = hmesh_array ("next", sizeof (Node), &mem[d + 3]);
     attr[d + 4] = hmesh_array ("twin", sizeof (Node), &mem[d + 4]);
   }
