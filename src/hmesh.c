@@ -254,8 +254,9 @@ HmeshCells * hmesh_cells (int k, int K, int D)
     attr[k + 3] = hmesh_array ("next", sizeof (Node), &mem[k + 3]);
     attr[k + 4] = hmesh_array ("twin", sizeof (Node), &mem[k + 4]);
     /*
-    .. fixme: 'k-1' is not an attribute for each nodes?? 
-    .. Stack of 'k-1' simplices
+    .. Stack of 'k-1' simplices.
+    .. fixme: 'k-1' is not an attribute for each nodes??
+    .. It should be rather a Cache of subset of (k-1)-simplices. 
     */
     if (k < K)
       attr[k + 5] = hmesh_array ("k-1", sizeof (Node), &mem[k + 4]);
@@ -447,11 +448,15 @@ Node hmesh_node_new (HmeshCells * cells)
 }
 
 /*
-.. Remove a node from 'cells'. WARNING : No safety checking, for the
-.. sake of faster deletion.
+.. Remove a node from 'cells'.
 */
 int hmesh_node_remove (HmeshCells * cells, Node node)
 {
+  if (  )
+  if ( (prev[index] == UINT16_MAX) || (!index) ||
+      (index >= hmesh_tpool_block_size ()) )
+    return HMESH_ERROR;
+
   Index iblock = node.iblock, index = node.index,
     * map  = (Index *) HMESH_ATTR (cells, 0, iblock),
     * mapi = (Index *) HMESH_ATTR (cells, 1, iblock);
@@ -501,14 +506,14 @@ int hmesh_destroy (Hmesh * h)
 .. "hmesh (int d, int D)" creates a mesh in Eulerina space R^D.
 .. NOTE : volume meshes are not yet implemented
 */
-Hmesh * hmesh (int d, int D)
+Hmesh * hmesh (int K, int D)
 {
-  if ( (d > D) || (D > 3) || (!D) )
+  if ( (K > D) || (D > 3) || (!D) )
   {
-    hmesh_error ("hmesh () :  Incompatible dim. d%d, D%D", d, D);
+    hmesh_error ("hmesh () :  Incompatible dim. K%d, D%D", K, D);
     return NULL;
   }
-  if (d == 3)
+  if (K == 3)
   {
     hmesh_error ("hmesh () :  Volume meshes not available");
     return NULL;
@@ -517,25 +522,25 @@ Hmesh * hmesh (int d, int D)
   Hmesh * h = malloc (sizeof (Hmesh));
 
   /* setting dimension of mesh */
-  h->d = d;
+  h->K = K;
   h->D = D;
 
   HmeshCells ** c[4] = { &h->p, &h->e, &h->t, &h->v };
 
-  for (int _d = 0; _d < 4; ++_d)
-    *c[_d] = NULL;
+  for (int k = 0; k < 4; ++k)
+    *c[k] = NULL;
 
   /* create cells of points, edges, etc .. */
-  for (int _d = 0; _d <= d; ++_d)
+  for (int k = 0; k <= d; ++k)
   {
-    HmeshCells * cells = hmesh_cells (_d, D);
+    HmeshCells * cells = hmesh_cells (k, K, D);
     if (!cells)
     {
-      hmesh_error ("hmesh () : hmesh_cells (%d, %d) failed", _d, D);
+      hmesh_error ("hmesh () : hmesh_cells (%d, %d, %d) failed", k, K, D);
       hmesh_destroy (h);
       return NULL;
     }
-    *c[_d] = cells;
+    *c[k] = cells;
   }
 
   return h;
