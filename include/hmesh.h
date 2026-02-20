@@ -98,27 +98,27 @@ extern "C" {
   .. 'max'  : blocks in [0,max) are (maybe) in use 
   .. 'maxs' : scalars in [0,maxs) are (maybe) in use
   .. 'tail' : tail block where you insert new nodes.
-  .. 'd'    : dimension of cell. Possible values {0,1,2,3}
+  .. 'k'    : represent dimension of k-simplex. 0 <= k <= D
   */
   typedef struct 
   {
     IndexStack scalars, * blocks;
     void **  attr, *** mem;
     Index * info, max, maxs, tail;
-    int d, min;
+    int k, min;
   } HmeshCells;
 
   /*
   .. Hmesh: Mesh or a discretized manifold 
   .. 
-  .. 'd' : dimension of manifold in [0,3]. They can be,
+  .. 'K' : dimension of highest order simplex in [0,3]. They can be,
   .. 0: Collection of disconnected Points
   .. 1: Discretized curves in 2-D or 3-D
   .. 2: Discretized 3-D sufaces. 
   .. 3: Volume mesh in 3-D.
   ..
   .. 'D' : Dimension of space. For us, 'D' in [2,3].
-  .. NOTE: It's always (d <= D)
+  .. NOTE: It's always (k <= D)
   .. set of manifold cells like 
   .. points, edges, triangles, volumes 
   .. NOTE: They can be empty, 
@@ -130,7 +130,7 @@ extern "C" {
   */
   typedef struct
   {
-    int d, D;
+    int K, D;
     HmeshCells * p, * e, * t, * v; 
   } Hmesh;
 
@@ -151,11 +151,11 @@ extern "C" {
   .. (*) add a node to the set of cells
   .. (*) remove a node from the set of cells
   */
-  extern HmeshCells * hmesh_cells         ( int d, int D );
+  extern HmeshCells * hmesh_cells         ( int k, int K, int D );
   extern int          hmesh_cells_destroy ( HmeshCells * );
   extern HmeshArray * hmesh_scalar_new    ( HmeshCells *, char * );
   extern int          hmesh_scalar_remove ( HmeshCells *, char * );
-  extern Hmesh *      hmesh               ( int d, int D);
+  extern Hmesh *      hmesh               ( int K, int D);
   extern int          hmesh_destroy       ( Hmesh *);
   extern HmeshArray * hmesh_array ( char * name, size_t size, void *** );
   extern int          hmesh_array_destroy ( HmeshArray *, void *** );

@@ -95,7 +95,7 @@ HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
 
 /*
 .. "hmesh_array_destroy ()" : Destroy attribute object "a",
-.. and deallocate all of it's blocks stored in "*mem[]"
+.. and deallocate all of it's blocks stored in "(*mem)[]"
 */
 int hmesh_array_destroy (HmeshArray * a, void *** mem)
 {
@@ -185,94 +185,98 @@ int hmesh_cells_expand (HmeshCells * cells)
 /*
 .. Create a HmeshCells (list of vertices, edges, etc ..)
 */
-HmeshCells * hmesh_cells (int d, int D)
+HmeshCells * hmesh_cells (int k, int K, int D)
 {
   HmeshCells * cells = malloc  (sizeof (HmeshCells));
 
-  if ( (!cells) || (d>3) || (d>D) )
+  if ( (!cells) || (k > K) || (K > D) || (D > 3) )
+    /* D > 3 : Not Implemented */
     return NULL;
 
   cells->attr = NULL;
   IndexStack * scalars = &cells->scalars;
-  *scalars = index_stack (HMESH_MAX_NVARS, 5, &cells->attr);
+  *scalars = index_stack (HMESH_MAX_NVARS, 8, &cells->attr);
 
-  /* Default attributes */
-  int * nattr = &cells->min;
-  *nattr = 2 + (d ? (d + 3) : D);
-  for (int iattr = 0; iattr < *nattr; ++iattr)
+  /*
+  .. Default attributes :
+  .. (a) For all k-cell stack we maintain the indirection map and the inverse
+  .. of the indirection map.
+  .. (b) For 0-simplex we maintain the position vector {x.x, x.y, .. }
+  .. (c) For all k-simplex (k > 0), we maintain a 'k-1' stack.
+  .. (d) For all k-simplex (k < K <= D), we maintain 'twin' and 'next'
+  */
+  int nattr = cells->min = 2 + ( (k == 0) ? D : ( (k < K) ? 3 : 2) ) 
+  for (int iattr = 0; iattr < nattr; ++iattr)
     index_stack_allocate (scalars, iattr);
   cells->mem = malloc (scalars->max * sizeof (void **));
 
-  /* warning: do warning reallocs carefully*/
-  void *** mem = cells->mem,
-       ** attr = cells->attr;
-
+  void *** mem = cells->mem, ** attr = cells->attr;
   cells->maxs = scalars->max;
 
-  /* 'prev' and 'next' is used to keep double linked
-  .. list of nodes */
-  attr[0] =
+  /*
+  .. Use indirection map
+  */
+  Hmesh * map = attr[0] =
     hmesh_array ("indirection_map", sizeof (Index), &mem[0]);
   attr[1] =
     hmesh_array ("inverse_indirection_map", sizeof (Index), &mem[1]);
 
-  cells->blocks = prev ? &prev->stack : NULL;
-  cells->d = d;
+  cells->blocks = map ? &map->stack : NULL;
+  cells->k = k;
   cells->max = 0;
   cells->info = NULL;
 
-  if (d)
+  if (k)
   {
-    char v[] = "v0";
     /*
     .. Graph of sub cells: For each k > 0, a k-cell (simplex) is an
     .. ordered tuple of (k-1)-cells.
     ..
     .. Refer the table below :
     ..----------------------------------------------------------------
-    .. n | n-simplex         | Num of k-faces ( ∀ k ∈ [0,n) 0 <= k<n) |
+    .. n | n-simplex         | Num of k-faces = C(n,k) ∀ k ∈ [0,n] )  |
     ..   |                   |  0-face |  1-face | 2-face | 3-face    |
     ..----------------------------------------------------------------
-    .. 0 | 0-simplex / point |         |         |        |           |
+    .. 0 | 0-simplex /       |         |         |        |           |
     ..   |   point           |  1      |         |        |           |
     .. 1 | 1-simplex /       |         |         |        |           |
     ..   |   line segment    |  2      |   1     |        |           |
     .. 2 | 2-simplex /       |         |         |        |           |
     ..   |    triangle       |  3      |   3     |   1    |           |
     .. 3 | 3-simplex /       |         |         |        |           |
-    ..   |    tetrahedron    |  4      |   4     |   6    |     1     |
+    ..   |    tetrahedron    |  4      |   6     |   4    |     1     |
     ..----------------------------------------------------------------
     */
-    v[0] = (d == 3) ? 't' : (d == 2) ? 'e' : 'v';
-    for (int iattr = 2; iattr < 2 + (d+1); ++iattr)
-    {
-      attr[iattr] = hmesh_array (v, sizeof (Node), &mem[iattr]);
-      v[1]++;
-    }
+
     /*
     .. in half-edge meshes, we keep 'next' & 'twin'
     */
-    attr[d + 3] = hmesh_array ("next", sizeof (Node), &mem[d + 3]);
-    attr[d + 4] = hmesh_array ("twin", sizeof (Node), &mem[d + 4]);
+    attr[k + 3] = hmesh_array ("next", sizeof (Node), &mem[k + 3]);
+    attr[k + 4] = hmesh_array ("twin", sizeof (Node), &mem[k + 4]);
+    /*
+    .. fixme: 'k-1' is not an attribute for each nodes?? 
+    .. Stack of 'k-1' simplices
+    */
+    if (k < K)
+      attr[k + 5] = hmesh_array ("k-1", sizeof (Node), &mem[k + 4]);
   }
   else
   {
-    char x[] = "x.x";
-    /* Vector 'x' */
-    for (int iattr = 2; iattr < *nattr; ++iattr)
-    {
-      attr[iattr] = hmesh_array (x, sizeof (Real), &mem[iattr]);
-      x[2]++;
-    }
+    char pos [] = "x.x", * x = &pos[2];
+    /*
+    .. Position vector :{ "x.x", "x.y", ..}
+    */
+    for (int iattr = 2; iattr < nattr; ++iattr, (*x)++ )
+      attr[iattr] = hmesh_array (pos, sizeof (Real), &mem[iattr]);
   }
 
-  for (Index iattr = 0; iattr < *nattr; ++iattr)
-  {
-    if ( attr[iattr] == NULL )
+  for (Index iattr = 0; iattr < nattr; ++iattr)
+    if (attr[iattr] == NULL)
       hmesh_error ("hmesh_cells () : attribute missing");
-  }
 
-  /* Expand all attributes array by 1 block */
+  /*
+  .. Expand all attributes array by 1 memory block
+  */
   hmesh_cells_expand (cells);
 
   return cells;
@@ -431,48 +435,27 @@ int hmesh_scalar_remove (HmeshCells * cells, char * name)
 Node hmesh_node_new (HmeshCells * cells)
 {
 
-  IndexStack * blocks = cells->blocks;
-  Index iblock = blocks->info[blocks->n-1].in_use,
-    * prev = (Index *) HMESH_ATTR (cells, 0, iblock),
-    * next = (Index *) HMESH_ATTR (cells, 1, iblock),
-    head = cells->info[4*iblock], fhead = cells->info[4*iblock + 1];
+  Index blk = cells->last;
+  if (cells->info [blk] == hmesh_tpool_block_size ())
+  {
+    if (hmesh_cells_expand () != HMESH_NO_ERROR)
+      return (Node) {.index = UINT16_MAX, .iblock = UINT16_MAX};
+    blk = cells->last;
+  }
 
-  /* Make sure free head is not empty */
-  if (!fhead)
-    return (Node) {.index = 0, .iblock = 0};
-
-  /* If this is the last free node in the block, add block */
-  if (!next[fhead])
-    /* fixme : Optimize a bit to reuse freed nodes in previous blocks */
-    hmesh_cells_expand (cells);
-
-  /* Remove fhead from free list, update free head*/
-  cells->info [4*iblock+1] = next[fhead];
-
-  /* adding fhead to used list */
-  next[fhead] = next[head];
-  prev[fhead] = head;
-  next[head]  = prev[next[head]] = fhead;
-  cells->info[4*iblock] = next[fhead];
-
-  /* Update count*/
-  cells->info[4*iblock+2]++;
-  cells->info[4*iblock+3]--;
-
-  return (Node) {.index = fhead, .iblock = iblock};
+  return (Node) {.index = cells->info [blk]++, .iblock = blk};
 }
 
 /*
-.. Add a node to the 'cells'
+.. Remove a node from 'cells'. WARNING : No safety checking, for the
+.. sake of faster deletion.
 */
 int hmesh_node_remove (HmeshCells * cells, Node node)
 {
   Index iblock = node.iblock, index = node.index,
-    * prev = (Index *) HMESH_ATTR (cells, 0, iblock),
-    * next = (Index *) HMESH_ATTR (cells, 1, iblock);
+    * map  = (Index *) HMESH_ATTR (cells, 0, iblock),
+    * mapi = (Index *) HMESH_ATTR (cells, 1, iblock);
 
-  /* Error : Index is already a free index, or the reserved index '0'
-  .. or out of bound */
   if ( (prev[index] == UINT16_MAX) || (!index) ||
       (index >= hmesh_tpool_block_size ()) )
     return HMESH_ERROR;
