@@ -20,8 +20,8 @@ void * hmesh_array_add (HmeshArray * a, Index iblock, void *** mem)
 
   /*
   .. Allocate memory for the block using tpool. The address is stored in
-  .. (*mem)[iblock] for faster access. a->blockID[iblock] is updated (used
-  .. only for deallocation. 
+  .. (*mem)[iblock] for faster access. a->blockID[iblock] is updated (used only
+  .. for deallocation). 
   */
   Index blockID = hmesh_tpool_allocate_general (a->obj_size);
   void * m = hmesh_tpool_address (blockID);
@@ -69,8 +69,8 @@ int hmesh_array_remove (HmeshArray * a, Index iblock, void *** mem)
 
 /*
 .. "hmesh_array" : Create a new attribute. "name" is the name of the attribute,
-.. "size" is the size of datatype in bytes. Note : only {1,2,4,8} are allowed.
-.. (*mem) is for the array of memory blocks for the attribute.
+.. "size" is the size of datatype in bytes. Note : only {1,2,4,8}xBytes are
+.. allowed. "(*mem)" is for the array of memory blocks for the attribute.
 */
 HmeshArray * hmesh_array (char * name, size_t size, void *** mem)
 {
@@ -133,7 +133,7 @@ int hmesh_array_destroy (HmeshArray * a, void *** mem)
 }
 
 /*
-.. "hmesh_cells_expand () " Add 1 block to all the attributes of "cells"
+.. "hmesh_cells_expand ()" adds 1 block to all the attributes of 'cells'
 */
 static
 int hmesh_cells_expand (HmeshCells * cells)
@@ -160,7 +160,7 @@ int hmesh_cells_expand (HmeshCells * cells)
     {
       /*
       .. 'map'  : iattr = 0 : indirection map
-      .. 'imap' : iattr = 1 : inverse of indirection map
+      .. 'mapi' : iattr = 1 : inverse of indirection map
       */
       Index * map = (Index *) m, index = 0,
         bsize = hmesh_tpool_block_size ();
@@ -175,7 +175,12 @@ int hmesh_cells_expand (HmeshCells * cells)
     cells->info = realloc (cells->info, cells->max * sizeof (Index));
   }
 
-  /* number of nodes in use & the block in which you insert */
+  /*
+  .. 'info [iblock]' : number of in-use nodes in the iblock.
+  .. 'tail' : The (tail) block available for inserting new nodes. We neglect
+  .. the empty nodes (deleted nodes) in the other blocks, but we do compaction
+  .. later to remove those empty nodes.
+  */
   cells->info [iblock] = 0;
   cells->tail = iblock;
 
@@ -184,6 +189,24 @@ int hmesh_cells_expand (HmeshCells * cells)
 
 /*
 .. Create a HmeshCells (list of vertices, edges, etc ..)
+
+.. Graph of sub cells: For each k > 0, a k-cell (simplex) is an
+.. ordered tuple of (k-1)-cells.
+..
+.. Refer the table below :
+..----------------------------------------------------------------
+.. n | n-simplex         | Num of k-faces = C(n,k) ∀ k ∈ [0,n] )  |
+..   |                   |  0-face |  1-face | 2-face | 3-face    |
+..----------------------------------------------------------------
+.. 0 | 0-simplex /       |         |         |        |           |
+..   |   point           |  1      |         |        |           |
+.. 1 | 1-simplex /       |         |         |        |           |
+..   |   line segment    |  2      |   1     |        |           |
+.. 2 | 2-simplex /       |         |         |        |           |
+..   |    triangle       |  3      |   3     |   1    |           |
+.. 3 | 3-simplex /       |         |         |        |           |
+..   |    tetrahedron    |  4      |   6     |   4    |     1     |
+..----------------------------------------------------------------
 */
 HmeshCells * hmesh_cells (int k, int K, int D)
 {
@@ -198,14 +221,21 @@ HmeshCells * hmesh_cells (int k, int K, int D)
   *scalars = index_stack (HMESH_MAX_NVARS, 8, &cells->attr);
 
   /*
-  .. Default attributes :
+  .. fixme : edit the list : Default attributes :
   .. (a) For all k-cell stack we maintain the indirection map and the inverse
   .. of the indirection map.
   .. (b) For 0-simplex we maintain the position vector {x.x, x.y, .. }
-  .. (c) For all k-simplex (k > 0), we maintain a 'k-1' stack.
-  .. (d) For all k-simplex (k < K <= D), we maintain 'twin' and 'next'
-  */
+  .. (c) For k-simplex (k == K), we maintain the vertex tuple
+  ..     (v[0], v[1], .., .. v[k]), we also maintain 'twin' and 'next'.
+  ..     In Half-edge surface mesh (or it's extension to half-face tetrahedral
+  ..     volumetric mesh), k-simplices with k == K represents half-edges or
+  ..     half-faces or it's theoretical extension to higher dimensions.
+  .. (d) For all k-simplex (0 < k < K), we derive {v[0], v[1], v[k]}
+  ..     from k-simplex (k == K).
   int nattr = cells->min = 2 + ( (k == 0) ? D : ( (k < K) ? 3 : 2) ) 
+  */
+  int nattr = cells->min = 2 + 
+    (k == 0 ? D : (k == K ? 1 : (k == K-1 ? k+3 : k+1)));
   for (int iattr = 0; iattr < nattr; ++iattr)
     index_stack_allocate (scalars, iattr);
   cells->mem = malloc (scalars->max * sizeof (void **));
@@ -226,49 +256,32 @@ HmeshCells * hmesh_cells (int k, int K, int D)
   cells->max = 0;
   cells->info = NULL;
 
-  if (k)
+  if (!k)
   {
     /*
-    .. Graph of sub cells: For each k > 0, a k-cell (simplex) is an
-    .. ordered tuple of (k-1)-cells.
-    ..
-    .. Refer the table below :
-    ..----------------------------------------------------------------
-    .. n | n-simplex         | Num of k-faces = C(n,k) ∀ k ∈ [0,n] )  |
-    ..   |                   |  0-face |  1-face | 2-face | 3-face    |
-    ..----------------------------------------------------------------
-    .. 0 | 0-simplex /       |         |         |        |           |
-    ..   |   point           |  1      |         |        |           |
-    .. 1 | 1-simplex /       |         |         |        |           |
-    ..   |   line segment    |  2      |   1     |        |           |
-    .. 2 | 2-simplex /       |         |         |        |           |
-    ..   |    triangle       |  3      |   3     |   1    |           |
-    .. 3 | 3-simplex /       |         |         |        |           |
-    ..   |    tetrahedron    |  4      |   6     |   4    |     1     |
-    ..----------------------------------------------------------------
+    .. Position vector :{ "x.x", "x.y", ..}
     */
+    char pos [] = "x.x", * x = &pos[2];
+    for (int iattr = 2; iattr < nattr; ++iattr, (*x)++ )
+      attr[iattr] = hmesh_array (pos, sizeof (Real), &mem[iattr]);
+  }
+  else if (k == K) {
+    attr[k + 5] = hmesh_array ("k-1", sizeof (Node), &mem[k + 4]);
+  }
+  else {
+    if (k == K-1) {
+      attr[k + 3] = hmesh_array ("next", sizeof (Node), &mem[k + 3]);
+      attr[k + 4] = hmesh_array ("twin", sizeof (Node), &mem[k + 4]);
+    }
+  }
+  else
+  {
 
-    /*
-    .. in half-edge meshes, we keep 'next' & 'twin'
-    */
-    attr[k + 3] = hmesh_array ("next", sizeof (Node), &mem[k + 3]);
-    attr[k + 4] = hmesh_array ("twin", sizeof (Node), &mem[k + 4]);
     /*
     .. Stack of 'k-1' simplices.
     .. fixme: 'k-1' is not an attribute for each nodes??
     .. It should be rather a Cache of subset of (k-1)-simplices. 
     */
-    if (k < K)
-      attr[k + 5] = hmesh_array ("k-1", sizeof (Node), &mem[k + 4]);
-  }
-  else
-  {
-    char pos [] = "x.x", * x = &pos[2];
-    /*
-    .. Position vector :{ "x.x", "x.y", ..}
-    */
-    for (int iattr = 2; iattr < nattr; ++iattr, (*x)++ )
-      attr[iattr] = hmesh_array (pos, sizeof (Real), &mem[iattr]);
   }
 
   for (Index iattr = 0; iattr < nattr; ++iattr)
