@@ -4,8 +4,8 @@
 
 int main() {
 
-  /* set of edges in 3D */
-  int d = 1, D = 3;
+  /* 2-Manifold in 3D */
+  int d = 2, D = 3;
   Hmesh * h = hmesh (d, D);
 
   HmeshCells ** c[4] = { &h->p, &h->e, &h->t, &h->v };
@@ -23,7 +23,7 @@ int main() {
     fprintf (stdout, "\nList of scalar attr");  
     for (int i = cells->min; i<cells->scalars.n; ++i)
     {
-      Index iscalar = cells->scalars.info[i].in_use;
+      Index iscalar = cells->scalars.indirection [i].map;
       HmeshArray * attr = (HmeshArray *) cells->attr[iscalar];
       assert (attr);
       fprintf (stdout, "\n\t%s", attr->name);

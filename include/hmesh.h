@@ -33,9 +33,9 @@ extern "C" {
 
   /*
   .. Some limits imposed in hmesh
-  .. (a) Maximum 2^16 Blocks. Usually RAM will run much before that.
-  .. (b) Maximum of 64 variables/attributes per manifold
-  .. (c) Maximum of 32 characters including '\0' for variable name. 
+  .. (a) Maximum 2^16 Blocks. Usually RAM will run out much before that.
+  .. (b) Maximum of 64 attributes per k-face
+  .. (c) Maximum of 32 characters including '\0' for attribute name. 
   */
   #define HMESH_MAX_NBLOCKS UINT16_MAX
   #define HMESH_MAX_NVARS   64
@@ -67,12 +67,12 @@ extern "C" {
     HMESH_SUBNODE(_triangles_, _triangle_,_ie_)
   
   /*
-  .. HmeshArray : a list of memory blocks. It can be used to store nodes, or
+  .. "HmeshArray" : a list of memory blocks. It can be used to store nodes, or
   .. attributes of nodes like scalars etc.
-  .. 'name' : name of the attribute, in case this is an attribute to a node.
-  .. Warning: Name of attribute limited to 31 characters!
-  .. 'blockID' is the number corresponding to each block in the 'pool'. 'max'
-  .. is the size of iblock array, and also address array
+  .. 'name' of the attribute, in case this is name of an attribute to a node.
+  ..    Warning: Name of attribute limited to 31 characters!
+  .. 'blockID' is the number corresponding to each block in the 'pool'.
+  .. 'max' is the size of iblock array, and also address array.
   .. To keep track of indices for which address[index] are in_use and
   .. free_list. you need to free the memblock before freeing the index
   */
@@ -90,47 +90,73 @@ extern "C" {
 
   /*
   .. "HmeshCells" : list of k-cells/k-simplices of a mesh ( k in {0,1,2,3}
-  .. respectively for vertices/edges/triangle/tetrahedrons ). The list is
-  .. stored as an array of indices, or rather as a linked list of indices.
-  .. There may be stacks of arrays (also called as Structure of Arrays or SoA)
-  .. with each array corresponding to an attribute of the cells.
+  .. respectively for points/line-segments/triangle/tetrahedrons ).
+  ..
+  .. The list is a dynamic collection and nodes where you can insert & delete,
+  .. along with a collection of (dynamic) attributes with each attribute
+  .. applies to every k-cell. The attributes are stored in a Structure of Array
+  .. format for the sake of vectorization of arrays. Since the list is dynamic,
+  .. maintaining a contiguous array for each attribute is not practical, thus
+  .. we rely on blocks of memory for each attribute. In each blocks used/free
+  .. nodes can be found using an indirection map.
+  ..
+  .. Given a set of blocks B := {0, 1, .., |B|-1}, and each block is a set of
+  .. indices I := {0, 1, .., |I|-1}, and if in each block say there are n(b)
+  .. (where n : B -> I) indices in use we can use an "indirection-map" to
+  .. designate used and free indices in each block. Indirection map M(i, b),
+  .. along with it's inverse are maintained for the sake of deletion, since
+  .. deletion can happen at any location in the index block. If we define the
+  .. indirection map as bijective map M(b, i) : I -> I, then the used indices
+  .. and free indices in the b-th block are respectively
+  ..  used indices := { M (b, i) | i ∈ {0, 1, .. , n(b) - 1} }
+  ..  free indices := { M (b, i) | i ∈ {n(b), .. , |I| - 1} }
+  ..
+  .. So HmeshCell Data can be considered as a 3D data of 
+  .. {0, 1, .. |A|-1} x {0, 1, .. |B|-1} x {0, 1, ..|I|-1} where
+  .. A is the set of attributes.
+  .. 
+  .. Data members of "HmeshCells" are 
+  .. 'scalars' : list of indices (IndexStack) corresponsing to each attribute
+  .. 'blocks'  : list of indices (IndexStack) corresponding to each block
+  ..
+  .. 'attr' : array of attributes ('HmeshArray')
+  .. 'mem'  : 2D array of memory addresses ( ex : mem [iattr][iblock] )
+  ..          of each blocks.
+  .. 'v'    : ???
+  ..
   .. 'info' : number of indices in use
   .. 'max'  : blocks in [0,max) are (maybe) in use 
   .. 'maxs' : scalars in [0,maxs) are (maybe) in use
   .. 'tail' : tail block where you insert new nodes.
-  .. 'k'    : represent dimension of k-simplex. 0 <= k <= D
+  .. 'k'    : represent dimension of k-simplex. 0 <= k <= K < D
   */
+
   typedef struct 
   {
     IndexStack scalars, * blocks;
-    void **  attr, *** mem;
+    void ** attr, *** mem;
     Index * info, max, maxs, tail;
     int k, min;
   } HmeshCells;
 
   /*
-  .. Hmesh: Mesh or a discretized manifold 
+  .. Hmesh: Mesh of a discretized manifold
   .. 
-  .. 'K' : dimension of highest order simplex in [0,3]. They can be,
+  .. 'K' : Manifold dimension i.e. dimension of highest order simplex in [0,3].
+  .. They can be,
   .. 0: Collection of disconnected Points
   .. 1: Discretized curves in 2-D or 3-D
   .. 2: Discretized 3-D sufaces. 
   .. 3: Volume mesh in 3-D.
   ..
-  .. 'D' : Dimension of space. For us, 'D' in [2,3].
-  .. NOTE: It's always (k <= D)
-  .. set of manifold cells like 
-  .. points, edges, triangles, volumes 
-  .. NOTE: They can be empty, 
-  .. Ex: a curve, which is a 1-D manifold in 3D 
-  .. Eulerian space will have empty face list ('triangles').
+  .. 'D' : Dimension of space. For us, 'D' in [2,3]. NOTE: It's always K <= D.
   ..
   .. 'p' ,'e', 't', 'v'  are sets of pointes, edges, triangles
   .. and (tetrahedral) volume cells 
   */
   typedef struct
   {
-    int K, D;
+    unsigned int K, D;
     HmeshCells * p, * e, * t, * v; 
   } Hmesh;
 

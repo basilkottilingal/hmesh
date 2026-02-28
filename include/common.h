@@ -70,7 +70,7 @@ extern "C" {
   .. Everywhere else (and by default) it's used as 64.
   */
 
-  #if HMESH_PRECISION == 32
+  #if HMESH_PRECprint_index_stackION == 32
   typedef float  Real;
   #else
   typedef double Real;
@@ -87,21 +87,15 @@ extern "C" {
 
   typedef struct
   {
-    Index  in_use,
-           free_list,
-           loc,
-           loc_free;
-  } IndexInfo ;
+    Index map, inverse;
+  } IndexMap;
 
   typedef struct
   {
-    Index  increment,
-           limit,
-           n,
-           nfree,
-           max;
-    IndexInfo * info;
-    void ***    attribute;
+    Index increment, limit;
+    Index n, max;
+    IndexMap * indirection;
+    void *** attribute;
   } IndexStack;
 
   /*
@@ -114,136 +108,155 @@ extern "C" {
     assert (limit > 1);
     increment = increment ? increment : 1;
     Index max = increment > limit ? limit : increment;
-    IndexInfo  * info = malloc (max* sizeof (IndexInfo));
+    IndexMap * indirection = malloc (max* sizeof (IndexMap));
+
+    for (Index i=0; i<max; ++i)
+      indirection[i].map = indirection[i].inverse = i;
 
     if (att)
     {
       assert (*att == NULL);
       *att = malloc (max * sizeof (void *));
-    }
-    for (Index i=0; i<max; ++i)
-    {
-      info[i].free_list = i;
-      info[i].loc_free  = i;
-      info[i].loc       = UINT16_MAX;
-      if (att)
+      for (Index i=0; i<max; ++i)
         (*att)[i] = NULL;
     }
-    return (IndexStack) {
-      .info = info,
-      .increment = increment,
-      .limit = limit,
-      .n = 0,
-      .nfree = max,
-      .max = max,
-      .attribute = att
+
+    return (IndexStack)
+    {
+      .indirection = indirection,
+      .increment   = increment,
+      .limit       = limit,
+      .n           = 0,
+      .max         = max,
+      .attribute   = att
     };
   }
 
   static inline Index index_stack_expand (IndexStack * stack)
   {
     if (stack->max == stack->limit)
-      /* Reached limit. Return error*/
       return HMESH_ERROR;
-    /* Expand the array */
     Index max = stack->max + stack->increment;
     max = (max > stack->limit) ? stack->limit : max;
-    stack->info = realloc (stack->info, max * sizeof (IndexInfo));
+    stack->indirection = realloc (stack->indirection, max * sizeof (IndexMap));
 
     void *** att = stack->attribute;
-    if (att)
-      *att = realloc (*att, max * sizeof (void *));
+    IndexMap * indirection = stack->indirection;
 
-    IndexInfo * info = stack->info;
     for (Index i = stack->max; i<max; ++i)
+      indirection [i].map = indirection [i].inverse = i;
+
+    if (att)
     {
-      info[stack->nfree].free_list = i;
-      info[i].loc_free             = stack->nfree++;
-      info[i].loc                  = UINT16_MAX;
-      if (att)
+      *att = realloc (*att, max * sizeof (void *));
+      for (Index i = stack->max; i<max; ++i)
         (*att)[i] = NULL;
     }
+
     stack->max = max;
 
     return HMESH_NO_ERROR;
   }
 
+  #if 0
+  #define  print_index_stack \
+    fflush (stdout);\
+    printf ("\nIndexStack [n%d max%d]", stack->n, stack->max);\
+    printf ("\nMap       ");\
+    for (int i=0; i<stack->max; ++i)\
+      printf ("%2d ", stack->indirection [i].map);\
+    printf ("\nInv       ");\
+    for (int i=0; i<stack->max; ++i)\
+      printf ("%2d ", stack->indirection [i].inverse);\
+    printf ("\n          ");\
+    for (int i=0; i<stack->n; ++i)\
+      printf ("   ");\
+    printf ("^"); \
+    fflush (stdout);
+  #endif
+
   static inline
   Index index_stack_free_head (IndexStack * stack, int is_pop)
   {
-    if (!stack->nfree)
+    if (stack->n == stack->max)
       if (index_stack_expand (stack) == HMESH_ERROR)
       {
-        hmesh_error ("index_stack_free_head () : Out of index");
-        /* Reached limit. Return invalid index*/
+        hmesh_error ("index_stack_allocate () : Out of limit/memory");
         return UINT16_MAX;
       }
-    IndexInfo * info = stack->info;
-    Index index = info[stack->nfree-1].free_list;
+
+    Index index = stack->indirection [stack->n].map;
     if (is_pop)
-    {
-      --(stack->nfree);
-      info[index].loc_free  = UINT16_MAX;
-      info[stack->n].in_use = index;
-      info[index].loc       = stack->n++;
-    }
+      stack->n ++;
     return index;
   }
 
-  static inline int
-  index_stack_deallocate (IndexStack * stack, Index index)
+
+  static inline
+  int index_stack_allocate_at (IndexStack * stack, Index index)
   {
-    /* index location in in_use array */
-    Index indexLoc = (index >= stack->max) ? UINT16_MAX :
-                          stack->info[index].loc;
-    void *** att = stack->attribute;
-    void * index_att = att ? (*att)[index] : NULL;
-    if (indexLoc == UINT16_MAX)
+    while (index >= stack->max)
+      if (index_stack_expand (stack) == HMESH_ERROR)
+      {
+        hmesh_error ("index_stack_allocate_at () : Out of index");
+        return HMESH_ERROR;
+      }
+
+    IndexMap * indirection = stack->indirection;
+    Index last = stack->n,
+      inv = indirection [index].inverse,
+      map = indirection [last].map;
+
+    if (inv < last)
     {
-      hmesh_error ("index_stack_deallocate () : not in use");
+      hmesh_error ("index_stack_allocate_at () : Index in use");
       return HMESH_ERROR;
     }
-    if (index_att)
+
+    indirection [last].map = index;
+    indirection [index].inverse = last;
+
+    indirection [inv].map = map;
+    indirection [map].inverse = inv;
+
+    stack->n ++;
+    return HMESH_NO_ERROR;
+  }
+
+  static inline
+  int index_stack_deallocate (IndexStack * stack, Index index)
+  {
+    if (index >= stack->max)
+    {
+      hmesh_error ("index_stack_deallocate () : invalid index");
+      return HMESH_ERROR;
+    }
+
+    void *** att = stack->attribute;
+    IndexMap * indirection = stack->indirection;
+    Index last = stack->n - 1,
+      inv = indirection [index].inverse,
+      map = indirection [last].map;
+
+    if (inv > last)
+    {
+      hmesh_error ("index_stack_deallocate () : index not in use");
+      return HMESH_ERROR;
+    }
+
+    if (att ? (*att)[index] : NULL)
     {
       hmesh_error ("index_stack_deallocate () : attribute not freed");
       return HMESH_ERROR;
     }
-    IndexInfo * info             = stack->info;
-    info[stack->nfree].free_list = index;
-    info[index].loc_free         = stack->nfree++;
-    info[indexLoc].in_use        = info[--(stack->n)].in_use;
-    info[info[indexLoc].in_use].loc = indexLoc;
-    info[index].loc              = UINT16_MAX;
 
-    return HMESH_NO_ERROR;
-  }
+    indirection [last].map = index;
+    indirection [index].inverse = last;
 
-  static inline int
-  index_stack_allocate (IndexStack * stack, Index index)
-  {
-    while ( index >= stack->max )
-      if ( index_stack_expand (stack) == HMESH_ERROR )
-      {
-        hmesh_error ("index_stack_free_head () : Out of index");
-        return HMESH_ERROR;
-      }
-    IndexInfo * info = stack->info;
-    /* index location in free_list array */
-    Index indexLoc   = info[index].loc_free;
-    void *** att = stack->attribute;
-    void * index_att = att ? (*att)[index] : NULL;
-    if ( indexLoc == UINT16_MAX || index_att )
-    {
-      hmesh_error ("index_stack_allocate () : "
-                 "index %d already in use", index);
-      return HMESH_ERROR;
-    }
+    indirection [inv].map = map;
+    indirection [map].inverse = inv;
 
-    info[stack->n].in_use    = index;
-    info[index].loc          = stack->n++;
-    info[indexLoc].free_list = info[--(stack->nfree)].free_list;
-    info[info[indexLoc].free_list].loc_free = indexLoc;
-    info[index].loc_free     = UINT16_MAX;
+    stack->n --;
 
     return HMESH_NO_ERROR;
   }
@@ -252,24 +265,23 @@ extern "C" {
   index_stack_destroy (IndexStack * stack)
   {
     Index n = stack->n;
-    int status = HMESH_NO_ERROR;
-    while (n--)
+    IndexMap * indirection = stack->indirection;
+    if (stack->attribute)
     {
-      Index index = stack->info[n].in_use;
-      if ( index_stack_deallocate (stack, index) == HMESH_ERROR )
-      {
-        /* Attributes are not freed */
-        hmesh_error ("index_stack_destroy () : "
-                     "index %d cannot be freed", index);
-        status = HMESH_ERROR;
-      }
+      void *** att = stack->attribute;
+      while (n--)
+        if ( (*att) [indirection[n].map] )
+        {
+          hmesh_error ("index_stack_destroy () : index cannot be freed");
+          return HMESH_ERROR;
+        }
     }
-    if (status == HMESH_ERROR)
-      return status;
-    if (stack->info)
-      free (stack->info);
-    stack->info = NULL;
 
+    if (indirection)
+      free (indirection);
+    stack->n = stack->max = 0;
+    stack->indirection = NULL;
+    stack->attribute = NULL;
     return HMESH_NO_ERROR;
   }
 

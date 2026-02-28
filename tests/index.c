@@ -25,7 +25,7 @@ int main()
   hmesh_error_flush ();
 
   for (Index index = 0; index < 10; ++index)
-    if (index_stack_allocate (&stack, index) == HMESH_ERROR)
+    if (index_stack_allocate_at (&stack, index) == HMESH_ERROR)
       hmesh_error ("index %d still in use", index);
   /* indices 0-4 are still in use */
   hmesh_error_flush ();

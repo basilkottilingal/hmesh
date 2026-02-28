@@ -55,7 +55,7 @@ int main()
 
   srand(time(0));
 
-  HmeshCells * vertices = hmesh_cells (0,3);
+  HmeshCells * vertices = hmesh_cells (0,0,3);
 
   fflush (stdout);
   /* Insert a 'node' (vertex) to vertices */
